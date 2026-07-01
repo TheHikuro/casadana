@@ -335,8 +335,10 @@ export const usePatchBooking = <TError = ErrorResponse,
       return useMutation(mutationOptions, queryClient);
     }
     /**
- * Returns date ranges where the villa is already booked (approved or
-paid) within the [from, to) window. Pending bookings are NOT returned.
+ * Returns date ranges within the [from, to) window, split by
+confirmation state: `booked_ranges` (approved or paid — hard blocked)
+and `pending_ranges` (awaiting confirmation — a new booking request
+overlapping these would conflict, but nothing is guaranteed yet).
 
  * @summary Get booked date ranges for a villa
  */

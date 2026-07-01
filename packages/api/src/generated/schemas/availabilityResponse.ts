@@ -12,4 +12,5 @@ import type { BookedRange } from './bookedRange';
 
 export interface AvailabilityResponse {
   booked_ranges: BookedRange[];
+  pending_ranges: BookedRange[];
 }
