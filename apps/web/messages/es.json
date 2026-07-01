@@ -208,6 +208,8 @@
   "villa_booking_nights_at_price": "{count} {nightsWord} a €{price}",
   "villa_booking_total": "Total",
   "villa_booking_no_charge_note": "Aún no se ha realizado ningún cargo · Confirmación en 48 horas",
+  "villa_booking_night_booked": "Ya reservada",
+  "villa_booking_night_pending": "Pendiente de confirmación",
   "villa_local_area_overlap_alt": "Detalle",
   "villa_lightbox_close": "Cerrar la galería",
   "villa_casadana_index": "Villa nº 01",

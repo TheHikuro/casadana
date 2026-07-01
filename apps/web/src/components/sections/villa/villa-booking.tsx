@@ -175,9 +175,9 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
     },
   )
 
-  const blockedNights = useMemo(() => {
+  function datesToSet(ranges: Array<{ check_in: string; check_out: string }>): Set<string> {
     const set = new Set<string>()
-    for (const r of availability?.booked_ranges ?? []) {
+    for (const r of ranges) {
       const start = parseISO(r.check_in)
       const end = parseISO(r.check_out)
       for (let d = start; d < end; d = addDays(d, 1)) {
@@ -185,9 +185,24 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
       }
     }
     return set
-  }, [availability])
+  }
+
+  // Confirmed (approved/paid) nights are hard blocked. Pending nights are
+  // provisionally held by an unconfirmed request — not guaranteed, but a new
+  // booking on top of them would still conflict server-side, so they're shown
+  // (distinctly) and are not selectable either.
+  const blockedNights = useMemo(
+    () => datesToSet(availability?.booked_ranges ?? []),
+    [availability],
+  )
+  const pendingNights = useMemo(
+    () => datesToSet(availability?.pending_ranges ?? []),
+    [availability],
+  )
 
   const isBlocked = (date: Date) => blockedNights.has(format(date, "yyyy-MM-dd"))
+  const isPendingDate = (date: Date) => pendingNights.has(format(date, "yyyy-MM-dd"))
+  const isUnavailable = (date: Date) => isBlocked(date) || isPendingDate(date)
 
   const priceOverridesByDate = useMemo(() => {
     const map = new Map<string, number>()
@@ -267,7 +282,7 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
   }, [viewMonth])
 
   const pickDate = (date: Date) => {
-    if (isBlocked(date)) return
+    if (isUnavailable(date)) return
     if (activeField === "in" || date < checkIn) {
       setValue("checkIn", date, { shouldDirty: true })
       if (checkOut <= date) {
@@ -426,13 +441,25 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
                       </span>
                     )
                   }
-                  const blocked = isBlocked(cell.date)
-                  if (blocked) {
+                  if (isBlocked(cell.date)) {
                     return (
                       <span
                         key={i}
                         aria-disabled="true"
+                        title={m.villa_booking_night_booked()}
                         className="text-on-surface-variant/40 flex min-h-[42px] cursor-not-allowed items-center justify-center text-[13px] line-through"
+                      >
+                        {cell.d}
+                      </span>
+                    )
+                  }
+                  if (isPendingDate(cell.date)) {
+                    return (
+                      <span
+                        key={i}
+                        aria-disabled="true"
+                        title={m.villa_booking_night_pending()}
+                        className="text-secondary decoration-secondary/60 flex min-h-[42px] cursor-not-allowed items-center justify-center text-[13px] underline decoration-dashed decoration-2 underline-offset-4"
                       >
                         {cell.d}
                       </span>

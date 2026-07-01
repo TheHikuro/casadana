@@ -209,6 +209,8 @@
   "villa_booking_nights_at_price": "{count} {nightsWord} at €{price}",
   "villa_booking_total": "Total",
   "villa_booking_no_charge_note": "No charge yet · Confirmation within 48 hours",
+  "villa_booking_night_booked": "Already booked",
+  "villa_booking_night_pending": "Awaiting confirmation",
   "villa_local_area_overlap_alt": "Detail",
   "villa_lightbox_close": "Close the gallery",
   "villa_casadana_index": "Villa No. 01",
