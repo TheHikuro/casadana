@@ -196,8 +196,10 @@ paths:
       tags: [bookings]
       summary: Get booked date ranges for a villa
       description: |
-        Returns date ranges where the villa is already booked (approved or
-        paid) within the [from, to) window. Pending bookings are NOT returned.
+        Returns date ranges within the [from, to) window, split by
+        confirmation state: `booked_ranges` (approved or paid — hard blocked)
+        and `pending_ranges` (awaiting confirmation — a new booking request
+        overlapping these would conflict, but nothing is guaranteed yet).
       parameters:
         - name: slug
           in: path
@@ -507,9 +509,12 @@ components:
 
     AvailabilityResponse:
       type: object
-      required: [booked_ranges]
+      required: [booked_ranges, pending_ranges]
       properties:
         booked_ranges:
+          type: array
+          items: { $ref: "#/components/schemas/BookedRange" }
+        pending_ranges:
           type: array
           items: { $ref: "#/components/schemas/BookedRange" }
 
