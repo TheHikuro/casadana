@@ -33,10 +33,105 @@ import type {
   CreateBookingRequest,
   ErrorResponse,
   GetVillaAvailabilityParams,
+  ListBookingsParams,
+  ListBookingsResponse,
   PatchBookingRequest
 } from '.././schemas';
 
 import { customAxios } from '../../client';
+
+
+
+
+/**
+ * @summary List bookings (paginated, optional status filter)
+ */
+export const listBookings = (
+    params?: ListBookingsParams,
+ signal?: AbortSignal
+) => {
+      
+      
+      return customAxios<ListBookingsResponse>(
+      {url: `/api/bookings`, method: 'GET',
+        params, signal
+    },
+      );
+    }
+  
+
+
+
+export const getListBookingsQueryKey = (params?: ListBookingsParams,) => {
+    return [
+    `/api/bookings`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getListBookingsQueryOptions = <TData = Awaited<ReturnType<typeof listBookings>>, TError = ErrorResponse>(params?: ListBookingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listBookings>>, TError, TData>>, }
+) => {
+
+const {query: queryOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListBookingsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBookings>>> = ({ signal }) => listBookings(params, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBookings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type ListBookingsQueryResult = NonNullable<Awaited<ReturnType<typeof listBookings>>>
+export type ListBookingsQueryError = ErrorResponse
+
+
+export function useListBookings<TData = Awaited<ReturnType<typeof listBookings>>, TError = ErrorResponse>(
+ params: undefined |  ListBookingsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listBookings>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listBookings>>,
+          TError,
+          Awaited<ReturnType<typeof listBookings>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useListBookings<TData = Awaited<ReturnType<typeof listBookings>>, TError = ErrorResponse>(
+ params?: ListBookingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listBookings>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listBookings>>,
+          TError,
+          Awaited<ReturnType<typeof listBookings>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useListBookings<TData = Awaited<ReturnType<typeof listBookings>>, TError = ErrorResponse>(
+ params?: ListBookingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listBookings>>, TError, TData>>, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary List bookings (paginated, optional status filter)
+ */
+
+export function useListBookings<TData = Awaited<ReturnType<typeof listBookings>>, TError = ErrorResponse>(
+ params?: ListBookingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listBookings>>, TError, TData>>, }
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getListBookingsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
 
 
 
@@ -105,6 +200,67 @@ export const useCreateBooking = <TError = ErrorResponse,
       > => {
 
       const mutationOptions = getCreateBookingMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * @summary Hard delete a booking (cascades to its review)
+ */
+export const deleteBooking = (
+    id: string,
+ ) => {
+      
+      
+      return customAxios<void>(
+      {url: `/api/bookings/${id}`, method: 'DELETE'
+    },
+      );
+    }
+  
+
+
+export const getDeleteBookingMutationOptions = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBooking>>, TError,{id: string}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof deleteBooking>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteBooking'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteBooking>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteBooking(id,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteBookingMutationResult = NonNullable<Awaited<ReturnType<typeof deleteBooking>>>
+    
+    export type DeleteBookingMutationError = ErrorResponse
+
+    /**
+ * @summary Hard delete a booking (cascades to its review)
+ */
+export const useDeleteBooking = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBooking>>, TError,{id: string}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteBooking>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteBookingMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

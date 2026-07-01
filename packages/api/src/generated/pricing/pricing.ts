@@ -9,16 +9,20 @@ in the frontend and not exposed by this API.
  * OpenAPI spec version: 0.1.0
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
@@ -26,7 +30,9 @@ import type {
 import type {
   ErrorResponse,
   GetVillaPricingParams,
-  PricingResponse
+  PricingResponse,
+  UpsertPricingRequest,
+  UpsertPricingResponse
 } from '.././schemas';
 
 import { customAxios } from '../../client';
@@ -35,6 +41,75 @@ import { customAxios } from '../../client';
 
 
 /**
+ * Sets `price_cents` for each date in the body. Existing overrides on
+the same date are replaced. All dates in one request share the same
+price; submit multiple requests to vary prices across dates.
+
+ * @summary Bulk upsert price overrides for a villa
+ */
+export const upsertVillaPricing = (
+    slug: string,
+    upsertPricingRequest: UpsertPricingRequest,
+ signal?: AbortSignal
+) => {
+      
+      
+      return customAxios<UpsertPricingResponse>(
+      {url: `/api/villas/${slug}/pricing`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: upsertPricingRequest, signal
+    },
+      );
+    }
+  
+
+
+export const getUpsertVillaPricingMutationOptions = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertVillaPricing>>, TError,{slug: string;data: UpsertPricingRequest}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof upsertVillaPricing>>, TError,{slug: string;data: UpsertPricingRequest}, TContext> => {
+
+const mutationKey = ['upsertVillaPricing'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertVillaPricing>>, {slug: string;data: UpsertPricingRequest}> = (props) => {
+          const {slug,data} = props ?? {};
+
+          return  upsertVillaPricing(slug,data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertVillaPricingMutationResult = NonNullable<Awaited<ReturnType<typeof upsertVillaPricing>>>
+    export type UpsertVillaPricingMutationBody = UpsertPricingRequest
+    export type UpsertVillaPricingMutationError = ErrorResponse
+
+    /**
+ * @summary Bulk upsert price overrides for a villa
+ */
+export const useUpsertVillaPricing = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertVillaPricing>>, TError,{slug: string;data: UpsertPricingRequest}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof upsertVillaPricing>>,
+        TError,
+        {slug: string;data: UpsertPricingRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getUpsertVillaPricingMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
  * Returns the sparse list of per-date price overrides for a villa within
 the [from, to) window. Dates without an override fall back to the villa's
 frontend-defined default (`booking.nightly` in villas.const.ts).
