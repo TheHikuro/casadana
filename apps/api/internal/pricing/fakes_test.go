@@ -30,3 +30,14 @@ func d(s string) time.Time {
 	}
 	return t
 }
+
+func (f *fakeRepo) UpsertMany(_ context.Context, villaSlug string, priceCents int, dates []time.Time) error {
+	for _, d := range dates {
+		f.overrides = append(f.overrides, PriceOverride{
+			VillaSlug:  villaSlug,
+			Date:       d,
+			PriceCents: priceCents,
+		})
+	}
+	return nil
+}

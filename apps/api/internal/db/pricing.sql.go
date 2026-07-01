@@ -51,3 +51,22 @@ func (q *Queries) ListPriceOverrides(ctx context.Context, arg ListPriceOverrides
 	}
 	return items, nil
 }
+
+const upsertPriceOverride = `-- name: UpsertPriceOverride :exec
+INSERT INTO price_overrides (villa_slug, date, price_cents)
+VALUES ($1, $2, $3)
+ON CONFLICT (villa_slug, date) DO UPDATE
+SET price_cents = EXCLUDED.price_cents,
+    updated_at = NOW()
+`
+
+type UpsertPriceOverrideParams struct {
+	VillaSlug  string
+	Date       pgtype.Date
+	PriceCents int32
+}
+
+func (q *Queries) UpsertPriceOverride(ctx context.Context, arg UpsertPriceOverrideParams) error {
+	_, err := q.db.Exec(ctx, upsertPriceOverride, arg.VillaSlug, arg.Date, arg.PriceCents)
+	return err
+}

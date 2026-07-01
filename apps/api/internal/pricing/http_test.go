@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -79,6 +80,46 @@ func TestGetPricing_BadDates(t *testing.T) {
 	defer srv.Close()
 
 	resp, err := http.Get(srv.URL + "/api/villas/casadana/pricing?from=oops&to=2026-08-01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusUnprocessableEntity {
+		t.Fatalf("status = %d, want 422", resp.StatusCode)
+	}
+}
+
+func TestUpsertPricing_Created(t *testing.T) {
+	repo := &fakeRepo{}
+	svc := newSvc(repo, fakeAllowlist{allowed: map[string]bool{"casadana": true}})
+	srv := httptest.NewServer(newRouter(svc))
+	defer srv.Close()
+
+	body := `{"price_cents":25000,"dates":["2026-07-04","2026-07-05"]}`
+	resp, err := http.Post(srv.URL+"/api/villas/casadana/pricing", "application/json",
+		strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("status = %d, want 201", resp.StatusCode)
+	}
+	var out upsertPricingResponse
+	_ = json.NewDecoder(resp.Body).Decode(&out)
+	if out.Count != 2 {
+		t.Errorf("count = %d, want 2", out.Count)
+	}
+}
+
+func TestUpsertPricing_EmptyDates(t *testing.T) {
+	svc := newSvc(&fakeRepo{}, fakeAllowlist{allowed: map[string]bool{"casadana": true}})
+	srv := httptest.NewServer(newRouter(svc))
+	defer srv.Close()
+
+	body := `{"price_cents":100,"dates":[]}`
+	resp, err := http.Post(srv.URL+"/api/villas/casadana/pricing", "application/json",
+		strings.NewReader(body))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -12,6 +12,7 @@ type PriceOverride struct {
 }
 
 var (
-	ErrUnknownVilla = errors.New("unknown villa")
-	ErrInvalidRange = errors.New("from must be before to")
+	ErrUnknownVilla   = errors.New("unknown villa")
+	ErrInvalidRange   = errors.New("from must be before to")
+	ErrInvalidPayload = errors.New("invalid payload")
 )
