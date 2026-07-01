@@ -31,7 +31,6 @@ export interface GalleryEntry {
   src: string
   label: string
   category: GalleryCategory
-  size: "small" | "medium" | "large"
 }
 
 export interface BentoTile {
@@ -40,7 +39,7 @@ export interface BentoTile {
   index: string
   label: string
   caption: string
-  span: "wide" | "tall" | "half" | "third" | "quarter"
+  span: "wide" | "tall" | "half" | "third" | "quarter" | "wideFlat"
   placeholder?: boolean
   placeholderLabel?: string
 }
@@ -286,41 +285,41 @@ function buildCasadana(): VillaData {
           index: m.villa_casadana_gallery_tile_5_index(),
           label: m.villa_casadana_gallery_tile_5_index(),
           caption: m.villa_casadana_gallery_tile_5_caption(),
-          span: "wide",
+          span: "wideFlat",
         },
       ],
       images: {
         LIVING_SPACES: [
-          { src: LIVING_1, label: m.villa_casadana_gallery_img_living_1(), category: "LIVING_SPACES", size: "large" },
-          { src: LIVING_2, label: m.villa_casadana_gallery_img_living_2(), category: "LIVING_SPACES", size: "small" },
-          { src: LIVING_4, label: m.villa_casadana_gallery_img_living_3(), category: "LIVING_SPACES", size: "medium" },
-          { src: LIVING_3, label: m.villa_casadana_gallery_img_living_4(), category: "LIVING_SPACES", size: "medium" },
+          { src: LIVING_1, label: m.villa_casadana_gallery_img_living_1(), category: "LIVING_SPACES" },
+          { src: LIVING_2, label: m.villa_casadana_gallery_img_living_2(), category: "LIVING_SPACES" },
+          { src: LIVING_4, label: m.villa_casadana_gallery_img_living_3(), category: "LIVING_SPACES" },
+          { src: LIVING_3, label: m.villa_casadana_gallery_img_living_4(), category: "LIVING_SPACES" },
         ],
         BEDROOMS: [
-          { src: BEDROOM_3, label: m.villa_casadana_gallery_img_bedroom_1(), category: "BEDROOMS", size: "large" },
-          { src: BEDROOM_2, label: m.villa_casadana_gallery_img_bedroom_2(), category: "BEDROOMS", size: "small" },
-          { src: BEDROOM_5, label: m.villa_casadana_gallery_img_bedroom_3(), category: "BEDROOMS", size: "small" },
-          { src: BEDROOM_6, label: m.villa_casadana_gallery_img_bedroom_4(), category: "BEDROOMS", size: "medium" },
-          { src: BEDROOM_1, label: m.villa_casadana_gallery_img_bedroom_5(), category: "BEDROOMS", size: "medium" },
-          { src: BEDROOM_4, label: m.villa_casadana_gallery_img_bedroom_6(), category: "BEDROOMS", size: "small" },
+          { src: BEDROOM_3, label: m.villa_casadana_gallery_img_bedroom_1(), category: "BEDROOMS" },
+          { src: BEDROOM_2, label: m.villa_casadana_gallery_img_bedroom_2(), category: "BEDROOMS" },
+          { src: BEDROOM_5, label: m.villa_casadana_gallery_img_bedroom_3(), category: "BEDROOMS" },
+          { src: BEDROOM_6, label: m.villa_casadana_gallery_img_bedroom_4(), category: "BEDROOMS" },
+          { src: BEDROOM_1, label: m.villa_casadana_gallery_img_bedroom_5(), category: "BEDROOMS" },
+          { src: BEDROOM_4, label: m.villa_casadana_gallery_img_bedroom_6(), category: "BEDROOMS" },
         ],
         KITCHEN: [
-          { src: KITCHEN_1, label: m.villa_casadana_gallery_img_kitchen_1(), category: "KITCHEN", size: "large" },
-          { src: KITCHEN_2, label: m.villa_casadana_gallery_img_kitchen_2(), category: "KITCHEN", size: "medium" },
+          { src: KITCHEN_1, label: m.villa_casadana_gallery_img_kitchen_1(), category: "KITCHEN" },
+          { src: KITCHEN_2, label: m.villa_casadana_gallery_img_kitchen_2(), category: "KITCHEN" },
         ],
         BATHROOMS: [
-          { src: BATHROOM, label: m.villa_casadana_gallery_img_bathroom_1(), category: "BATHROOMS", size: "large" },
+          { src: BATHROOM, label: m.villa_casadana_gallery_img_bathroom_1(), category: "BATHROOMS" },
         ],
         OUTDOOR: [
-          { src: ROOFTOP_7, label: m.villa_casadana_gallery_img_outdoor_1(), category: "OUTDOOR", size: "large" },
-          { src: ROOFTOP_1, label: m.villa_casadana_gallery_img_outdoor_2(), category: "OUTDOOR", size: "small" },
-          { src: ROOFTOP_3, label: m.villa_casadana_gallery_img_outdoor_3(), category: "OUTDOOR", size: "medium" },
-          { src: ROOFTOP_5, label: m.villa_casadana_gallery_img_outdoor_4(), category: "OUTDOOR", size: "medium" },
-          { src: JACUZZI_1, label: m.villa_casadana_gallery_img_outdoor_5(), category: "OUTDOOR", size: "small" },
-          { src: JACUZZI_2, label: m.villa_casadana_gallery_img_outdoor_6(), category: "OUTDOOR", size: "medium" },
-          { src: FRONT_2, label: m.villa_casadana_gallery_img_outdoor_7(), category: "OUTDOOR", size: "large" },
-          { src: FRONT_1, label: m.villa_casadana_gallery_img_outdoor_8(), category: "OUTDOOR", size: "small" },
-          { src: FRONT_3, label: m.villa_casadana_gallery_img_outdoor_9(), category: "OUTDOOR", size: "medium" },
+          { src: ROOFTOP_7, label: m.villa_casadana_gallery_img_outdoor_1(), category: "OUTDOOR" },
+          { src: ROOFTOP_1, label: m.villa_casadana_gallery_img_outdoor_2(), category: "OUTDOOR" },
+          { src: ROOFTOP_3, label: m.villa_casadana_gallery_img_outdoor_3(), category: "OUTDOOR" },
+          { src: ROOFTOP_5, label: m.villa_casadana_gallery_img_outdoor_4(), category: "OUTDOOR" },
+          { src: JACUZZI_1, label: m.villa_casadana_gallery_img_outdoor_5(), category: "OUTDOOR" },
+          { src: JACUZZI_2, label: m.villa_casadana_gallery_img_outdoor_6(), category: "OUTDOOR" },
+          { src: FRONT_2, label: m.villa_casadana_gallery_img_outdoor_7(), category: "OUTDOOR" },
+          { src: FRONT_1, label: m.villa_casadana_gallery_img_outdoor_8(), category: "OUTDOOR" },
+          { src: FRONT_3, label: m.villa_casadana_gallery_img_outdoor_9(), category: "OUTDOOR" },
         ],
         DINING: [],
         UTILITY: [],
@@ -606,7 +605,7 @@ function buildCasacasay(): VillaData {
         KITCHEN: [],
         BATHROOMS: [],
         OUTDOOR: [
-          { src: POOL_1, label: m.villa_casacasay_gallery_img_outdoor_1(), category: "OUTDOOR", size: "large" },
+          { src: POOL_1, label: m.villa_casacasay_gallery_img_outdoor_1(), category: "OUTDOOR" },
         ],
         DINING: [],
         UTILITY: [],

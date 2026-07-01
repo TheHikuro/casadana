@@ -17,6 +17,7 @@ const SPAN_CLASSES: Record<BentoTile["span"], string> = {
   half: "md:col-span-5",
   third: "md:col-span-4",
   quarter: "md:col-span-3",
+  wideFlat: "md:col-span-8",
 }
 
 function PlaceholderArt({ label }: { label: string }) {

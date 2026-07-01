@@ -18,10 +18,12 @@ interface VillaLightboxProps {
   onClose: () => void
 }
 
-const SIZE_CLASS: Record<GalleryEntry["size"], string> = {
-  small: "md:col-span-4",
-  medium: "md:col-span-6",
-  large: "md:col-span-8 md:row-span-2",
+// Tiles are sized purely from their position, alternating a wide/narrow pair
+// (8 + 4 = 12 columns, so every row fills edge-to-edge). A trailing odd tile
+// takes the full row instead of leaving a half-filled gap.
+function spanClassFor(index: number, total: number): string {
+  if (index === total - 1 && total % 2 === 1) return "md:col-span-12"
+  return index % 2 === 0 ? "md:col-span-8" : "md:col-span-4"
 }
 
 export default function VillaLightbox({
@@ -95,7 +97,7 @@ export default function VillaLightbox({
               key={i}
               className={cn(
                 "relative overflow-hidden",
-                SIZE_CLASS[img.size],
+                spanClassFor(i, tiles.length),
               )}
             >
               <img
