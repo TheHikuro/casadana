@@ -20,6 +20,8 @@ tags:
     description: Booking submission and availability
   - name: pricing
     description: Per-date price overrides
+  - name: reviews
+    description: Guest testimonials linked to bookings
 
 paths:
   /api/health:
@@ -36,6 +38,37 @@ paths:
                 $ref: "#/components/schemas/HealthResponse"
 
   /api/bookings:
+    get:
+      operationId: listBookings
+      tags: [bookings]
+      summary: List bookings (paginated, optional status filter)
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/BookingStatus" }
+      responses:
+        "200":
+          description: Paginated bookings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListBookingsResponse"
+        "422":
+          description: Invalid query params
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
     post:
       operationId: createBooking
       tags: [bookings]
@@ -82,6 +115,28 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   /api/bookings/{id}:
+    delete:
+      operationId: deleteBooking
+      tags: [bookings]
+      summary: Hard delete a booking (cascades to its review)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Booking not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
     patch:
       operationId: patchBooking
       tags: [bookings]
@@ -188,6 +243,48 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   /api/villas/{slug}/pricing:
+    post:
+      operationId: upsertVillaPricing
+      tags: [pricing]
+      summary: Bulk upsert price overrides for a villa
+      description: |
+        Sets `price_cents` for each date in the body. Existing overrides on
+        the same date are replaced. All dates in one request share the same
+        price; submit multiple requests to vary prices across dates.
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          example: casadana
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertPricingRequest"
+      responses:
+        "201":
+          description: Upserted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpsertPricingResponse"
+        "404":
+          description: Villa slug not in allowlist
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "422":
+          description: Invalid payload
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
     get:
       operationId: getVillaPricing
       tags: [pricing]
@@ -239,6 +336,93 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /api/reviews:
+    post:
+      operationId: submitReview
+      tags: [reviews]
+      summary: Submit a review for a booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitReviewRequest"
+      responses:
+        "201":
+          description: Review accepted (pending)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+        "404":
+          description: Booking not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "409":
+          description: A review already exists for this booking
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /api/reviews/{id}:
+    delete:
+      operationId: deleteReview
+      tags: [reviews]
+      summary: Hard delete a review
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Review not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /api/villas/{slug}/reviews:
+    get:
+      operationId: listVillaReviews
+      tags: [reviews]
+      summary: List all reviews for a villa
+      description: Returns all statuses for now; auth-gated filtering arrives in Plan 2.
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Reviews
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListReviewsResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
 
 components:
   schemas:
@@ -347,6 +531,79 @@ components:
         overrides:
           type: array
           items: { $ref: "#/components/schemas/PriceOverride" }
+
+    ListBookingsResponse:
+      type: object
+      required: [bookings, page, limit, total]
+      properties:
+        bookings:
+          type: array
+          items: { $ref: "#/components/schemas/BookingResponse" }
+        page:  { type: integer }
+        limit: { type: integer }
+        total: { type: integer }
+
+    UpsertPricingRequest:
+      type: object
+      required: [price_cents, dates]
+      properties:
+        price_cents:
+          type: integer
+          minimum: 0
+          example: 25000
+        dates:
+          type: array
+          minItems: 1
+          items: { type: string, format: date }
+          example: ["2026-07-04", "2026-07-05"]
+
+    UpsertPricingResponse:
+      type: object
+      required: [count]
+      properties:
+        count: { type: integer }
+
+    ReviewStatus:
+      type: string
+      enum: [pending, approved, rejected]
+
+    Review:
+      type: object
+      required:
+        - id
+        - booking_id
+        - villa_slug
+        - author_name
+        - rating
+        - body
+        - status
+        - created_at
+      properties:
+        id:          { type: string, format: uuid }
+        booking_id:  { type: string, format: uuid }
+        villa_slug:  { type: string }
+        author_name: { type: string }
+        rating:      { type: integer, minimum: 1, maximum: 5 }
+        body:        { type: string }
+        status:      { $ref: "#/components/schemas/ReviewStatus" }
+        created_at:  { type: string, format: date-time }
+
+    ListReviewsResponse:
+      type: object
+      required: [reviews]
+      properties:
+        reviews:
+          type: array
+          items: { $ref: "#/components/schemas/Review" }
+
+    SubmitReviewRequest:
+      type: object
+      required: [booking_id, author_name, rating]
+      properties:
+        booking_id:  { type: string, format: uuid }
+        author_name: { type: string, minLength: 1, maxLength: 120 }
+        rating:      { type: integer, minimum: 1, maximum: 5 }
+        body:        { type: string, maxLength: 2000, default: "" }
 
     ErrorResponse:
       type: object
