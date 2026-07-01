@@ -36,6 +36,14 @@ WHERE villa_slug = $1
   AND check_out > $2
 ORDER BY check_in;
 
+-- name: ListPendingRanges :many
+SELECT check_in, check_out FROM bookings
+WHERE villa_slug = $1
+  AND status = 'pending'
+  AND check_in  < $3
+  AND check_out > $2
+ORDER BY check_in;
+
 -- name: ListBookingsPaged :many
 SELECT * FROM bookings
 ORDER BY created_at DESC

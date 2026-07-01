@@ -7,10 +7,11 @@ import (
 )
 
 type fakeRepo struct {
-	saved        []Booking
-	overlapping  []Booking
-	bookedRanges []DateRange
-	saveErr      error
+	saved         []Booking
+	overlapping   []Booking
+	bookedRanges  []DateRange
+	pendingRanges []DateRange
+	saveErr       error
 }
 
 func (f *fakeRepo) Save(_ context.Context, b *Booking) error {
@@ -25,6 +26,9 @@ func (f *fakeRepo) FindOverlapping(_ context.Context, _ string, _, _ time.Time) 
 }
 func (f *fakeRepo) BookedRanges(_ context.Context, _ string, _, _ time.Time) ([]DateRange, error) {
 	return f.bookedRanges, nil
+}
+func (f *fakeRepo) PendingRanges(_ context.Context, _ string, _, _ time.Time) ([]DateRange, error) {
+	return f.pendingRanges, nil
 }
 func (f *fakeRepo) Get(_ context.Context, id string) (*Booking, error) {
 	for i := range f.saved {

@@ -98,6 +98,37 @@ func TestGetAvailability_Empty(t *testing.T) {
 	}
 }
 
+func TestGetAvailability_SeparatesPendingFromBooked(t *testing.T) {
+	repo := &fakeRepo{
+		bookedRanges:  []DateRange{{CheckIn: d("2026-07-01"), CheckOut: d("2026-07-08")}},
+		pendingRanges: []DateRange{{CheckIn: d("2026-07-10"), CheckOut: d("2026-07-12")}},
+	}
+	svc := newSvc(repo, &fakeMailer{},
+		fakeAllowlist{allowed: map[string]bool{"casadana": true}},
+		d("2026-05-12"))
+	srv := httptest.NewServer(newRouter(svc))
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/api/villas/casadana/availability?from=2026-07-01&to=2026-08-01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", resp.StatusCode)
+	}
+	var got availabilityResponse
+	if err := json.NewDecoder(resp.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(got.BookedRanges) != 1 || got.BookedRanges[0].CheckIn != "2026-07-01" {
+		t.Errorf("BookedRanges = %+v, want the confirmed range only", got.BookedRanges)
+	}
+	if len(got.PendingRanges) != 1 || got.PendingRanges[0].CheckIn != "2026-07-10" {
+		t.Errorf("PendingRanges = %+v, want the pending range only", got.PendingRanges)
+	}
+}
+
 func TestListBookings_PaginatedResponse(t *testing.T) {
 	repo := &fakeRepo{
 		saved: []Booking{

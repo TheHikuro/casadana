@@ -23,6 +23,7 @@ type Querier interface {
 	ListBookingsByStatus(ctx context.Context, status BookingStatus) ([]Booking, error)
 	ListBookingsPaged(ctx context.Context, arg ListBookingsPagedParams) ([]Booking, error)
 	ListBookingsPagedByStatus(ctx context.Context, arg ListBookingsPagedByStatusParams) ([]Booking, error)
+	ListPendingRanges(ctx context.Context, arg ListPendingRangesParams) ([]ListPendingRangesRow, error)
 	ListPriceOverrides(ctx context.Context, arg ListPriceOverridesParams) ([]ListPriceOverridesRow, error)
 	ListReviewsByVilla(ctx context.Context, villaSlug string) ([]Review, error)
 	UpdateBookingStatus(ctx context.Context, arg UpdateBookingStatusParams) error

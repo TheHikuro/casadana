@@ -173,6 +173,25 @@ func TestList_Clamps(t *testing.T) {
 	}
 }
 
+func TestAvailability_SeparatesPendingFromBooked(t *testing.T) {
+	repo := &fakeRepo{
+		bookedRanges:  []DateRange{{CheckIn: d("2026-07-01"), CheckOut: d("2026-07-08")}},
+		pendingRanges: []DateRange{{CheckIn: d("2026-07-10"), CheckOut: d("2026-07-12")}},
+	}
+	svc := newSvc(repo, &fakeMailer{}, fakeAllowlist{allowed: map[string]bool{"casadana": true}}, d("2026-05-12"))
+
+	avail, err := svc.Availability(context.Background(), "casadana", d("2026-07-01"), d("2026-08-01"))
+	if err != nil {
+		t.Fatalf("Availability: %v", err)
+	}
+	if len(avail.Booked) != 1 || !avail.Booked[0].CheckIn.Equal(d("2026-07-01")) {
+		t.Errorf("Booked = %+v, want the confirmed range", avail.Booked)
+	}
+	if len(avail.Pending) != 1 || !avail.Pending[0].CheckIn.Equal(d("2026-07-10")) {
+		t.Errorf("Pending = %+v, want the pending range", avail.Pending)
+	}
+}
+
 func TestDelete_NotFound(t *testing.T) {
 	svc := newSvc(&fakeRepo{}, &fakeMailer{}, fakeAllowlist{}, d("2026-05-12"))
 	if err := svc.Delete(context.Background(), "nonexistent-id"); err != ErrNotFound {

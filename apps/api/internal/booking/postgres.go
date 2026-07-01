@@ -86,6 +86,23 @@ func (r *pgRepo) BookedRanges(ctx context.Context, villaSlug string, from, to ti
 	return out, nil
 }
 
+// PendingRanges mirrors the same param naming quirk as FindOverlapping.
+func (r *pgRepo) PendingRanges(ctx context.Context, villaSlug string, from, to time.Time) ([]DateRange, error) {
+	rows, err := r.q().ListPendingRanges(ctx, db.ListPendingRangesParams{
+		VillaSlug: villaSlug,
+		CheckOut:  pgtype.Date{Time: from, Valid: true},
+		CheckIn:   pgtype.Date{Time: to, Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]DateRange, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, DateRange{CheckIn: row.CheckIn.Time, CheckOut: row.CheckOut.Time})
+	}
+	return out, nil
+}
+
 func (r *pgRepo) Get(ctx context.Context, id string) (*Booking, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {

@@ -138,7 +138,19 @@ type bookedRangeDTO struct {
 }
 
 type availabilityResponse struct {
-	BookedRanges []bookedRangeDTO `json:"booked_ranges"`
+	BookedRanges  []bookedRangeDTO `json:"booked_ranges"`
+	PendingRanges []bookedRangeDTO `json:"pending_ranges"`
+}
+
+func toRangeDTOs(ranges []DateRange) []bookedRangeDTO {
+	out := make([]bookedRangeDTO, 0, len(ranges))
+	for _, rng := range ranges {
+		out = append(out, bookedRangeDTO{
+			CheckIn:  rng.CheckIn.Format("2006-01-02"),
+			CheckOut: rng.CheckOut.Format("2006-01-02"),
+		})
+	}
+	return out
 }
 
 func availabilityHandler(svc *Service) http.HandlerFunc {
@@ -150,17 +162,14 @@ func availabilityHandler(svc *Service) http.HandlerFunc {
 			httpserver.WriteError(w, r, &httpserver.ValidationError{Message: "from and to must be YYYY-MM-DD"})
 			return
 		}
-		ranges, err := svc.Availability(r.Context(), slug, from, to)
+		avail, err := svc.Availability(r.Context(), slug, from, to)
 		if err != nil {
 			httpserver.WriteError(w, r, err)
 			return
 		}
-		resp := availabilityResponse{BookedRanges: make([]bookedRangeDTO, 0, len(ranges))}
-		for _, rng := range ranges {
-			resp.BookedRanges = append(resp.BookedRanges, bookedRangeDTO{
-				CheckIn:  rng.CheckIn.Format("2006-01-02"),
-				CheckOut: rng.CheckOut.Format("2006-01-02"),
-			})
+		resp := availabilityResponse{
+			BookedRanges:  toRangeDTOs(avail.Booked),
+			PendingRanges: toRangeDTOs(avail.Pending),
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(resp)

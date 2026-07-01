@@ -348,6 +348,46 @@ func (q *Queries) ListBookingsPagedByStatus(ctx context.Context, arg ListBooking
 	return items, nil
 }
 
+const listPendingRanges = `-- name: ListPendingRanges :many
+SELECT check_in, check_out FROM bookings
+WHERE villa_slug = $1
+  AND status = 'pending'
+  AND check_in  < $3
+  AND check_out > $2
+ORDER BY check_in
+`
+
+type ListPendingRangesParams struct {
+	VillaSlug string
+	CheckOut  pgtype.Date
+	CheckIn   pgtype.Date
+}
+
+type ListPendingRangesRow struct {
+	CheckIn  pgtype.Date
+	CheckOut pgtype.Date
+}
+
+func (q *Queries) ListPendingRanges(ctx context.Context, arg ListPendingRangesParams) ([]ListPendingRangesRow, error) {
+	rows, err := q.db.Query(ctx, listPendingRanges, arg.VillaSlug, arg.CheckOut, arg.CheckIn)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPendingRangesRow
+	for rows.Next() {
+		var i ListPendingRangesRow
+		if err := rows.Scan(&i.CheckIn, &i.CheckOut); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateBookingStatus = `-- name: UpdateBookingStatus :exec
 UPDATE bookings
 SET status = $2, updated_at = $3

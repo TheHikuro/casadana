@@ -74,14 +74,22 @@ func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*Booking, erro
 	return b, nil
 }
 
-func (s *Service) Availability(ctx context.Context, villaSlug string, from, to time.Time) ([]DateRange, error) {
+func (s *Service) Availability(ctx context.Context, villaSlug string, from, to time.Time) (Availability, error) {
 	if !s.allow.IsKnown(villaSlug) {
-		return nil, ErrUnknownVilla
+		return Availability{}, ErrUnknownVilla
 	}
 	if !to.After(from) {
-		return nil, fmt.Errorf("booking: 'to' must be after 'from'")
+		return Availability{}, fmt.Errorf("booking: 'to' must be after 'from'")
 	}
-	return s.repo.BookedRanges(ctx, villaSlug, from, to)
+	booked, err := s.repo.BookedRanges(ctx, villaSlug, from, to)
+	if err != nil {
+		return Availability{}, fmt.Errorf("booking: booked ranges: %w", err)
+	}
+	pending, err := s.repo.PendingRanges(ctx, villaSlug, from, to)
+	if err != nil {
+		return Availability{}, fmt.Errorf("booking: pending ranges: %w", err)
+	}
+	return Availability{Booked: booked, Pending: pending}, nil
 }
 
 // Get returns a booking by id. Returns ErrNotFound if missing.
