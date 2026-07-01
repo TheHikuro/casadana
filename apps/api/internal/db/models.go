@@ -56,6 +56,49 @@ func (ns NullBookingStatus) Value() (driver.Value, error) {
 	return string(ns.BookingStatus), nil
 }
 
+type ReviewStatus string
+
+const (
+	ReviewStatusPending  ReviewStatus = "pending"
+	ReviewStatusApproved ReviewStatus = "approved"
+	ReviewStatusRejected ReviewStatus = "rejected"
+)
+
+func (e *ReviewStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ReviewStatus(s)
+	case string:
+		*e = ReviewStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ReviewStatus: %T", src)
+	}
+	return nil
+}
+
+type NullReviewStatus struct {
+	ReviewStatus ReviewStatus
+	Valid        bool // Valid is true if ReviewStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullReviewStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.ReviewStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ReviewStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullReviewStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ReviewStatus), nil
+}
+
 type Booking struct {
 	ID         pgtype.UUID
 	VillaSlug  string
@@ -76,6 +119,18 @@ type PriceOverride struct {
 	VillaSlug  string
 	Date       pgtype.Date
 	PriceCents int32
+	CreatedAt  pgtype.Timestamptz
+	UpdatedAt  pgtype.Timestamptz
+}
+
+type Review struct {
+	ID         pgtype.UUID
+	BookingID  pgtype.UUID
+	VillaSlug  string
+	AuthorName string
+	Rating     int16
+	Body       string
+	Status     ReviewStatus
 	CreatedAt  pgtype.Timestamptz
 	UpdatedAt  pgtype.Timestamptz
 }

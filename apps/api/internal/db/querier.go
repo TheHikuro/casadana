@@ -11,13 +11,22 @@ import (
 )
 
 type Querier interface {
+	CountBookings(ctx context.Context) (int64, error)
+	CountBookingsByStatus(ctx context.Context, status BookingStatus) (int64, error)
+	DeleteBooking(ctx context.Context, id pgtype.UUID) (int64, error)
+	DeleteReview(ctx context.Context, id pgtype.UUID) (int64, error)
 	FindOverlappingBookings(ctx context.Context, arg FindOverlappingBookingsParams) ([]Booking, error)
 	GetBookingByID(ctx context.Context, id pgtype.UUID) (Booking, error)
 	InsertBooking(ctx context.Context, arg InsertBookingParams) (Booking, error)
+	InsertReview(ctx context.Context, arg InsertReviewParams) (Review, error)
 	ListBookedRanges(ctx context.Context, arg ListBookedRangesParams) ([]ListBookedRangesRow, error)
 	ListBookingsByStatus(ctx context.Context, status BookingStatus) ([]Booking, error)
+	ListBookingsPaged(ctx context.Context, arg ListBookingsPagedParams) ([]Booking, error)
+	ListBookingsPagedByStatus(ctx context.Context, arg ListBookingsPagedByStatusParams) ([]Booking, error)
 	ListPriceOverrides(ctx context.Context, arg ListPriceOverridesParams) ([]ListPriceOverridesRow, error)
+	ListReviewsByVilla(ctx context.Context, villaSlug string) ([]Review, error)
 	UpdateBookingStatus(ctx context.Context, arg UpdateBookingStatusParams) error
+	UpsertPriceOverride(ctx context.Context, arg UpsertPriceOverrideParams) error
 }
 
 var _ Querier = (*Queries)(nil)
