@@ -84,6 +84,41 @@ func (s *Service) Availability(ctx context.Context, villaSlug string, from, to t
 	return s.repo.BookedRanges(ctx, villaSlug, from, to)
 }
 
+// Get returns a booking by id. Returns ErrNotFound if missing.
+func (s *Service) Get(ctx context.Context, id string) (*Booking, error) {
+	return s.repo.Get(ctx, id)
+}
+
+// List returns a page of bookings ordered by created_at DESC, with optional status filter.
+// page is 1-based, limit is clamped to [1, 100], default 20.
+func (s *Service) List(ctx context.Context, status *Status, page, limit int) ([]Booking, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	offset := (page - 1) * limit
+
+	bookings, err := s.repo.List(ctx, status, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("booking: list: %w", err)
+	}
+	total, err := s.repo.Count(ctx, status)
+	if err != nil {
+		return nil, 0, fmt.Errorf("booking: count: %w", err)
+	}
+	return bookings, total, nil
+}
+
+// Delete hard-deletes a booking. Returns ErrNotFound if no row matched.
+func (s *Service) Delete(ctx context.Context, id string) error {
+	return s.repo.Delete(ctx, id)
+}
+
 // TransitionStatus moves a booking through its lifecycle (pending → approved /
 // rejected / cancelled / paid). The state machine is enforced by the domain
 // helper Booking.Transition; the service handles persistence.

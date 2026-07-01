@@ -98,6 +98,100 @@ func TestCreate_MailerFailure_DoesNotFailBooking(t *testing.T) {
 	}
 }
 
+func TestList_Pagination(t *testing.T) {
+	repo := &fakeRepo{}
+	allow := fakeAllowlist{allowed: map[string]bool{"casadana": true}}
+	svc := newSvc(repo, &fakeMailer{}, allow, d("2026-05-12"))
+
+	for i := 0; i < 3; i++ {
+		_, err := svc.Create(context.Background(), CreateCommand{
+			VillaSlug:  "casadana",
+			GuestName:  "Jane",
+			GuestEmail: "jane@example.com",
+			GuestPhone: "+33",
+			CheckIn:    d("2026-07-01").AddDate(0, 0, i*10),
+			CheckOut:   d("2026-07-08").AddDate(0, 0, i*10),
+			Adults:     2,
+		})
+		if err != nil {
+			t.Fatalf("seed %d: %v", i, err)
+		}
+	}
+
+	bookings, total, err := svc.List(context.Background(), nil, 1, 2)
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if total != 3 {
+		t.Errorf("total = %d, want 3", total)
+	}
+	if len(bookings) != 2 {
+		t.Errorf("len = %d, want 2 (limit=2)", len(bookings))
+	}
+}
+
+func TestList_StatusFilter(t *testing.T) {
+	repo := &fakeRepo{
+		saved: []Booking{
+			{ID: "1", Status: StatusPending},
+			{ID: "2", Status: StatusApproved},
+			{ID: "3", Status: StatusPending},
+		},
+	}
+	svc := newSvc(repo, &fakeMailer{}, fakeAllowlist{}, d("2026-05-12"))
+
+	pending := StatusPending
+	bookings, total, err := svc.List(context.Background(), &pending, 1, 50)
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if total != 2 {
+		t.Errorf("total = %d, want 2", total)
+	}
+	if len(bookings) != 2 {
+		t.Errorf("len = %d, want 2", len(bookings))
+	}
+}
+
+func TestList_Clamps(t *testing.T) {
+	repo := &fakeRepo{}
+	svc := newSvc(repo, &fakeMailer{}, fakeAllowlist{}, d("2026-05-12"))
+
+	cases := []struct {
+		page, limit int
+	}{
+		{0, 20},
+		{1, 0},
+		{1, 200},
+		{3, 25},
+	}
+	for _, c := range cases {
+		_, _, err := svc.List(context.Background(), nil, c.page, c.limit)
+		if err != nil {
+			t.Fatalf("page=%d limit=%d: %v", c.page, c.limit, err)
+		}
+	}
+}
+
+func TestDelete_NotFound(t *testing.T) {
+	svc := newSvc(&fakeRepo{}, &fakeMailer{}, fakeAllowlist{}, d("2026-05-12"))
+	if err := svc.Delete(context.Background(), "nonexistent-id"); err != ErrNotFound {
+		t.Fatalf("err = %v, want ErrNotFound", err)
+	}
+}
+
+func TestDelete_Happy(t *testing.T) {
+	repo := &fakeRepo{saved: []Booking{{ID: "abc-123"}}}
+	svc := newSvc(repo, &fakeMailer{}, fakeAllowlist{}, d("2026-05-12"))
+
+	if err := svc.Delete(context.Background(), "abc-123"); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	if len(repo.saved) != 0 {
+		t.Errorf("repo not emptied: %d remaining", len(repo.saved))
+	}
+}
+
 // helpers
 var errBoom = simpleErr("boom")
 

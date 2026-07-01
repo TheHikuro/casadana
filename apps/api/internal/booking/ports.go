@@ -11,6 +11,9 @@ type Repository interface {
 	BookedRanges(ctx context.Context, villaSlug string, from, to time.Time) ([]DateRange, error)
 	Get(ctx context.Context, id string) (*Booking, error)
 	UpdateStatus(ctx context.Context, id string, status Status, updatedAt time.Time) error
+	List(ctx context.Context, status *Status, limit, offset int) ([]Booking, error)
+	Count(ctx context.Context, status *Status) (int, error)
+	Delete(ctx context.Context, id string) error
 }
 
 type Mailer interface {

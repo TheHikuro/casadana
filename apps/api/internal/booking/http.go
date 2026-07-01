@@ -3,6 +3,7 @@ package booking
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -20,7 +21,9 @@ func init() {
 
 func Mount(r chi.Router, svc *Service) {
 	r.Post("/api/bookings", createHandler(svc))
+	r.Get("/api/bookings", listBookingsHandler(svc))
 	r.Patch("/api/bookings/{id}", patchBookingHandler(svc))
+	r.Delete("/api/bookings/{id}", deleteBookingHandler(svc))
 	r.Get("/api/villas/{slug}/availability", availabilityHandler(svc))
 }
 
@@ -161,5 +164,71 @@ func availabilityHandler(svc *Service) http.HandlerFunc {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(resp)
+	}
+}
+
+type listBookingsResponse struct {
+	Bookings []bookingResponse `json:"bookings"`
+	Page     int               `json:"page"`
+	Limit    int               `json:"limit"`
+	Total    int               `json:"total"`
+}
+
+func listBookingsHandler(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+
+		var statusFilter *Status
+		if s := r.URL.Query().Get("status"); s != "" {
+			switch Status(s) {
+			case StatusPending, StatusApproved, StatusRejected, StatusCancelled, StatusPaid:
+				st := Status(s)
+				statusFilter = &st
+			default:
+				httpserver.WriteError(w, r, &httpserver.ValidationError{
+					Message: "status must be one of: pending, approved, rejected, cancelled, paid",
+				})
+				return
+			}
+		}
+
+		bookings, total, err := svc.List(r.Context(), statusFilter, page, limit)
+		if err != nil {
+			httpserver.WriteError(w, r, err)
+			return
+		}
+		if page < 1 {
+			page = 1
+		}
+		if limit < 1 {
+			limit = 20
+		}
+		if limit > 100 {
+			limit = 100
+		}
+
+		resp := listBookingsResponse{
+			Bookings: make([]bookingResponse, 0, len(bookings)),
+			Page:     page,
+			Limit:    limit,
+			Total:    total,
+		}
+		for i := range bookings {
+			resp.Bookings = append(resp.Bookings, toResponse(&bookings[i]))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(resp)
+	}
+}
+
+func deleteBookingHandler(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		if err := svc.Delete(r.Context(), id); err != nil {
+			httpserver.WriteError(w, r, err)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	}
 }

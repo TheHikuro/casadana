@@ -11,6 +11,40 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countBookings = `-- name: CountBookings :one
+SELECT COUNT(*) FROM bookings
+`
+
+func (q *Queries) CountBookings(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countBookings)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countBookingsByStatus = `-- name: CountBookingsByStatus :one
+SELECT COUNT(*) FROM bookings WHERE status = $1
+`
+
+func (q *Queries) CountBookingsByStatus(ctx context.Context, status BookingStatus) (int64, error) {
+	row := q.db.QueryRow(ctx, countBookingsByStatus, status)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const deleteBooking = `-- name: DeleteBooking :execrows
+DELETE FROM bookings WHERE id = $1
+`
+
+func (q *Queries) DeleteBooking(ctx context.Context, id pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteBooking, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const findOverlappingBookings = `-- name: FindOverlappingBookings :many
 SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at FROM bookings
 WHERE villa_slug = $1
@@ -190,6 +224,98 @@ ORDER BY created_at DESC
 
 func (q *Queries) ListBookingsByStatus(ctx context.Context, status BookingStatus) ([]Booking, error) {
 	rows, err := q.db.Query(ctx, listBookingsByStatus, status)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Booking
+	for rows.Next() {
+		var i Booking
+		if err := rows.Scan(
+			&i.ID,
+			&i.VillaSlug,
+			&i.GuestName,
+			&i.GuestEmail,
+			&i.GuestPhone,
+			&i.CheckIn,
+			&i.CheckOut,
+			&i.Adults,
+			&i.Children,
+			&i.Message,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listBookingsPaged = `-- name: ListBookingsPaged :many
+SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at FROM bookings
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2
+`
+
+type ListBookingsPagedParams struct {
+	Limit  int32
+	Offset int32
+}
+
+func (q *Queries) ListBookingsPaged(ctx context.Context, arg ListBookingsPagedParams) ([]Booking, error) {
+	rows, err := q.db.Query(ctx, listBookingsPaged, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Booking
+	for rows.Next() {
+		var i Booking
+		if err := rows.Scan(
+			&i.ID,
+			&i.VillaSlug,
+			&i.GuestName,
+			&i.GuestEmail,
+			&i.GuestPhone,
+			&i.CheckIn,
+			&i.CheckOut,
+			&i.Adults,
+			&i.Children,
+			&i.Message,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listBookingsPagedByStatus = `-- name: ListBookingsPagedByStatus :many
+SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at FROM bookings
+WHERE status = $1
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3
+`
+
+type ListBookingsPagedByStatusParams struct {
+	Status BookingStatus
+	Limit  int32
+	Offset int32
+}
+
+func (q *Queries) ListBookingsPagedByStatus(ctx context.Context, arg ListBookingsPagedByStatusParams) ([]Booking, error) {
+	rows, err := q.db.Query(ctx, listBookingsPagedByStatus, arg.Status, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

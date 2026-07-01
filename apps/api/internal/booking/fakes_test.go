@@ -46,6 +46,49 @@ func (f *fakeRepo) UpdateStatus(_ context.Context, id string, status Status, upd
 	return errors.New("not found")
 }
 
+func (f *fakeRepo) List(_ context.Context, status *Status, limit, offset int) ([]Booking, error) {
+	filtered := f.saved
+	if status != nil {
+		filtered = nil
+		for _, b := range f.saved {
+			if b.Status == *status {
+				filtered = append(filtered, b)
+			}
+		}
+	}
+	if offset >= len(filtered) {
+		return []Booking{}, nil
+	}
+	end := offset + limit
+	if end > len(filtered) {
+		end = len(filtered)
+	}
+	return filtered[offset:end], nil
+}
+
+func (f *fakeRepo) Count(_ context.Context, status *Status) (int, error) {
+	if status == nil {
+		return len(f.saved), nil
+	}
+	n := 0
+	for _, b := range f.saved {
+		if b.Status == *status {
+			n++
+		}
+	}
+	return n, nil
+}
+
+func (f *fakeRepo) Delete(_ context.Context, id string) error {
+	for i, b := range f.saved {
+		if b.ID == id {
+			f.saved = append(f.saved[:i], f.saved[i+1:]...)
+			return nil
+		}
+	}
+	return ErrNotFound
+}
+
 type fakeMailer struct {
 	confirmations  []Booking
 	adminNotices   []Booking

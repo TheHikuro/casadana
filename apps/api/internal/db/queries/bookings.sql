@@ -35,3 +35,23 @@ WHERE villa_slug = $1
   AND check_in  < $3
   AND check_out > $2
 ORDER BY check_in;
+
+-- name: ListBookingsPaged :many
+SELECT * FROM bookings
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2;
+
+-- name: ListBookingsPagedByStatus :many
+SELECT * FROM bookings
+WHERE status = $1
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3;
+
+-- name: CountBookings :one
+SELECT COUNT(*) FROM bookings;
+
+-- name: CountBookingsByStatus :one
+SELECT COUNT(*) FROM bookings WHERE status = $1;
+
+-- name: DeleteBooking :execrows
+DELETE FROM bookings WHERE id = $1;

@@ -136,3 +136,63 @@ func rowToBooking(row db.Booking) Booking {
 		UpdatedAt:  row.UpdatedAt.Time,
 	}
 }
+
+func (r *pgRepo) List(ctx context.Context, status *Status, limit, offset int) ([]Booking, error) {
+	if status != nil {
+		rows, err := r.q().ListBookingsPagedByStatus(ctx, db.ListBookingsPagedByStatusParams{
+			Status: db.BookingStatus(*status),
+			Limit:  int32(limit),
+			Offset: int32(offset),
+		})
+		if err != nil {
+			return nil, err
+		}
+		out := make([]Booking, 0, len(rows))
+		for _, row := range rows {
+			out = append(out, rowToBooking(row))
+		}
+		return out, nil
+	}
+	rows, err := r.q().ListBookingsPaged(ctx, db.ListBookingsPagedParams{
+		Limit:  int32(limit),
+		Offset: int32(offset),
+	})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]Booking, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, rowToBooking(row))
+	}
+	return out, nil
+}
+
+func (r *pgRepo) Count(ctx context.Context, status *Status) (int, error) {
+	if status != nil {
+		n, err := r.q().CountBookingsByStatus(ctx, db.BookingStatus(*status))
+		if err != nil {
+			return 0, err
+		}
+		return int(n), nil
+	}
+	n, err := r.q().CountBookings(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return int(n), nil
+}
+
+func (r *pgRepo) Delete(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("booking: invalid id: %w", err)
+	}
+	rows, err := r.q().DeleteBooking(ctx, pgtype.UUID{Bytes: [16]byte(uid), Valid: true})
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
