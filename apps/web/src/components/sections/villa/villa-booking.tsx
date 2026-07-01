@@ -216,6 +216,21 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
   }, [checkIn, checkOut, priceOverridesByDate, booking.nightly])
   const total = totalCents / 100
 
+  // Groups selected nights by their per-night price so the summary can show
+  // "5 nights at €95" / "2 nights at €120" instead of a single blended total
+  // whenever price overrides make the stay span more than one price tier.
+  const priceBreakdown = useMemo(() => {
+    const counts = new Map<number, number>()
+    for (let day = new Date(checkIn); day < checkOut; day = addDays(day, 1)) {
+      const key = format(day, "yyyy-MM-dd")
+      const priceCents = priceOverridesByDate.get(key) ?? booking.nightly * 100
+      counts.set(priceCents, (counts.get(priceCents) ?? 0) + 1)
+    }
+    return Array.from(counts.entries())
+      .map(([priceCents, count]) => ({ priceCents, count }))
+      .sort((a, b) => a.priceCents - b.priceCents)
+  }, [checkIn, checkOut, priceOverridesByDate, booking.nightly])
+
   useEffect(() => {
     if (!activeField) return
     const handler = (e: MouseEvent) => {
@@ -563,12 +578,27 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
       </form>
 
       <div className="border-outline-variant mt-6 grid gap-3 border-t pt-5 text-[13.5px]">
-        <div className="text-on-surface-variant flex justify-between">
-          <span>
-            {nights} {nights === 1 ? m.villa_booking_night_singular() : m.villa_booking_night_plural()}
-          </span>
-          <span>€{total.toLocaleString()}</span>
-        </div>
+        {priceBreakdown.length > 1 ? (
+          priceBreakdown.map(({ priceCents, count }) => (
+            <div key={priceCents} className="text-on-surface-variant flex justify-between">
+              <span>
+                {m.villa_booking_nights_at_price({
+                  count,
+                  nightsWord: count === 1 ? m.villa_booking_night_singular() : m.villa_booking_night_plural(),
+                  price: Math.round(priceCents / 100),
+                })}
+              </span>
+              <span>€{((priceCents * count) / 100).toLocaleString()}</span>
+            </div>
+          ))
+        ) : (
+          <div className="text-on-surface-variant flex justify-between">
+            <span>
+              {nights} {nights === 1 ? m.villa_booking_night_singular() : m.villa_booking_night_plural()}
+            </span>
+            <span>€{total.toLocaleString()}</span>
+          </div>
+        )}
         <div className="font-display text-primary border-outline-variant mt-1 flex justify-between border-t pt-3.5 text-[22px] italic">
           <span>{m.villa_booking_total()}</span>
           <span>€{total.toLocaleString()}</span>

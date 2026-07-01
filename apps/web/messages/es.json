@@ -205,6 +205,7 @@
   "villa_booking_contact_host": "Contacta con el anfitrión",
   "villa_booking_night_singular": "noche",
   "villa_booking_night_plural": "noches",
+  "villa_booking_nights_at_price": "{count} {nightsWord} a €{price}",
   "villa_booking_total": "Total",
   "villa_booking_no_charge_note": "Aún no se ha realizado ningún cargo · Confirmación en 48 horas",
   "villa_local_area_overlap_alt": "Detalle",

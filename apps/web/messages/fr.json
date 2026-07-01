@@ -204,6 +204,7 @@
   "villa_booking_contact_host": "Contacter l'hôte",
   "villa_booking_night_singular": "nuit",
   "villa_booking_night_plural": "nuits",
+  "villa_booking_nights_at_price": "{count} {nightsWord} à €{price}",
   "villa_booking_total": "Total",
   "villa_booking_no_charge_note": "Aucun débit pour le moment · confirmation sous 48 heures",
   "villa_local_area_overlap_alt": "Détail",
