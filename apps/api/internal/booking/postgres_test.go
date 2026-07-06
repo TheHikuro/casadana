@@ -4,7 +4,6 @@ package booking
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 
+	dbpkg "github.com/TheHikuro/casadana/internal/db"
 	pg "github.com/TheHikuro/casadana/internal/platform/postgres"
 )
 
@@ -46,8 +46,7 @@ func setupPg(t *testing.T) *pgxpool.Pool {
 	}
 	t.Cleanup(pool.Close)
 
-	abs, _ := filepath.Abs("../db/migrations")
-	if err := pg.MigrateUp(pool, "file://"+abs); err != nil {
+	if err := pg.MigrateUp(pool, dbpkg.Migrations, "migrations"); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 	return pool
@@ -76,5 +75,42 @@ func TestPgRepo_SaveAndFindOverlap(t *testing.T) {
 	}
 	if len(overlapping) != 1 {
 		t.Errorf("overlapping = %d, want 1", len(overlapping))
+	}
+}
+
+func TestPgRepo_ListFiltersByVillaSlug(t *testing.T) {
+	pool := setupPg(t)
+	repo := NewPgRepo(pool)
+	ctx := context.Background()
+
+	for _, slug := range []string{"casadana", "casacasay"} {
+		b, err := NewBooking(NewBookingInput{
+			VillaSlug: slug, GuestName: "Jane", GuestEmail: "jane@example.com",
+			CheckIn: d("2026-07-01"), CheckOut: d("2026-07-08"),
+			Adults: 2, Now: d("2026-05-12"),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := repo.Save(ctx, b); err != nil {
+			t.Fatalf("save: %v", err)
+		}
+	}
+
+	slug := "casadana"
+	rows, err := repo.List(ctx, &slug, nil, 20, 0)
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(rows) != 1 || rows[0].VillaSlug != "casadana" {
+		t.Errorf("rows = %+v, want exactly 1 casadana booking", rows)
+	}
+
+	count, err := repo.Count(ctx, &slug, nil)
+	if err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("count = %d, want 1", count)
 	}
 }
