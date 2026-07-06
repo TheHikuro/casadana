@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/TheHikuro/casadana/internal/adminauth"
 	"github.com/TheHikuro/casadana/internal/booking"
 	"github.com/TheHikuro/casadana/internal/db"
 	"github.com/TheHikuro/casadana/internal/openapi"
@@ -70,6 +71,7 @@ func main() {
 	}
 
 	mailer := email.NewMailer(cfg.ResendKey, cfg.MailFrom, cfg.AdminNotifyEmail)
+	adminAuthSvc := adminauth.NewService(adminauth.NewPgRepo(pool), realClock{}, cfg.JWTSecret)
 	bookingSvc := booking.NewService(
 		booking.NewPgRepo(pool),
 		booking.NewResendMailer(mailer),
@@ -85,7 +87,8 @@ func main() {
 
 	r := httpserver.NewRouter(log, cfg.WebOrigin)
 	openapi.Mount(r)
-	booking.Mount(r, bookingSvc)
+	adminauth.Mount(r, adminAuthSvc, cfg.CookieSecure)
+	booking.Mount(r, bookingSvc, adminauth.RequireAdminSession(adminAuthSvc))
 	pricing.Mount(r, pricingSvc)
 	review.Mount(r, reviewSvc)
 
