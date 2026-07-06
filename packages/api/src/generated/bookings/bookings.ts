@@ -268,8 +268,7 @@ export const useDeleteBooking = <TError = ErrorResponse,
  * Moves a booking through its lifecycle: `pending → approved | rejected |
 cancelled`, `approved → paid | cancelled`, `paid → cancelled`. The
 backend enforces the state machine and rejects invalid transitions
-with 409 `INVALID_STATUS`. Currently unauthenticated; auth gate is
-added in Plan 2 (admin auth).
+with 409 `INVALID_STATUS`.
 
  * @summary Transition a booking's status
  */

@@ -9,10 +9,14 @@ in the frontend and not exposed by this API.
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './adminLoginRequest';
+export * from './adminUser';
 export * from './availabilityResponse';
 export * from './bookedRange';
 export * from './bookingResponse';
+export * from './bookingSource';
 export * from './bookingStatus';
+export * from './createAdminUserRequest';
 export * from './createBookingRequest';
 export * from './errorResponse';
 export * from './errorResponseError';
@@ -20,6 +24,7 @@ export * from './getVillaAvailabilityParams';
 export * from './getVillaPricingParams';
 export * from './healthResponse';
 export * from './healthResponseStatus';
+export * from './listAdminUsersResponse';
 export * from './listBookingsParams';
 export * from './listBookingsResponse';
 export * from './listReviewsResponse';

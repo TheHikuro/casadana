@@ -8,18 +8,9 @@ in the frontend and not exposed by this API.
 
  * OpenAPI spec version: 0.1.0
  */
-import type { BookingStatus } from './bookingStatus';
 
-export type ListBookingsParams = {
-/**
- * @minimum 1
- */
-page?: number;
-/**
- * @minimum 1
- * @maximum 100
- */
-limit?: number;
-status?: BookingStatus;
-villa_slug?: string;
-};
+export interface CreateAdminUserRequest {
+  email: string;
+  /** @minLength 8 */
+  password: string;
+}

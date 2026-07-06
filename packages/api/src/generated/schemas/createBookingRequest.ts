@@ -8,6 +8,7 @@ in the frontend and not exposed by this API.
 
  * OpenAPI spec version: 0.1.0
  */
+import type { BookingSource } from './bookingSource';
 
 export interface CreateBookingRequest {
   /**
@@ -43,4 +44,5 @@ export interface CreateBookingRequest {
   children?: number;
   /** @maxLength 2000 */
   message?: string;
+  source?: BookingSource;
 }

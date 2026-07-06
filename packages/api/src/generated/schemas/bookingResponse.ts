@@ -9,6 +9,7 @@ in the frontend and not exposed by this API.
  * OpenAPI spec version: 0.1.0
  */
 import type { BookingStatus } from './bookingStatus';
+import type { BookingSource } from './bookingSource';
 
 export interface BookingResponse {
   id: string;
@@ -19,4 +20,7 @@ export interface BookingResponse {
   guest_name: string;
   guest_email: string;
   created_at: string;
+  adults?: number;
+  children?: number;
+  source?: BookingSource;
 }

@@ -1,3 +1,4 @@
+export * from "./generated/admin/admin"
 export * from "./generated/bookings/bookings"
 export * from "./generated/health/health"
 export * from "./generated/pricing/pricing"

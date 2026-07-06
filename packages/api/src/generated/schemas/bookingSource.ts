@@ -8,18 +8,13 @@ in the frontend and not exposed by this API.
 
  * OpenAPI spec version: 0.1.0
  */
-import type { BookingStatus } from './bookingStatus';
 
-export type ListBookingsParams = {
-/**
- * @minimum 1
- */
-page?: number;
-/**
- * @minimum 1
- * @maximum 100
- */
-limit?: number;
-status?: BookingStatus;
-villa_slug?: string;
-};
+export type BookingSource = typeof BookingSource[keyof typeof BookingSource];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const BookingSource = {
+  direct: 'direct',
+  airbnb: 'airbnb',
+  booking_com: 'booking_com',
+} as const;
