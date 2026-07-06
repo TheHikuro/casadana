@@ -1,0 +1,1 @@
+ALTER TABLE bookings ADD COLUMN source TEXT NOT NULL DEFAULT 'direct';

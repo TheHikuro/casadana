@@ -99,6 +99,13 @@ func (ns NullReviewStatus) Value() (driver.Value, error) {
 	return string(ns.ReviewStatus), nil
 }
 
+type AdminUser struct {
+	ID           pgtype.UUID
+	Email        string
+	PasswordHash string
+	CreatedAt    pgtype.Timestamptz
+}
+
 type Booking struct {
 	ID         pgtype.UUID
 	VillaSlug  string
@@ -113,6 +120,7 @@ type Booking struct {
 	Status     BookingStatus
 	CreatedAt  pgtype.Timestamptz
 	UpdatedAt  pgtype.Timestamptz
+	Source     string
 }
 
 type PriceOverride struct {
