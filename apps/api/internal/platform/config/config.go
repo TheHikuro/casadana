@@ -36,6 +36,7 @@ type Config struct {
 	WebOrigin        string `env:"WEB_ORIGIN,required"`
 	AdminNotifyEmail string `env:"ADMIN_NOTIFY_EMAIL,required"`
 	MigrateOnBoot    bool   `env:"MIGRATE_ON_BOOT" envDefault:"true"`
+	CookieSecure     bool   `env:"COOKIE_SECURE" envDefault:"true"`
 }
 
 func Load() (Config, error) {
