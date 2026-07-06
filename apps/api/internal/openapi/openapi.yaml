@@ -22,6 +22,8 @@ tags:
     description: Per-date price overrides
   - name: reviews
     description: Guest testimonials linked to bookings
+  - name: admin
+    description: Admin authentication and user management
 
 paths:
   /api/health:
@@ -52,6 +54,12 @@ paths:
         - name: status
           in: query
           schema: { $ref: "#/components/schemas/BookingStatus" }
+        - name: villa_slug
+          in: query
+          required: false
+          schema: { type: string }
+      security:
+        - adminSession: []
       responses:
         "200":
           description: Paginated bookings
@@ -124,6 +132,8 @@ paths:
           in: path
           required: true
           schema: { type: string, format: uuid }
+      security:
+        - adminSession: []
       responses:
         "204":
           description: Deleted
@@ -145,13 +155,14 @@ paths:
         Moves a booking through its lifecycle: `pending → approved | rejected |
         cancelled`, `approved → paid | cancelled`, `paid → cancelled`. The
         backend enforces the state machine and rejects invalid transitions
-        with 409 `INVALID_STATUS`. Currently unauthenticated; auth gate is
-        added in Plan 2 (admin auth).
+        with 409 `INVALID_STATUS`.
       parameters:
         - name: id
           in: path
           required: true
           schema: { type: string, format: uuid }
+      security:
+        - adminSession: []
       requestBody:
         required: true
         content:
@@ -426,6 +437,124 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
 
+  /api/admin/login:
+    post:
+      operationId: adminLogin
+      tags: [admin]
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminLoginRequest"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "401":
+          description: Invalid email or password
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /api/admin/logout:
+    post:
+      operationId: adminLogout
+      tags: [admin]
+      summary: Admin logout
+      responses:
+        "204":
+          description: Logged out
+
+  /api/admin/me:
+    get:
+      operationId: adminMe
+      tags: [admin]
+      summary: Get the current admin user
+      security:
+        - adminSession: []
+      responses:
+        "200":
+          description: Current admin user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /api/admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: List all admin users
+      security:
+        - adminSession: []
+      responses:
+        "200":
+          description: All admin users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListAdminUsersResponse"
+    post:
+      operationId: createAdminUser
+      tags: [admin]
+      summary: Create a new admin user
+      security:
+        - adminSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAdminUserRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "409":
+          description: Email already registered
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /api/admin/users/{id}:
+    delete:
+      operationId: deleteAdminUser
+      tags: [admin]
+      summary: Delete an admin user
+      security:
+        - adminSession: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Admin user not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "409":
+          description: Cannot delete your own admin account
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
 components:
   schemas:
     HealthResponse:
@@ -478,6 +607,7 @@ components:
         adults: { type: integer, minimum: 1, maximum: 20, example: 2 }
         children: { type: integer, minimum: 0, maximum: 20, default: 0, example: 0 }
         message: { type: string, maxLength: 2000, default: "", example: "" }
+        source: { $ref: "#/components/schemas/BookingSource" }
 
     BookingResponse:
       type: object
@@ -499,6 +629,9 @@ components:
         guest_name: { type: string }
         guest_email: { type: string, format: email }
         created_at: { type: string, format: date-time }
+        adults: { type: integer }
+        children: { type: integer }
+        source: { $ref: "#/components/schemas/BookingSource" }
 
     BookedRange:
       type: object
@@ -628,3 +761,41 @@ components:
             message:
               type: string
               example: those dates are not available
+
+    BookingSource:
+      type: string
+      enum: [direct, airbnb, booking_com]
+
+    AdminLoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+
+    AdminUser:
+      type: object
+      properties:
+        id:         { type: string, format: uuid }
+        email:      { type: string, format: email }
+        created_at: { type: string, format: date-time }
+
+    ListAdminUsersResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items: { $ref: "#/components/schemas/AdminUser" }
+
+    CreateAdminUserRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:    { type: string, format: email }
+        password: { type: string, minLength: 8 }
+
+  securitySchemes:
+    adminSession:
+      type: apiKey
+      in: cookie
+      name: casa_admin_session
