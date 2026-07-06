@@ -28,6 +28,7 @@ type CreateCommand struct {
 	Adults     int
 	Children   int
 	Message    string
+	Source     string
 }
 
 func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*Booking, error) {
@@ -53,6 +54,7 @@ func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*Booking, erro
 		Adults:     cmd.Adults,
 		Children:   cmd.Children,
 		Message:    cmd.Message,
+		Source:     cmd.Source,
 		Now:        s.clock.Now(),
 	})
 	if err != nil {
@@ -97,9 +99,13 @@ func (s *Service) Get(ctx context.Context, id string) (*Booking, error) {
 	return s.repo.Get(ctx, id)
 }
 
-// List returns a page of bookings ordered by created_at DESC, with optional status filter.
-// page is 1-based, limit is clamped to [1, 100], default 20.
-func (s *Service) List(ctx context.Context, status *Status, page, limit int) ([]Booking, int, error) {
+// List returns a page of bookings ordered by created_at DESC, with optional
+// villa_slug and status filters. page is 1-based, limit is clamped to
+// [1, 100], default 20.
+func (s *Service) List(ctx context.Context, villaSlug *string, status *Status, page, limit int) ([]Booking, int, error) {
+	if villaSlug != nil && !s.allow.IsKnown(*villaSlug) {
+		return nil, 0, ErrUnknownVilla
+	}
 	if page < 1 {
 		page = 1
 	}
@@ -111,11 +117,11 @@ func (s *Service) List(ctx context.Context, status *Status, page, limit int) ([]
 	}
 	offset := (page - 1) * limit
 
-	bookings, err := s.repo.List(ctx, status, limit, offset)
+	bookings, err := s.repo.List(ctx, villaSlug, status, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("booking: list: %w", err)
 	}
-	total, err := s.repo.Count(ctx, status)
+	total, err := s.repo.Count(ctx, villaSlug, status)
 	if err != nil {
 		return nil, 0, fmt.Errorf("booking: count: %w", err)
 	}

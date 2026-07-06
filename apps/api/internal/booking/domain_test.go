@@ -62,3 +62,27 @@ func TestNewBooking_Rejects(t *testing.T) {
 		})
 	}
 }
+
+func TestNewBooking_DefaultsSourceToDirect(t *testing.T) {
+	c := validCmd()
+	c.Source = ""
+	b, err := NewBooking(c)
+	if err != nil {
+		t.Fatalf("NewBooking: %v", err)
+	}
+	if b.Source != "direct" {
+		t.Errorf("Source = %q, want direct", b.Source)
+	}
+}
+
+func TestNewBooking_KeepsExplicitSource(t *testing.T) {
+	c := validCmd()
+	c.Source = "airbnb"
+	b, err := NewBooking(c)
+	if err != nil {
+		t.Fatalf("NewBooking: %v", err)
+	}
+	if b.Source != "airbnb" {
+		t.Errorf("Source = %q, want airbnb", b.Source)
+	}
+}

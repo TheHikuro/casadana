@@ -50,15 +50,16 @@ func (f *fakeRepo) UpdateStatus(_ context.Context, id string, status Status, upd
 	return errors.New("not found")
 }
 
-func (f *fakeRepo) List(_ context.Context, status *Status, limit, offset int) ([]Booking, error) {
-	filtered := f.saved
-	if status != nil {
-		filtered = nil
-		for _, b := range f.saved {
-			if b.Status == *status {
-				filtered = append(filtered, b)
-			}
+func (f *fakeRepo) List(_ context.Context, villaSlug *string, status *Status, limit, offset int) ([]Booking, error) {
+	filtered := make([]Booking, 0, len(f.saved))
+	for _, b := range f.saved {
+		if villaSlug != nil && b.VillaSlug != *villaSlug {
+			continue
 		}
+		if status != nil && b.Status != *status {
+			continue
+		}
+		filtered = append(filtered, b)
 	}
 	if offset >= len(filtered) {
 		return []Booking{}, nil
@@ -70,15 +71,16 @@ func (f *fakeRepo) List(_ context.Context, status *Status, limit, offset int) ([
 	return filtered[offset:end], nil
 }
 
-func (f *fakeRepo) Count(_ context.Context, status *Status) (int, error) {
-	if status == nil {
-		return len(f.saved), nil
-	}
+func (f *fakeRepo) Count(_ context.Context, villaSlug *string, status *Status) (int, error) {
 	n := 0
 	for _, b := range f.saved {
-		if b.Status == *status {
-			n++
+		if villaSlug != nil && b.VillaSlug != *villaSlug {
+			continue
 		}
+		if status != nil && b.Status != *status {
+			continue
+		}
+		n++
 	}
 	return n, nil
 }

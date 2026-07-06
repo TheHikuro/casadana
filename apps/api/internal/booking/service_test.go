@@ -118,7 +118,7 @@ func TestList_Pagination(t *testing.T) {
 		}
 	}
 
-	bookings, total, err := svc.List(context.Background(), nil, 1, 2)
+	bookings, total, err := svc.List(context.Background(), nil, nil, 1, 2)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -141,7 +141,7 @@ func TestList_StatusFilter(t *testing.T) {
 	svc := newSvc(repo, &fakeMailer{}, fakeAllowlist{}, d("2026-05-12"))
 
 	pending := StatusPending
-	bookings, total, err := svc.List(context.Background(), &pending, 1, 50)
+	bookings, total, err := svc.List(context.Background(), nil, &pending, 1, 50)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -166,10 +166,44 @@ func TestList_Clamps(t *testing.T) {
 		{3, 25},
 	}
 	for _, c := range cases {
-		_, _, err := svc.List(context.Background(), nil, c.page, c.limit)
+		_, _, err := svc.List(context.Background(), nil, nil, c.page, c.limit)
 		if err != nil {
 			t.Fatalf("page=%d limit=%d: %v", c.page, c.limit, err)
 		}
+	}
+}
+
+func TestList_FilterByVillaSlug(t *testing.T) {
+	repo := &fakeRepo{
+		saved: []Booking{
+			{ID: "1", VillaSlug: "casadana", Status: StatusPending},
+			{ID: "2", VillaSlug: "casacasay", Status: StatusPending},
+			{ID: "3", VillaSlug: "casadana", Status: StatusApproved},
+		},
+	}
+	allow := fakeAllowlist{allowed: map[string]bool{"casadana": true, "casacasay": true}}
+	svc := newSvc(repo, &fakeMailer{}, allow, d("2026-05-12"))
+
+	slug := "casadana"
+	bookings, total, err := svc.List(context.Background(), &slug, nil, 1, 50)
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if total != 2 {
+		t.Errorf("total = %d, want 2", total)
+	}
+	if len(bookings) != 2 {
+		t.Errorf("len = %d, want 2", len(bookings))
+	}
+}
+
+func TestList_UnknownVillaSlug(t *testing.T) {
+	svc := newSvc(&fakeRepo{}, &fakeMailer{}, fakeAllowlist{allowed: map[string]bool{}}, d("2026-05-12"))
+
+	slug := "ghost-villa"
+	_, _, err := svc.List(context.Background(), &slug, nil, 1, 20)
+	if err == nil || !isErr(err, ErrUnknownVilla) {
+		t.Fatalf("err = %v, want ErrUnknownVilla", err)
 	}
 }
 

@@ -38,6 +38,7 @@ func (r *pgRepo) Save(ctx context.Context, b *Booking) error {
 		Adults:     int16(b.Adults),
 		Children:   int16(b.Children),
 		Message:    b.Message,
+		Source:     b.Source,
 		Status:     db.BookingStatus(b.Status),
 	})
 	return err
@@ -151,29 +152,44 @@ func rowToBooking(row db.Booking) Booking {
 		Status:     Status(row.Status),
 		CreatedAt:  row.CreatedAt.Time,
 		UpdatedAt:  row.UpdatedAt.Time,
+		Source:     row.Source,
 	}
 }
 
-func (r *pgRepo) List(ctx context.Context, status *Status, limit, offset int) ([]Booking, error) {
-	if status != nil {
+func (r *pgRepo) List(ctx context.Context, villaSlug *string, status *Status, limit, offset int) ([]Booking, error) {
+	switch {
+	case villaSlug != nil && status != nil:
+		rows, err := r.q().ListBookingsPagedByVillaAndStatus(ctx, db.ListBookingsPagedByVillaAndStatusParams{
+			VillaSlug: *villaSlug,
+			Status:    db.BookingStatus(*status),
+			Limit:     int32(limit),
+			Offset:    int32(offset),
+		})
+		return mapBookingRows(rows, err)
+	case villaSlug != nil:
+		rows, err := r.q().ListBookingsPagedByVilla(ctx, db.ListBookingsPagedByVillaParams{
+			VillaSlug: *villaSlug,
+			Limit:     int32(limit),
+			Offset:    int32(offset),
+		})
+		return mapBookingRows(rows, err)
+	case status != nil:
 		rows, err := r.q().ListBookingsPagedByStatus(ctx, db.ListBookingsPagedByStatusParams{
 			Status: db.BookingStatus(*status),
 			Limit:  int32(limit),
 			Offset: int32(offset),
 		})
-		if err != nil {
-			return nil, err
-		}
-		out := make([]Booking, 0, len(rows))
-		for _, row := range rows {
-			out = append(out, rowToBooking(row))
-		}
-		return out, nil
+		return mapBookingRows(rows, err)
+	default:
+		rows, err := r.q().ListBookingsPaged(ctx, db.ListBookingsPagedParams{
+			Limit:  int32(limit),
+			Offset: int32(offset),
+		})
+		return mapBookingRows(rows, err)
 	}
-	rows, err := r.q().ListBookingsPaged(ctx, db.ListBookingsPagedParams{
-		Limit:  int32(limit),
-		Offset: int32(offset),
-	})
+}
+
+func mapBookingRows(rows []db.Booking, err error) ([]Booking, error) {
 	if err != nil {
 		return nil, err
 	}
@@ -184,19 +200,24 @@ func (r *pgRepo) List(ctx context.Context, status *Status, limit, offset int) ([
 	return out, nil
 }
 
-func (r *pgRepo) Count(ctx context.Context, status *Status) (int, error) {
-	if status != nil {
+func (r *pgRepo) Count(ctx context.Context, villaSlug *string, status *Status) (int, error) {
+	switch {
+	case villaSlug != nil && status != nil:
+		n, err := r.q().CountBookingsByVillaAndStatus(ctx, db.CountBookingsByVillaAndStatusParams{
+			VillaSlug: *villaSlug,
+			Status:    db.BookingStatus(*status),
+		})
+		return int(n), err
+	case villaSlug != nil:
+		n, err := r.q().CountBookingsByVilla(ctx, *villaSlug)
+		return int(n), err
+	case status != nil:
 		n, err := r.q().CountBookingsByStatus(ctx, db.BookingStatus(*status))
-		if err != nil {
-			return 0, err
-		}
-		return int(n), nil
+		return int(n), err
+	default:
+		n, err := r.q().CountBookings(ctx)
+		return int(n), err
 	}
-	n, err := r.q().CountBookings(ctx)
-	if err != nil {
-		return 0, err
-	}
-	return int(n), nil
 }
 
 func (r *pgRepo) Delete(ctx context.Context, id string) error {

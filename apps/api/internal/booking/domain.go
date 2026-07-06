@@ -30,6 +30,7 @@ type Booking struct {
 	Children   int
 	Message    string
 	Status     Status
+	Source     string
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
@@ -44,6 +45,7 @@ type NewBookingInput struct {
 	Adults     int
 	Children   int
 	Message    string
+	Source     string
 	Now        time.Time // injected so tests are deterministic
 }
 
@@ -58,6 +60,10 @@ func NewBooking(in NewBookingInput) (*Booking, error) {
 	in.GuestName = strings.TrimSpace(in.GuestName)
 	in.GuestEmail = strings.TrimSpace(in.GuestEmail)
 	in.VillaSlug = strings.TrimSpace(in.VillaSlug)
+	in.Source = strings.TrimSpace(in.Source)
+	if in.Source == "" {
+		in.Source = "direct"
+	}
 
 	if in.VillaSlug == "" {
 		return nil, errors.New("villa_slug required")
@@ -94,6 +100,7 @@ func NewBooking(in NewBookingInput) (*Booking, error) {
 		Children:   in.Children,
 		Message:    in.Message,
 		Status:     StatusPending,
+		Source:     in.Source,
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}, nil
