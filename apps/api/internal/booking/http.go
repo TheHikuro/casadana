@@ -19,12 +19,18 @@ func init() {
 	httpserver.Register(ErrNotFound, http.StatusNotFound, "BOOKING_NOT_FOUND")
 }
 
-func Mount(r chi.Router, svc *Service) {
+// Mount wires booking routes. requireAuth guards the admin-only routes
+// (list/patch/delete); POST (public booking creation) and the availability
+// read stay open for unauthenticated guests.
+func Mount(r chi.Router, svc *Service, requireAuth func(http.Handler) http.Handler) {
 	r.Post("/api/bookings", createHandler(svc))
-	r.Get("/api/bookings", listBookingsHandler(svc))
-	r.Patch("/api/bookings/{id}", patchBookingHandler(svc))
-	r.Delete("/api/bookings/{id}", deleteBookingHandler(svc))
 	r.Get("/api/villas/{slug}/availability", availabilityHandler(svc))
+	r.Group(func(r chi.Router) {
+		r.Use(requireAuth)
+		r.Get("/api/bookings", listBookingsHandler(svc))
+		r.Patch("/api/bookings/{id}", patchBookingHandler(svc))
+		r.Delete("/api/bookings/{id}", deleteBookingHandler(svc))
+	})
 }
 
 type patchBookingRequest struct {
@@ -41,6 +47,7 @@ type createBookingRequest struct {
 	Adults     int    `json:"adults"      validate:"required,min=1,max=20"`
 	Children   int    `json:"children"    validate:"min=0,max=20"`
 	Message    string `json:"message"     validate:"max=2000"`
+	Source     string `json:"source"      validate:"omitempty,oneof=direct airbnb booking_com"`
 }
 
 type bookingResponse struct {
@@ -51,6 +58,9 @@ type bookingResponse struct {
 	CheckOut   string `json:"check_out"`
 	GuestName  string `json:"guest_name"`
 	GuestEmail string `json:"guest_email"`
+	Source     string `json:"source"`
+	Adults     int    `json:"adults"`
+	Children   int    `json:"children"`
 	CreatedAt  string `json:"created_at"`
 }
 
@@ -63,6 +73,9 @@ func toResponse(b *Booking) bookingResponse {
 		CheckOut:   b.CheckOut.Format("2006-01-02"),
 		GuestName:  b.GuestName,
 		GuestEmail: b.GuestEmail,
+		Source:     b.Source,
+		Adults:     b.Adults,
+		Children:   b.Children,
 		CreatedAt:  b.CreatedAt.Format(time.RFC3339),
 	}
 }
@@ -99,6 +112,7 @@ func createHandler(svc *Service) http.HandlerFunc {
 			Adults:     req.Adults,
 			Children:   req.Children,
 			Message:    req.Message,
+			Source:     req.Source,
 		})
 		if err != nil {
 			httpserver.WriteError(w, r, err)
@@ -188,6 +202,11 @@ func listBookingsHandler(svc *Service) http.HandlerFunc {
 		page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 
+		var villaSlugFilter *string
+		if vs := r.URL.Query().Get("villa_slug"); vs != "" {
+			villaSlugFilter = &vs
+		}
+
 		var statusFilter *Status
 		if s := r.URL.Query().Get("status"); s != "" {
 			switch Status(s) {
@@ -202,7 +221,7 @@ func listBookingsHandler(svc *Service) http.HandlerFunc {
 			}
 		}
 
-		bookings, total, err := svc.List(r.Context(), statusFilter, page, limit)
+		bookings, total, err := svc.List(r.Context(), villaSlugFilter, statusFilter, page, limit)
 		if err != nil {
 			httpserver.WriteError(w, r, err)
 			return

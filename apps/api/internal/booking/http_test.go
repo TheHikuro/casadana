@@ -11,10 +11,23 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func newRouter(svc *Service) http.Handler {
+func newRouter(svc *Service, requireAuth func(http.Handler) http.Handler) http.Handler {
 	r := chi.NewRouter()
-	Mount(r, svc)
+	Mount(r, svc, requireAuth)
 	return r
+}
+
+// noopAuth lets tests that aren't about auth exercise the admin-only routes
+// as if a valid session were already present.
+func noopAuth(next http.Handler) http.Handler { return next }
+
+// denyAllAuth simulates a middleware that rejects every request — used to
+// prove requireAuth is actually wired onto the routes that need it (and not
+// onto the ones that shouldn't be gated).
+func denyAllAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	})
 }
 
 func TestPostBooking_Created(t *testing.T) {
@@ -22,7 +35,7 @@ func TestPostBooking_Created(t *testing.T) {
 	svc := newSvc(repo, &fakeMailer{},
 		fakeAllowlist{allowed: map[string]bool{"casadana": true}},
 		d("2026-05-12"))
-	srv := httptest.NewServer(newRouter(svc))
+	srv := httptest.NewServer(newRouter(svc, noopAuth))
 	defer srv.Close()
 
 	body := `{"villa_slug":"casadana","guest_name":"Jane","guest_email":"jane@example.com","guest_phone":"+33123","check_in":"2026-07-01","check_out":"2026-07-08","adults":2,"children":0,"message":"hi"}`
@@ -48,7 +61,7 @@ func TestPostBooking_ValidationError(t *testing.T) {
 	svc := newSvc(&fakeRepo{}, &fakeMailer{},
 		fakeAllowlist{allowed: map[string]bool{"casadana": true}},
 		d("2026-05-12"))
-	srv := httptest.NewServer(newRouter(svc))
+	srv := httptest.NewServer(newRouter(svc, noopAuth))
 	defer srv.Close()
 
 	body := bytes.NewBufferString(`{"villa_slug":"casadana"}`)
@@ -67,7 +80,7 @@ func TestPostBooking_DatesConflict(t *testing.T) {
 	svc := newSvc(repo, &fakeMailer{},
 		fakeAllowlist{allowed: map[string]bool{"casadana": true}},
 		d("2026-05-12"))
-	srv := httptest.NewServer(newRouter(svc))
+	srv := httptest.NewServer(newRouter(svc, noopAuth))
 	defer srv.Close()
 
 	body := `{"villa_slug":"casadana","guest_name":"Jane","guest_email":"jane@example.com","guest_phone":"+33","check_in":"2026-07-01","check_out":"2026-07-08","adults":1,"children":0}`
@@ -85,7 +98,7 @@ func TestGetAvailability_Empty(t *testing.T) {
 	svc := newSvc(&fakeRepo{}, &fakeMailer{},
 		fakeAllowlist{allowed: map[string]bool{"casadana": true}},
 		d("2026-05-12"))
-	srv := httptest.NewServer(newRouter(svc))
+	srv := httptest.NewServer(newRouter(svc, noopAuth))
 	defer srv.Close()
 
 	resp, err := http.Get(srv.URL + "/api/villas/casadana/availability?from=2026-07-01&to=2026-08-01")
@@ -106,7 +119,7 @@ func TestGetAvailability_SeparatesPendingFromBooked(t *testing.T) {
 	svc := newSvc(repo, &fakeMailer{},
 		fakeAllowlist{allowed: map[string]bool{"casadana": true}},
 		d("2026-05-12"))
-	srv := httptest.NewServer(newRouter(svc))
+	srv := httptest.NewServer(newRouter(svc, noopAuth))
 	defer srv.Close()
 
 	resp, err := http.Get(srv.URL + "/api/villas/casadana/availability?from=2026-07-01&to=2026-08-01")
@@ -137,7 +150,7 @@ func TestListBookings_PaginatedResponse(t *testing.T) {
 		},
 	}
 	svc := newSvc(repo, &fakeMailer{}, fakeAllowlist{}, d("2026-05-12"))
-	srv := httptest.NewServer(newRouter(svc))
+	srv := httptest.NewServer(newRouter(svc, noopAuth))
 	defer srv.Close()
 
 	resp, err := http.Get(srv.URL + "/api/bookings?page=1&limit=10")
@@ -162,7 +175,7 @@ func TestListBookings_PaginatedResponse(t *testing.T) {
 
 func TestListBookings_BadStatus(t *testing.T) {
 	svc := newSvc(&fakeRepo{}, &fakeMailer{}, fakeAllowlist{}, d("2026-05-12"))
-	srv := httptest.NewServer(newRouter(svc))
+	srv := httptest.NewServer(newRouter(svc, noopAuth))
 	defer srv.Close()
 
 	resp, err := http.Get(srv.URL + "/api/bookings?status=invalid")
@@ -178,7 +191,7 @@ func TestListBookings_BadStatus(t *testing.T) {
 func TestDeleteBooking_NoContent(t *testing.T) {
 	repo := &fakeRepo{saved: []Booking{{ID: "abc-123"}}}
 	svc := newSvc(repo, &fakeMailer{}, fakeAllowlist{}, d("2026-05-12"))
-	srv := httptest.NewServer(newRouter(svc))
+	srv := httptest.NewServer(newRouter(svc, noopAuth))
 	defer srv.Close()
 
 	req, _ := http.NewRequest(http.MethodDelete, srv.URL+"/api/bookings/abc-123", nil)
@@ -194,7 +207,7 @@ func TestDeleteBooking_NoContent(t *testing.T) {
 
 func TestDeleteBooking_NotFound(t *testing.T) {
 	svc := newSvc(&fakeRepo{}, &fakeMailer{}, fakeAllowlist{}, d("2026-05-12"))
-	srv := httptest.NewServer(newRouter(svc))
+	srv := httptest.NewServer(newRouter(svc, noopAuth))
 	defer srv.Close()
 
 	req, _ := http.NewRequest(http.MethodDelete, srv.URL+"/api/bookings/nope", nil)
@@ -205,5 +218,130 @@ func TestDeleteBooking_NotFound(t *testing.T) {
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404", resp.StatusCode)
+	}
+}
+
+func TestListBookings_RequiresAuth(t *testing.T) {
+	svc := newSvc(&fakeRepo{}, &fakeMailer{}, fakeAllowlist{}, d("2026-05-12"))
+	srv := httptest.NewServer(newRouter(svc, denyAllAuth))
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/api/bookings")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", resp.StatusCode)
+	}
+}
+
+func TestPatchBooking_RequiresAuth(t *testing.T) {
+	svc := newSvc(&fakeRepo{}, &fakeMailer{}, fakeAllowlist{}, d("2026-05-12"))
+	srv := httptest.NewServer(newRouter(svc, denyAllAuth))
+	defer srv.Close()
+
+	req, _ := http.NewRequest(http.MethodPatch, srv.URL+"/api/bookings/abc", strings.NewReader(`{"status":"approved"}`))
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", resp.StatusCode)
+	}
+}
+
+func TestDeleteBooking_RequiresAuth(t *testing.T) {
+	svc := newSvc(&fakeRepo{}, &fakeMailer{}, fakeAllowlist{}, d("2026-05-12"))
+	srv := httptest.NewServer(newRouter(svc, denyAllAuth))
+	defer srv.Close()
+
+	req, _ := http.NewRequest(http.MethodDelete, srv.URL+"/api/bookings/abc", nil)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", resp.StatusCode)
+	}
+}
+
+func TestPostBooking_NotGatedByAuth(t *testing.T) {
+	repo := &fakeRepo{}
+	svc := newSvc(repo, &fakeMailer{}, fakeAllowlist{allowed: map[string]bool{"casadana": true}}, d("2026-05-12"))
+	srv := httptest.NewServer(newRouter(svc, denyAllAuth))
+	defer srv.Close()
+
+	body := `{"villa_slug":"casadana","guest_name":"Jane","guest_email":"jane@example.com","guest_phone":"+33123","check_in":"2026-07-01","check_out":"2026-07-08","adults":2,"children":0,"message":"hi"}`
+	resp, err := http.Post(srv.URL+"/api/bookings", "application/json", strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("status = %d, want 201 (POST must not be auth-gated even when requireAuth denies everything)", resp.StatusCode)
+	}
+}
+
+func TestGetAvailability_NotGatedByAuth(t *testing.T) {
+	svc := newSvc(&fakeRepo{}, &fakeMailer{}, fakeAllowlist{allowed: map[string]bool{"casadana": true}}, d("2026-05-12"))
+	srv := httptest.NewServer(newRouter(svc, denyAllAuth))
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/api/villas/casadana/availability?from=2026-07-01&to=2026-08-01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", resp.StatusCode)
+	}
+}
+
+func TestPostBooking_DefaultsSourceToDirect(t *testing.T) {
+	repo := &fakeRepo{}
+	svc := newSvc(repo, &fakeMailer{}, fakeAllowlist{allowed: map[string]bool{"casadana": true}}, d("2026-05-12"))
+	srv := httptest.NewServer(newRouter(svc, noopAuth))
+	defer srv.Close()
+
+	body := `{"villa_slug":"casadana","guest_name":"Jane","guest_email":"jane@example.com","guest_phone":"+33123","check_in":"2026-07-01","check_out":"2026-07-08","adults":2,"children":0}`
+	resp, err := http.Post(srv.URL+"/api/bookings", "application/json", strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var out bookingResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		t.Fatal(err)
+	}
+	if out.Source != "direct" {
+		t.Errorf("Source = %q, want direct", out.Source)
+	}
+}
+
+func TestListBookings_FilterByVillaSlug(t *testing.T) {
+	repo := &fakeRepo{
+		saved: []Booking{
+			{ID: "1", VillaSlug: "casadana", GuestName: "A", GuestEmail: "a@x.com", CheckIn: d("2026-07-01"), CheckOut: d("2026-07-08")},
+			{ID: "2", VillaSlug: "casacasay", GuestName: "B", GuestEmail: "b@x.com", CheckIn: d("2026-08-01"), CheckOut: d("2026-08-08")},
+		},
+	}
+	svc := newSvc(repo, &fakeMailer{}, fakeAllowlist{allowed: map[string]bool{"casadana": true, "casacasay": true}}, d("2026-05-12"))
+	srv := httptest.NewServer(newRouter(svc, noopAuth))
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/api/bookings?villa_slug=casadana")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var out listBookingsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		t.Fatal(err)
+	}
+	if out.Total != 1 || len(out.Bookings) != 1 || out.Bookings[0].VillaSlug != "casadana" {
+		t.Errorf("out = %+v, want exactly the casadana booking", out)
 	}
 }
