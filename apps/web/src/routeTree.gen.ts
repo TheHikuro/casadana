@@ -9,68 +9,276 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as VillaVillaIdRouteImport } from './routes/villa/$villaId'
+import { Route as PublicRouteImport } from './routes/_public'
+import { Route as PublicIndexRouteImport } from './routes/_public/index'
+import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminAuthedRouteImport } from './routes/admin/_authed'
+import { Route as AdminAuthedIndexRouteImport } from './routes/admin/_authed/index'
+import { Route as AdminAuthedReviewsRouteImport } from './routes/admin/_authed/reviews'
+import { Route as AdminAuthedReservationsRouteImport } from './routes/admin/_authed/reservations'
+import { Route as AdminAuthedPricingRouteImport } from './routes/admin/_authed/pricing'
+import { Route as AdminAuthedOwnerRouteImport } from './routes/admin/_authed/owner'
+import { Route as AdminAuthedHistoryRouteImport } from './routes/admin/_authed/history'
+import { Route as PublicVillaVillaIdRouteImport } from './routes/_public/villa/$villaId'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const PublicRoute = PublicRouteImport.update({
+  id: '/_public',
   getParentRoute: () => rootRouteImport,
 } as any)
-const VillaVillaIdRoute = VillaVillaIdRouteImport.update({
+const PublicIndexRoute = PublicIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PublicRoute,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAuthedRoute = AdminAuthedRouteImport.update({
+  id: '/admin/_authed',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAuthedIndexRoute = AdminAuthedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminAuthedRoute,
+} as any)
+const AdminAuthedReviewsRoute = AdminAuthedReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
+  getParentRoute: () => AdminAuthedRoute,
+} as any)
+const AdminAuthedReservationsRoute = AdminAuthedReservationsRouteImport.update({
+  id: '/reservations',
+  path: '/reservations',
+  getParentRoute: () => AdminAuthedRoute,
+} as any)
+const AdminAuthedPricingRoute = AdminAuthedPricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => AdminAuthedRoute,
+} as any)
+const AdminAuthedOwnerRoute = AdminAuthedOwnerRouteImport.update({
+  id: '/owner',
+  path: '/owner',
+  getParentRoute: () => AdminAuthedRoute,
+} as any)
+const AdminAuthedHistoryRoute = AdminAuthedHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AdminAuthedRoute,
+} as any)
+const PublicVillaVillaIdRoute = PublicVillaVillaIdRouteImport.update({
   id: '/villa/$villaId',
   path: '/villa/$villaId',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => PublicRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/villa/$villaId': typeof VillaVillaIdRoute
+  '/': typeof PublicIndexRoute
+  '/admin': typeof AdminAuthedRouteWithChildren
+  '/admin/login': typeof AdminLoginRoute
+  '/villa/$villaId': typeof PublicVillaVillaIdRoute
+  '/admin/history': typeof AdminAuthedHistoryRoute
+  '/admin/owner': typeof AdminAuthedOwnerRoute
+  '/admin/pricing': typeof AdminAuthedPricingRoute
+  '/admin/reservations': typeof AdminAuthedReservationsRoute
+  '/admin/reviews': typeof AdminAuthedReviewsRoute
+  '/admin/': typeof AdminAuthedIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/villa/$villaId': typeof VillaVillaIdRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/': typeof PublicIndexRoute
+  '/villa/$villaId': typeof PublicVillaVillaIdRoute
+  '/admin/history': typeof AdminAuthedHistoryRoute
+  '/admin/owner': typeof AdminAuthedOwnerRoute
+  '/admin/pricing': typeof AdminAuthedPricingRoute
+  '/admin/reservations': typeof AdminAuthedReservationsRoute
+  '/admin/reviews': typeof AdminAuthedReviewsRoute
+  '/admin': typeof AdminAuthedIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/villa/$villaId': typeof VillaVillaIdRoute
+  '/_public': typeof PublicRouteWithChildren
+  '/admin/_authed': typeof AdminAuthedRouteWithChildren
+  '/admin/login': typeof AdminLoginRoute
+  '/_public/': typeof PublicIndexRoute
+  '/_public/villa/$villaId': typeof PublicVillaVillaIdRoute
+  '/admin/_authed/history': typeof AdminAuthedHistoryRoute
+  '/admin/_authed/owner': typeof AdminAuthedOwnerRoute
+  '/admin/_authed/pricing': typeof AdminAuthedPricingRoute
+  '/admin/_authed/reservations': typeof AdminAuthedReservationsRoute
+  '/admin/_authed/reviews': typeof AdminAuthedReviewsRoute
+  '/admin/_authed/': typeof AdminAuthedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/villa/$villaId'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/admin/login'
+    | '/villa/$villaId'
+    | '/admin/history'
+    | '/admin/owner'
+    | '/admin/pricing'
+    | '/admin/reservations'
+    | '/admin/reviews'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/villa/$villaId'
-  id: '__root__' | '/' | '/villa/$villaId'
+  to:
+    | '/admin/login'
+    | '/'
+    | '/villa/$villaId'
+    | '/admin/history'
+    | '/admin/owner'
+    | '/admin/pricing'
+    | '/admin/reservations'
+    | '/admin/reviews'
+    | '/admin'
+  id:
+    | '__root__'
+    | '/_public'
+    | '/admin/_authed'
+    | '/admin/login'
+    | '/_public/'
+    | '/_public/villa/$villaId'
+    | '/admin/_authed/history'
+    | '/admin/_authed/owner'
+    | '/admin/_authed/pricing'
+    | '/admin/_authed/reservations'
+    | '/admin/_authed/reviews'
+    | '/admin/_authed/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  VillaVillaIdRoute: typeof VillaVillaIdRoute
+  PublicRoute: typeof PublicRouteWithChildren
+  AdminAuthedRoute: typeof AdminAuthedRouteWithChildren
+  AdminLoginRoute: typeof AdminLoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
+    '/_public': {
+      id: '/_public'
+      path: ''
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof PublicRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/villa/$villaId': {
-      id: '/villa/$villaId'
+    '/_public/': {
+      id: '/_public/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof PublicIndexRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/_authed': {
+      id: '/admin/_authed'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminAuthedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/_authed/': {
+      id: '/admin/_authed/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminAuthedIndexRouteImport
+      parentRoute: typeof AdminAuthedRoute
+    }
+    '/admin/_authed/reviews': {
+      id: '/admin/_authed/reviews'
+      path: '/reviews'
+      fullPath: '/admin/reviews'
+      preLoaderRoute: typeof AdminAuthedReviewsRouteImport
+      parentRoute: typeof AdminAuthedRoute
+    }
+    '/admin/_authed/reservations': {
+      id: '/admin/_authed/reservations'
+      path: '/reservations'
+      fullPath: '/admin/reservations'
+      preLoaderRoute: typeof AdminAuthedReservationsRouteImport
+      parentRoute: typeof AdminAuthedRoute
+    }
+    '/admin/_authed/pricing': {
+      id: '/admin/_authed/pricing'
+      path: '/pricing'
+      fullPath: '/admin/pricing'
+      preLoaderRoute: typeof AdminAuthedPricingRouteImport
+      parentRoute: typeof AdminAuthedRoute
+    }
+    '/admin/_authed/owner': {
+      id: '/admin/_authed/owner'
+      path: '/owner'
+      fullPath: '/admin/owner'
+      preLoaderRoute: typeof AdminAuthedOwnerRouteImport
+      parentRoute: typeof AdminAuthedRoute
+    }
+    '/admin/_authed/history': {
+      id: '/admin/_authed/history'
+      path: '/history'
+      fullPath: '/admin/history'
+      preLoaderRoute: typeof AdminAuthedHistoryRouteImport
+      parentRoute: typeof AdminAuthedRoute
+    }
+    '/_public/villa/$villaId': {
+      id: '/_public/villa/$villaId'
       path: '/villa/$villaId'
       fullPath: '/villa/$villaId'
-      preLoaderRoute: typeof VillaVillaIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof PublicVillaVillaIdRouteImport
+      parentRoute: typeof PublicRoute
     }
   }
 }
 
+interface PublicRouteChildren {
+  PublicIndexRoute: typeof PublicIndexRoute
+  PublicVillaVillaIdRoute: typeof PublicVillaVillaIdRoute
+}
+
+const PublicRouteChildren: PublicRouteChildren = {
+  PublicIndexRoute: PublicIndexRoute,
+  PublicVillaVillaIdRoute: PublicVillaVillaIdRoute,
+}
+
+const PublicRouteWithChildren =
+  PublicRoute._addFileChildren(PublicRouteChildren)
+
+interface AdminAuthedRouteChildren {
+  AdminAuthedHistoryRoute: typeof AdminAuthedHistoryRoute
+  AdminAuthedOwnerRoute: typeof AdminAuthedOwnerRoute
+  AdminAuthedPricingRoute: typeof AdminAuthedPricingRoute
+  AdminAuthedReservationsRoute: typeof AdminAuthedReservationsRoute
+  AdminAuthedReviewsRoute: typeof AdminAuthedReviewsRoute
+  AdminAuthedIndexRoute: typeof AdminAuthedIndexRoute
+}
+
+const AdminAuthedRouteChildren: AdminAuthedRouteChildren = {
+  AdminAuthedHistoryRoute: AdminAuthedHistoryRoute,
+  AdminAuthedOwnerRoute: AdminAuthedOwnerRoute,
+  AdminAuthedPricingRoute: AdminAuthedPricingRoute,
+  AdminAuthedReservationsRoute: AdminAuthedReservationsRoute,
+  AdminAuthedReviewsRoute: AdminAuthedReviewsRoute,
+  AdminAuthedIndexRoute: AdminAuthedIndexRoute,
+}
+
+const AdminAuthedRouteWithChildren = AdminAuthedRoute._addFileChildren(
+  AdminAuthedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  VillaVillaIdRoute: VillaVillaIdRoute,
+  PublicRoute: PublicRouteWithChildren,
+  AdminAuthedRoute: AdminAuthedRouteWithChildren,
+  AdminLoginRoute: AdminLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
