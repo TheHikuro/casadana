@@ -17,7 +17,7 @@ import { getVilla } from "@/constants/villas.const"
 import { m } from "@/paraglide/messages"
 
 export default function VillaDetailPage() {
-  const { villaId } = useParams({ from: "/villa/$villaId" })
+  const { villaId } = useParams({ from: "/_public/villa/$villaId" })
   const villa = getVilla(villaId)
 
   const [lbOpen, setLbOpen] = useState(false)
