@@ -6,7 +6,7 @@ import (
 )
 
 type Repository interface {
-	Save(ctx context.Context, u *AdminUser) error // ErrEmailTaken on unique conflict
+	Save(ctx context.Context, u *AdminUser) error                      // ErrEmailTaken on unique conflict
 	FindByEmail(ctx context.Context, email string) (*AdminUser, error) // ErrNotFound
 	FindByID(ctx context.Context, id string) (*AdminUser, error)       // ErrNotFound
 	List(ctx context.Context) ([]AdminUser, error)
