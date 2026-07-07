@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router"
 import type { ReactNode } from "react"
 
 import { m } from "@/paraglide/messages"
@@ -93,13 +92,14 @@ export default function Footer() {
           <span>{m.footer_copyright()}</span>
           <span>
             {m.footer_built_with_care()} ·{" "}
-            <Link
-              to="https://github.com/TheHikuro/"
+            <a
+              href="https://github.com/TheHikuro/"
               target="_blank"
+              rel="noopener noreferrer"
               className="hover:text-secondary-fixed transition-colors"
             >
               {m.footer_built_by()}
-            </Link>
+            </a>
           </span>
         </div>
       </div>
