@@ -103,7 +103,7 @@ function ReservationsPage() {
         <div className="border-outline-variant border-b px-5 py-4">
           <h3 className="text-on-surface text-[14.5px] font-semibold">All reservations</h3>
         </div>
-        <ReservationTable bookings={data?.bookings ?? []} />
+        <ReservationTable bookings={data?.bookings ?? []} property={property} />
         {data && data.total > PAGE_SIZE && (
           <div className="border-outline-variant flex items-center justify-center gap-4 border-t px-5 py-3.5">
             <Button

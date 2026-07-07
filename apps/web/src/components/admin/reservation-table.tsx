@@ -4,6 +4,7 @@ import {
   type PatchBookingRequestStatus,
   getListBookingsQueryKey,
   useDeleteBooking,
+  useListBookings,
   usePatchBooking,
 } from "@casa-dana/api"
 import { useQueryClient } from "@tanstack/react-query"
@@ -11,6 +12,13 @@ import { Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/toast"
+
+// Half-open interval overlap, matching the backend's own conflict check
+// (check_in < other.check_out AND check_out > other.check_in). ISO
+// "YYYY-MM-DD" strings compare correctly with plain string operators.
+function datesOverlap(aIn: string, aOut: string, bIn: string, bOut: string): boolean {
+  return aIn < bOut && aOut > bIn
+}
 
 const NEXT_STATUSES: Record<
   BookingStatus,
@@ -40,14 +48,34 @@ const STATUS_BADGE_CLASSES: Record<BookingStatus, string> = {
 
 interface ReservationTableProps {
   bookings: Array<BookingResponse>
+  property: "casadana" | "casacasay"
 }
 
-export default function ReservationTable({ bookings }: ReservationTableProps) {
+export default function ReservationTable({ bookings, property }: ReservationTableProps) {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   // Invalidate at the endpoint prefix (not the exact page/limit key) so this
   // also refreshes the stat row's separate limit:1 queries, not just this page.
   const bookingsQueryKey = getListBookingsQueryKey()
+
+  // Fetched independently of pagination so "Approve" is disabled for a
+  // conflict even when the confirmed booking it collides with sits on a
+  // different page. Mirrors the backend's own approve-time conflict check
+  // (booking/service.go's TransitionStatus) as a proactive UI hint — the
+  // backend's check is the authoritative guard either way.
+  const { data: approvedData } = useListBookings({
+    villa_slug: property,
+    status: "approved",
+    limit: 100,
+  })
+  const { data: paidData } = useListBookings({ villa_slug: property, status: "paid", limit: 100 })
+  const confirmedBookings = [...(approvedData?.bookings ?? []), ...(paidData?.bookings ?? [])]
+
+  const conflictingApproval = (b: BookingResponse): boolean =>
+    confirmedBookings.some(
+      (other) =>
+        other.id !== b.id && datesOverlap(b.check_in, b.check_out, other.check_in, other.check_out),
+    )
 
   const { mutate: patchStatus } = usePatchBooking({
     mutation: {
@@ -117,17 +145,26 @@ export default function ReservationTable({ bookings }: ReservationTableProps) {
                   >
                     {b.status}
                   </span>
-                  {NEXT_STATUSES[b.status].map(({ status: next, label }) => (
-                    <Button
-                      key={next}
-                      type="button"
-                      variant="outline"
-                      size="xs"
-                      onClick={() => patchStatus({ id: b.id, data: { status: next } })}
-                    >
-                      {label}
-                    </Button>
-                  ))}
+                  {NEXT_STATUSES[b.status].map(({ status: next, label }) => {
+                    const disabled = next === "approved" && conflictingApproval(b)
+                    return (
+                      <Button
+                        key={next}
+                        type="button"
+                        variant="outline"
+                        size="xs"
+                        disabled={disabled}
+                        title={
+                          disabled
+                            ? "These dates overlap an already-confirmed reservation."
+                            : undefined
+                        }
+                        onClick={() => patchStatus({ id: b.id, data: { status: next } })}
+                      >
+                        {label}
+                      </Button>
+                    )
+                  })}
                 </div>
               </td>
               <td className="px-5 py-3">
