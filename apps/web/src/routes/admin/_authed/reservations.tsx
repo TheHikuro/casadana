@@ -1,7 +1,7 @@
+import { type BookingStatus, useListBookings } from "@casa-dana/api"
 import { keepPreviousData } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 
-import { type BookingStatus, useListBookings } from "@casa-dana/api"
 import AddReservationDialog from "@/components/admin/add-reservation-dialog"
 import ReservationTable from "@/components/admin/reservation-table"
 import { Button } from "@/components/ui/button"
@@ -66,13 +66,13 @@ function ReservationsPage() {
     <div>
       <div className="mb-7 flex flex-wrap items-baseline justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-on-surface">Reservations</h2>
-          <p className="mt-1 text-[13.5px] text-on-surface-variant">
+          <h2 className="text-on-surface text-2xl font-bold">Reservations</h2>
+          <p className="text-on-surface-variant mt-1 text-[13.5px]">
             Requests and confirmed stays for {PROPERTY_LABELS[property]}.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex gap-1 rounded-lg bg-surface-container p-1">
+          <div className="bg-surface-container flex gap-1 rounded-lg p-1">
             {PROPERTIES.map((p) => (
               <button
                 key={p}
@@ -80,15 +80,15 @@ function ReservationsPage() {
                 onClick={() => switchProperty(p)}
                 className={
                   p === property
-                    ? "rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-on-primary"
-                    : "rounded-md px-3 py-1.5 text-[13px] font-medium text-on-surface-variant"
+                    ? "bg-primary text-on-primary rounded-md px-3 py-1.5 text-[13px] font-medium"
+                    : "text-on-surface-variant rounded-md px-3 py-1.5 text-[13px] font-medium"
                 }
               >
                 {PROPERTY_LABELS[p]}
               </button>
             ))}
           </div>
-          <AddReservationDialog property={property} status={status} page={page} />
+          <AddReservationDialog property={property} />
         </div>
       </div>
 
@@ -99,17 +99,23 @@ function ReservationsPage() {
         ))}
       </div>
 
-      <div className="rounded-lg border border-outline-variant bg-surface">
-        <div className="border-b border-outline-variant px-5 py-4">
-          <h3 className="text-[14.5px] font-semibold text-on-surface">All reservations</h3>
+      <div className="border-outline-variant bg-surface rounded-lg border">
+        <div className="border-outline-variant border-b px-5 py-4">
+          <h3 className="text-on-surface text-[14.5px] font-semibold">All reservations</h3>
         </div>
-        <ReservationTable bookings={data?.bookings ?? []} property={property} status={status} page={page} />
+        <ReservationTable bookings={data?.bookings ?? []} />
         {data && data.total > PAGE_SIZE && (
-          <div className="flex items-center justify-center gap-4 border-t border-outline-variant px-5 py-3.5">
-            <Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => goToPage(page - 1)}>
+          <div className="border-outline-variant flex items-center justify-center gap-4 border-t px-5 py-3.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => goToPage(page - 1)}
+            >
               ‹ Prev
             </Button>
-            <span className="text-[12.5px] text-on-surface-variant">
+            <span className="text-on-surface-variant text-[12.5px]">
               Page {page} of {maxPage}
             </span>
             <Button
@@ -145,9 +151,11 @@ function useStatusTotals(property: Property): Partial<Record<BookingStatus, numb
 
 function StatTile({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-outline-variant bg-surface px-4 py-3.5">
-      <p className="text-[11px] font-semibold tracking-[0.06em] text-on-surface-variant uppercase">{label}</p>
-      <p className="mt-1.5 font-mono text-2xl font-bold text-on-surface">{value}</p>
+    <div className="border-outline-variant bg-surface rounded-lg border px-4 py-3.5">
+      <p className="text-on-surface-variant text-[11px] font-semibold tracking-[0.06em] uppercase">
+        {label}
+      </p>
+      <p className="text-on-surface mt-1.5 font-mono text-2xl font-bold">{value}</p>
     </div>
   )
 }

@@ -1,6 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query"
-import { Trash2 } from "lucide-react"
-
 import {
   type BookingResponse,
   type BookingStatus,
@@ -9,10 +6,16 @@ import {
   useDeleteBooking,
   usePatchBooking,
 } from "@casa-dana/api"
+import { useQueryClient } from "@tanstack/react-query"
+import { Trash2 } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/toast"
 
-const NEXT_STATUSES: Record<BookingStatus, Array<{ status: PatchBookingRequestStatus; label: string }>> = {
+const NEXT_STATUSES: Record<
+  BookingStatus,
+  Array<{ status: PatchBookingRequestStatus; label: string }>
+> = {
   pending: [
     { status: "approved", label: "Approve" },
     { status: "rejected", label: "Reject" },
@@ -37,12 +40,9 @@ const STATUS_BADGE_CLASSES: Record<BookingStatus, string> = {
 
 interface ReservationTableProps {
   bookings: Array<BookingResponse>
-  property: "casadana" | "casacasay"
-  status?: BookingStatus
-  page: number
 }
 
-export default function ReservationTable({ bookings, property, status, page }: ReservationTableProps) {
+export default function ReservationTable({ bookings }: ReservationTableProps) {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   // Invalidate at the endpoint prefix (not the exact page/limit key) so this
@@ -77,7 +77,7 @@ export default function ReservationTable({ bookings, property, status, page }: R
 
   if (bookings.length === 0) {
     return (
-      <div className="px-5 py-10 text-center text-[13.5px] text-on-surface-variant">
+      <div className="text-on-surface-variant px-5 py-10 text-center text-[13.5px]">
         No reservations yet — new "Request to Book" submissions from the public site will land here.
       </div>
     )
@@ -87,7 +87,7 @@ export default function ReservationTable({ bookings, property, status, page }: R
     <div className="overflow-x-auto">
       <table className="w-full min-w-[720px] border-collapse text-[13px]">
         <thead>
-          <tr className="border-b border-outline-variant bg-surface-container-low text-left text-[10.5px] font-semibold tracking-[0.08em] text-on-surface-variant uppercase">
+          <tr className="border-outline-variant bg-surface-container-low text-on-surface-variant border-b text-left text-[10.5px] font-semibold tracking-[0.08em] uppercase">
             <th className="px-5 py-2.5">Guest</th>
             <th className="px-5 py-2.5">Dates</th>
             <th className="px-5 py-2.5">Guests</th>
@@ -98,16 +98,18 @@ export default function ReservationTable({ bookings, property, status, page }: R
         </thead>
         <tbody>
           {bookings.map((b) => (
-            <tr key={b.id} className="border-b border-outline-variant last:border-0">
+            <tr key={b.id} className="border-outline-variant border-b last:border-0">
               <td className="px-5 py-3">
-                <p className="font-semibold text-on-surface">{b.guest_name}</p>
-                <p className="mt-0.5 font-mono text-[11px] text-on-surface-variant">{b.guest_email}</p>
+                <p className="text-on-surface font-semibold">{b.guest_name}</p>
+                <p className="text-on-surface-variant mt-0.5 font-mono text-[11px]">
+                  {b.guest_email}
+                </p>
               </td>
-              <td className="px-5 py-3 font-mono text-on-surface">
+              <td className="text-on-surface px-5 py-3 font-mono">
                 {b.check_in} → {b.check_out}
               </td>
-              <td className="px-5 py-3 text-on-surface">{(b.adults ?? 0) + (b.children ?? 0)}</td>
-              <td className="px-5 py-3 text-on-surface-variant capitalize">{b.source}</td>
+              <td className="text-on-surface px-5 py-3">{(b.adults ?? 0) + (b.children ?? 0)}</td>
+              <td className="text-on-surface-variant px-5 py-3 capitalize">{b.source}</td>
               <td className="px-5 py-3">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span
@@ -133,7 +135,7 @@ export default function ReservationTable({ bookings, property, status, page }: R
                   type="button"
                   onClick={() => handleDelete(b.id)}
                   aria-label="Delete reservation"
-                  className="rounded-md p-1.5 text-on-surface-variant hover:bg-error-container hover:text-on-error-container"
+                  className="text-on-surface-variant hover:bg-error-container hover:text-on-error-container rounded-md p-1.5"
                 >
                   <Trash2 className="size-3.5" />
                 </button>

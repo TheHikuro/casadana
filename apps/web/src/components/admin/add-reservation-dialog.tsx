@@ -1,10 +1,16 @@
+import { ApiError, getListBookingsQueryKey, useCreateBooking } from "@casa-dana/api"
 import { useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 
-import { ApiError, type BookingStatus, getListBookingsQueryKey, useCreateBooking } from "@casa-dana/api"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogClose, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/toast"
@@ -21,11 +27,9 @@ interface AddReservationFormValues {
 
 interface AddReservationDialogProps {
   property: "casadana" | "casacasay"
-  status?: BookingStatus
-  page: number
 }
 
-export default function AddReservationDialog({ property, status, page }: AddReservationDialogProps) {
+export default function AddReservationDialog({ property }: AddReservationDialogProps) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -61,7 +65,10 @@ export default function AddReservationDialog({ property, status, page }: AddRese
       },
       onError: (err) => {
         if (err instanceof ApiError && err.code === "DATES_CONFLICT") {
-          setError("checkOut", { type: "conflict", message: "Those dates overlap an existing reservation." })
+          setError("checkOut", {
+            type: "conflict",
+            message: "Those dates overlap an existing reservation.",
+          })
         } else {
           toast("Could not add reservation")
         }
@@ -130,7 +137,7 @@ export default function AddReservationDialog({ property, status, page }: AddRese
               <select
                 id="source"
                 {...register("source")}
-                className="h-8 rounded-lg border border-outline-variant bg-transparent px-2.5 text-sm text-on-surface"
+                className="border-outline-variant text-on-surface h-8 rounded-lg border bg-transparent px-2.5 text-sm"
               >
                 <option value="direct">Direct</option>
                 <option value="airbnb">Airbnb</option>
