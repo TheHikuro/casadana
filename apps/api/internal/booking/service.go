@@ -136,6 +136,17 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 // TransitionStatus moves a booking through its lifecycle (pending → approved /
 // rejected / cancelled / paid). The state machine is enforced by the domain
 // helper Booking.Transition; the service handles persistence.
+//
+// Approving a booking additionally re-checks for date conflicts against other
+// already-confirmed (approved/paid) bookings. This guards against
+// double-booking a range that only became blocked after this booking was
+// created (e.g. two pending requests racing each other) — creation-time
+// conflict checking alone can't catch that, since neither request conflicted
+// with anything confirmed yet at the time it was submitted. Once a booking is
+// already approved, transitioning it further (approved -> paid) never needs
+// this check again: nothing else could have validly become confirmed for an
+// overlapping range in the meantime, since that transition would have been
+// blocked by this same guard.
 func (s *Service) TransitionStatus(ctx context.Context, id string, next Status) (*Booking, error) {
 	current, err := s.repo.Get(ctx, id)
 	if err != nil {
@@ -144,6 +155,15 @@ func (s *Service) TransitionStatus(ctx context.Context, id string, next Status) 
 	transitioned, err := current.Transition(next, s.clock.Now())
 	if err != nil {
 		return nil, err
+	}
+	if next == StatusApproved {
+		overlapping, err := s.repo.FindOverlappingConfirmed(ctx, current.VillaSlug, current.CheckIn, current.CheckOut, current.ID)
+		if err != nil {
+			return nil, fmt.Errorf("booking: check overlap: %w", err)
+		}
+		if len(overlapping) > 0 {
+			return nil, ErrDatesConflict
+		}
 	}
 	if err := s.repo.UpdateStatus(ctx, id, transitioned.Status, transitioned.UpdatedAt); err != nil {
 		return nil, fmt.Errorf("booking: update status: %w", err)

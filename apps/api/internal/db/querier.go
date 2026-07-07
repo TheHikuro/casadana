@@ -19,6 +19,7 @@ type Querier interface {
 	DeleteBooking(ctx context.Context, id pgtype.UUID) (int64, error)
 	DeleteReview(ctx context.Context, id pgtype.UUID) (int64, error)
 	FindOverlappingBookings(ctx context.Context, arg FindOverlappingBookingsParams) ([]Booking, error)
+	FindOverlappingConfirmedBookings(ctx context.Context, arg FindOverlappingConfirmedBookingsParams) ([]Booking, error)
 	GetAdminUserByEmail(ctx context.Context, email string) (AdminUser, error)
 	GetAdminUserByID(ctx context.Context, id pgtype.UUID) (AdminUser, error)
 	GetBookingByID(ctx context.Context, id pgtype.UUID) (Booking, error)

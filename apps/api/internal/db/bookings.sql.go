@@ -121,6 +121,62 @@ func (q *Queries) FindOverlappingBookings(ctx context.Context, arg FindOverlappi
 	return items, nil
 }
 
+const findOverlappingConfirmedBookings = `-- name: FindOverlappingConfirmedBookings :many
+SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source FROM bookings
+WHERE villa_slug = $1
+  AND status IN ('approved', 'paid')
+  AND id != $4
+  AND check_in  < $3
+  AND check_out > $2
+`
+
+type FindOverlappingConfirmedBookingsParams struct {
+	VillaSlug string
+	CheckOut  pgtype.Date
+	CheckIn   pgtype.Date
+	ID        pgtype.UUID
+}
+
+func (q *Queries) FindOverlappingConfirmedBookings(ctx context.Context, arg FindOverlappingConfirmedBookingsParams) ([]Booking, error) {
+	rows, err := q.db.Query(ctx, findOverlappingConfirmedBookings,
+		arg.VillaSlug,
+		arg.CheckOut,
+		arg.CheckIn,
+		arg.ID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Booking
+	for rows.Next() {
+		var i Booking
+		if err := rows.Scan(
+			&i.ID,
+			&i.VillaSlug,
+			&i.GuestName,
+			&i.GuestEmail,
+			&i.GuestPhone,
+			&i.CheckIn,
+			&i.CheckOut,
+			&i.Adults,
+			&i.Children,
+			&i.Message,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Source,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getBookingByID = `-- name: GetBookingByID :one
 SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source FROM bookings WHERE id = $1
 `

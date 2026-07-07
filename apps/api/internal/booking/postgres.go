@@ -70,6 +70,29 @@ func (r *pgRepo) FindOverlapping(ctx context.Context, villaSlug string, from, to
 	return out, nil
 }
 
+// FindOverlappingConfirmed mirrors the same param naming quirk as
+// FindOverlapping, plus excludeID bound to $4.
+func (r *pgRepo) FindOverlappingConfirmed(ctx context.Context, villaSlug string, from, to time.Time, excludeID string) ([]Booking, error) {
+	excludeUUID, err := uuid.Parse(excludeID)
+	if err != nil {
+		return nil, fmt.Errorf("booking: invalid exclude id: %w", err)
+	}
+	rows, err := r.q().FindOverlappingConfirmedBookings(ctx, db.FindOverlappingConfirmedBookingsParams{
+		VillaSlug: villaSlug,
+		CheckOut:  pgtype.Date{Time: from, Valid: true},
+		CheckIn:   pgtype.Date{Time: to, Valid: true},
+		ID:        pgtype.UUID{Bytes: [16]byte(excludeUUID), Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]Booking, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, rowToBooking(row))
+	}
+	return out, nil
+}
+
 // BookedRanges mirrors the same param naming quirk as FindOverlapping.
 func (r *pgRepo) BookedRanges(ctx context.Context, villaSlug string, from, to time.Time) ([]DateRange, error) {
 	rows, err := r.q().ListBookedRanges(ctx, db.ListBookedRangesParams{

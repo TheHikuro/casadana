@@ -24,6 +24,21 @@ func (f *fakeRepo) Save(_ context.Context, b *Booking) error {
 func (f *fakeRepo) FindOverlapping(_ context.Context, _ string, _, _ time.Time) ([]Booking, error) {
 	return f.overlapping, nil
 }
+func (f *fakeRepo) FindOverlappingConfirmed(_ context.Context, villaSlug string, from, to time.Time, excludeID string) ([]Booking, error) {
+	var out []Booking
+	for _, b := range f.saved {
+		if b.ID == excludeID || b.VillaSlug != villaSlug {
+			continue
+		}
+		if b.Status != StatusApproved && b.Status != StatusPaid {
+			continue
+		}
+		if b.CheckIn.Before(to) && b.CheckOut.After(from) {
+			out = append(out, b)
+		}
+	}
+	return out, nil
+}
 func (f *fakeRepo) BookedRanges(_ context.Context, _ string, _, _ time.Time) ([]DateRange, error) {
 	return f.bookedRanges, nil
 }

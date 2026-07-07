@@ -18,6 +18,14 @@ WHERE villa_slug = $1
   AND check_in  < $3
   AND check_out > $2;
 
+-- name: FindOverlappingConfirmedBookings :many
+SELECT * FROM bookings
+WHERE villa_slug = $1
+  AND status IN ('approved', 'paid')
+  AND id != $4
+  AND check_in  < $3
+  AND check_out > $2;
+
 -- name: ListBookingsByStatus :many
 SELECT * FROM bookings
 WHERE status = $1

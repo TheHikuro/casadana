@@ -245,6 +245,80 @@ func TestDelete_Happy(t *testing.T) {
 	}
 }
 
+func TestTransitionStatus_ApproveConflictingDates_Fails(t *testing.T) {
+	repo := &fakeRepo{
+		saved: []Booking{
+			{
+				ID: "a", VillaSlug: "casadana", Status: StatusApproved,
+				CheckIn: d("2026-07-01"), CheckOut: d("2026-07-08"),
+			},
+			{
+				ID: "b", VillaSlug: "casadana", Status: StatusPending,
+				CheckIn: d("2026-07-05"), CheckOut: d("2026-07-10"),
+			},
+		},
+	}
+	svc := newSvc(repo, &fakeMailer{}, fakeAllowlist{}, d("2026-05-12"))
+
+	_, err := svc.TransitionStatus(context.Background(), "b", StatusApproved)
+	if err == nil || !isErr(err, ErrDatesConflict) {
+		t.Fatalf("err = %v, want ErrDatesConflict", err)
+	}
+	got, _ := repo.Get(context.Background(), "b")
+	if got.Status != StatusPending {
+		t.Errorf("status = %s, want unchanged pending", got.Status)
+	}
+}
+
+func TestTransitionStatus_ApproveNonConflictingDates_Happy(t *testing.T) {
+	repo := &fakeRepo{
+		saved: []Booking{
+			{
+				ID: "a", VillaSlug: "casadana", Status: StatusApproved,
+				CheckIn: d("2026-07-01"), CheckOut: d("2026-07-08"),
+			},
+			{
+				ID: "b", VillaSlug: "casadana", Status: StatusPending,
+				CheckIn: d("2026-07-08"), CheckOut: d("2026-07-12"),
+			},
+		},
+	}
+	svc := newSvc(repo, &fakeMailer{}, fakeAllowlist{}, d("2026-05-12"))
+
+	b, err := svc.TransitionStatus(context.Background(), "b", StatusApproved)
+	if err != nil {
+		t.Fatalf("TransitionStatus: %v", err)
+	}
+	if b.Status != StatusApproved {
+		t.Errorf("status = %s, want approved", b.Status)
+	}
+}
+
+func TestTransitionStatus_ApproveIgnoresRejectedAndCancelled(t *testing.T) {
+	repo := &fakeRepo{
+		saved: []Booking{
+			{
+				ID: "a", VillaSlug: "casadana", Status: StatusRejected,
+				CheckIn: d("2026-07-01"), CheckOut: d("2026-07-08"),
+			},
+			{
+				ID: "c", VillaSlug: "casadana", Status: StatusCancelled,
+				CheckIn: d("2026-07-01"), CheckOut: d("2026-07-08"),
+			},
+			{
+				ID: "b", VillaSlug: "casadana", Status: StatusPending,
+				CheckIn: d("2026-07-01"), CheckOut: d("2026-07-08"),
+			},
+		},
+	}
+	svc := newSvc(repo, &fakeMailer{}, fakeAllowlist{}, d("2026-05-12"))
+
+	_, err := svc.TransitionStatus(context.Background(), "b", StatusApproved)
+	if err != nil {
+		t.Fatalf("TransitionStatus: %v, want no conflict against rejected/cancelled bookings", err)
+	}
+}
+
 // helpers
 var errBoom = simpleErr("boom")
 

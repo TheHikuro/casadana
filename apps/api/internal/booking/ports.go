@@ -8,6 +8,11 @@ import (
 type Repository interface {
 	Save(ctx context.Context, b *Booking) error
 	FindOverlapping(ctx context.Context, villaSlug string, from, to time.Time) ([]Booking, error)
+	// FindOverlappingConfirmed is like FindOverlapping but only considers
+	// approved/paid bookings (not pending) and excludes excludeID — used to
+	// guard the pending->approved transition against double-booking a date
+	// range that another booking already confirmed in the meantime.
+	FindOverlappingConfirmed(ctx context.Context, villaSlug string, from, to time.Time, excludeID string) ([]Booking, error)
 	BookedRanges(ctx context.Context, villaSlug string, from, to time.Time) ([]DateRange, error)
 	PendingRanges(ctx context.Context, villaSlug string, from, to time.Time) ([]DateRange, error)
 	Get(ctx context.Context, id string) (*Booking, error)
