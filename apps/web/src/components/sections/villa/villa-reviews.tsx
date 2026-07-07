@@ -7,7 +7,7 @@ interface VillaReviewsProps {
 
 function Stars({ count }: { count: number }) {
   return (
-    <span className="text-secondary tracking-[2px] text-[13px]">
+    <span className="text-secondary text-[13px] tracking-[2px]">
       {"★".repeat(count)}
       {"☆".repeat(Math.max(0, 5 - count))}
     </span>
@@ -16,10 +16,7 @@ function Stars({ count }: { count: number }) {
 
 export default function VillaReviews({ data }: VillaReviewsProps) {
   return (
-    <section
-      id="reviews"
-      className="bg-surface-container-low py-20 md:py-[140px]"
-    >
+    <section id="reviews" className="bg-surface-container-low py-20 md:py-[140px]">
       <div className="mx-auto max-w-[1440px] px-6 md:px-10">
         <div className="mb-12 grid items-end gap-6 md:mb-16 md:grid-cols-[auto_1fr] md:gap-10">
           <div>
@@ -44,7 +41,7 @@ export default function VillaReviews({ data }: VillaReviewsProps) {
                 /5
               </small>
             </div>
-            <div className="text-secondary mt-3 mb-2 tracking-[3px] text-[18px] md:tracking-[4px] md:text-[22px]">
+            <div className="text-secondary mt-3 mb-2 text-[18px] tracking-[3px] md:text-[22px] md:tracking-[4px]">
               ★★★★★
             </div>
             <div className="text-on-surface-variant mb-7 font-mono text-[11px] tracking-[0.18em] uppercase">
@@ -59,10 +56,7 @@ export default function VillaReviews({ data }: VillaReviewsProps) {
                 >
                   <span>{b.label}</span>
                   <div className="bg-outline-variant relative h-[3px] overflow-hidden">
-                    <span
-                      className="bg-secondary block h-full"
-                      style={{ width: `${b.pct}%` }}
-                    />
+                    <span className="bg-secondary block h-full" style={{ width: `${b.pct}%` }} />
                   </div>
                   <span>{b.value}</span>
                 </div>
@@ -91,7 +85,7 @@ export default function VillaReviews({ data }: VillaReviewsProps) {
                   <Stars count={rev.stars} />
                 </div>
                 <p className="font-display text-on-surface relative text-[20px] leading-snug font-light italic md:text-[22px]">
-                  <span className="text-secondary mr-1.5 -mt-1 inline-block align-top text-5xl leading-none">
+                  <span className="text-secondary -mt-1 mr-1.5 inline-block align-top text-5xl leading-none">
                     “
                   </span>
                   {rev.quote}

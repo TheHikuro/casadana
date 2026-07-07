@@ -13,12 +13,7 @@ interface VillaAboutProps {
 function FeatureCell({ feature }: { feature: { icon: IconName; label: string } }) {
   return (
     <div className="bg-background hover:bg-surface-container-low flex min-h-[120px] flex-col justify-between p-5 transition-colors md:min-h-[130px] md:p-6">
-      <DynamicIcon
-        name={feature.icon}
-        size={26}
-        strokeWidth={1.5}
-        className="text-secondary"
-      />
+      <DynamicIcon name={feature.icon} size={26} strokeWidth={1.5} className="text-secondary" />
       <div className="font-mono text-[11px] tracking-[0.18em] uppercase">{feature.label}</div>
     </div>
   )

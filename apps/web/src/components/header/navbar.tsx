@@ -16,7 +16,7 @@ function NavBrand() {
   return (
     <Link to="/" className="font-display text-[22px] leading-none italic">
       {m.nav_brand_main()}
-      <small className="mt-1 block font-mono text-[9px] not-italic tracking-[0.32em] uppercase opacity-70">
+      <small className="mt-1 block font-mono text-[9px] tracking-[0.32em] uppercase not-italic opacity-70">
         {m.nav_brand_sub()}
       </small>
     </Link>
@@ -84,9 +84,7 @@ export default function Navbar() {
             params={{ villaId: "casadana" }}
             className={cn(
               "inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-[10.5px] tracking-[0.22em] uppercase transition-all md:px-4.5",
-              isScrolled
-                ? "bg-primary text-on-primary border-primary"
-                : "border-current",
+              isScrolled ? "bg-primary text-on-primary border-primary" : "border-current",
             )}
           >
             {m.nav_reserve()}

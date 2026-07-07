@@ -35,7 +35,7 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
 function FooterBrand(): ReactNode {
   return (
     <div className="md:col-span-2 lg:col-span-1">
-      <div className="font-display text-3xl italic text-white">
+      <div className="font-display text-3xl text-white italic">
         {m.nav_brand_main()}
         <small className="mt-2 block font-mono text-[10px] tracking-[0.32em] text-slate-300 uppercase not-italic">
           {m.nav_brand_sub()}
@@ -79,7 +79,7 @@ export default function Footer() {
   ]
 
   return (
-    <footer className="bg-primary text-slate-300 mt-auto w-full pt-24 pb-8">
+    <footer className="bg-primary mt-auto w-full pt-24 pb-8 text-slate-300">
       <div className="mx-auto max-w-[1440px] px-6 md:px-10">
         <div className="grid gap-10 border-b border-white/10 pb-16 md:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
           <FooterBrand />

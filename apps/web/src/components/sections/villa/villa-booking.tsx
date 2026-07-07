@@ -1,5 +1,10 @@
+import {
+  ApiError,
+  useCreateBooking,
+  useGetVillaAvailability,
+  useGetVillaPricing,
+} from "@casa-dana/api"
 import { keepPreviousData, useQueryClient } from "@tanstack/react-query"
-import { ApiError, useCreateBooking, useGetVillaAvailability, useGetVillaPricing } from "@casa-dana/api"
 import { addDays, addMonths, endOfMonth, format, parseISO, startOfMonth } from "date-fns"
 import { ArrowRight, ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -75,17 +80,19 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
   // across midnight, which is fine for a booking flow.
   const defaults = useMemo(defaultDates, [])
 
-  const { control, register, handleSubmit, watch, setValue, setError } = useForm<BookingFormValues>({
-    defaultValues: {
-      name: "",
-      checkIn: defaults.checkIn,
-      checkOut: defaults.checkOut,
-      guests: booking.defaultGuests,
-      email: "",
-      tel: "",
-      description: "",
+  const { control, register, handleSubmit, watch, setValue, setError } = useForm<BookingFormValues>(
+    {
+      defaultValues: {
+        name: "",
+        checkIn: defaults.checkIn,
+        checkOut: defaults.checkOut,
+        guests: booking.defaultGuests,
+        email: "",
+        tel: "",
+        description: "",
+      },
     },
-  })
+  )
 
   const checkIn = watch("checkIn")
   const checkOut = watch("checkOut")
@@ -191,10 +198,7 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
   // provisionally held by an unconfirmed request — not guaranteed, but a new
   // booking on top of them would still conflict server-side, so they're shown
   // (distinctly) and are not selectable either.
-  const blockedNights = useMemo(
-    () => datesToSet(availability?.booked_ranges ?? []),
-    [availability],
-  )
+  const blockedNights = useMemo(() => datesToSet(availability?.booked_ranges ?? []), [availability])
   const pendingNights = useMemo(
     () => datesToSet(availability?.pending_ranges ?? []),
     [availability],
@@ -353,7 +357,8 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
         <div className="flex flex-col items-end gap-1 font-mono text-[11px] tracking-[0.1em]">
           <span className="text-secondary text-[13px] tracking-[2px]">★★★★★</span>
           <span className="text-on-surface-variant">
-            {booking.rating.toFixed(2)} · {m.villa_booking_review_count({ count: booking.reviewCount })}
+            {booking.rating.toFixed(2)} ·{" "}
+            {m.villa_booking_review_count({ count: booking.reviewCount })}
           </span>
         </div>
       </div>
@@ -409,7 +414,9 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
                 >
                   <ChevronLeft size={14} />
                 </button>
-                <h4 className="font-display text-primary text-[17px] italic">{fmtMonth(viewMonth)}</h4>
+                <h4 className="font-display text-primary text-[17px] italic">
+                  {fmtMonth(viewMonth)}
+                </h4>
                 <button
                   type="button"
                   onClick={() =>
@@ -478,7 +485,8 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
                       className={cn(
                         "text-on-surface flex min-h-[42px] flex-col items-center justify-center gap-0.5 text-[13px] transition-colors",
                         inRange && "bg-secondary-container text-on-secondary-container",
-                        (isCI || isCO) && "bg-primary text-on-primary mx-auto size-[42px] rounded-full",
+                        (isCI || isCO) &&
+                          "bg-primary text-on-primary mx-auto size-[42px] rounded-full",
                         !inRange && !isCI && !isCO && "hover:bg-surface-container-low",
                       )}
                     >
@@ -514,7 +522,8 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
                   <Minus size={12} />
                 </button>
                 <span className="font-display text-primary text-[17px] italic">
-                  {guests} {guests === 1 ? m.villa_booking_guest_singular() : m.villa_booking_guest_plural()}
+                  {guests}{" "}
+                  {guests === 1 ? m.villa_booking_guest_singular() : m.villa_booking_guest_plural()}
                 </span>
                 <button
                   type="button"
@@ -590,7 +599,7 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
         <Button
           type="submit"
           disabled={isPending}
-          className="bg-primary text-on-primary hover:bg-primary-container disabled:opacity-60 mt-4 inline-flex h-auto w-full items-center justify-center gap-3 rounded-none px-6 py-[18px] font-mono text-[11px] tracking-[0.28em] uppercase"
+          className="bg-primary text-on-primary hover:bg-primary-container mt-4 inline-flex h-auto w-full items-center justify-center gap-3 rounded-none px-6 py-[18px] font-mono text-[11px] tracking-[0.28em] uppercase disabled:opacity-60"
         >
           {isPending ? m.villa_booking_request_sending() : m.villa_booking_request_book()}
           {!isPending && <ArrowRight size={12} />}
@@ -611,7 +620,8 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
               <span>
                 {m.villa_booking_nights_at_price({
                   count,
-                  nightsWord: count === 1 ? m.villa_booking_night_singular() : m.villa_booking_night_plural(),
+                  nightsWord:
+                    count === 1 ? m.villa_booking_night_singular() : m.villa_booking_night_plural(),
                   price: Math.round(priceCents / 100),
                 })}
               </span>
@@ -621,7 +631,8 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
         ) : (
           <div className="text-on-surface-variant flex justify-between">
             <span>
-              {nights} {nights === 1 ? m.villa_booking_night_singular() : m.villa_booking_night_plural()}
+              {nights}{" "}
+              {nights === 1 ? m.villa_booking_night_singular() : m.villa_booking_night_plural()}
             </span>
             <span>€{total.toLocaleString()}</span>
           </div>

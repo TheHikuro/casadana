@@ -65,8 +65,7 @@
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
   --shadow-editorial:
-    0 30px 60px -25px oklch(23.6% 0.108 253 / 0.18),
-    0 8px 24px -12px oklch(23.6% 0.108 253 / 0.1);
+    0 30px 60px -25px oklch(23.6% 0.108 253 / 0.18), 0 8px 24px -12px oklch(23.6% 0.108 253 / 0.1);
 
   --animate-marquee: marquee 60s linear infinite;
   --animate-float-bg: float-bg 22s ease-in-out infinite alternate;
@@ -90,7 +89,9 @@
 
   .italic-display {
     font-style: italic;
-    font-variation-settings: "SOFT" 60, "WONK" 0;
+    font-variation-settings:
+      "SOFT" 60,
+      "WONK" 0;
   }
 }
 

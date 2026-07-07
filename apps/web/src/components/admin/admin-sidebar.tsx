@@ -1,8 +1,7 @@
+import { useAdminLogout } from "@casa-dana/api"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { CalendarDays, History, LogOut, Star, Tag, UserCog } from "lucide-react"
-
-import { useAdminLogout } from "@casa-dana/api"
 
 const NAV_ITEMS = [
   { to: "/admin/reservations", label: "Reservations", icon: CalendarDays },
@@ -28,10 +27,10 @@ export default function AdminSidebar() {
   const handleLogout = () => logout()
 
   return (
-    <aside className="flex h-screen flex-col gap-6 bg-primary p-4 text-on-primary">
+    <aside className="bg-primary text-on-primary flex h-screen flex-col gap-6 p-4">
       <div className="px-2">
         <p className="text-sm font-bold">Casa Admin</p>
-        <p className="mt-1 font-mono text-[9.5px] tracking-[0.2em] text-on-primary/60 uppercase">
+        <p className="text-on-primary/60 mt-1 font-mono text-[9.5px] tracking-[0.2em] uppercase">
           Internal · not public
         </p>
       </div>
@@ -41,7 +40,7 @@ export default function AdminSidebar() {
           <Link
             key={to}
             to={to}
-            className="flex items-center gap-2.5 rounded-md px-3 py-2.5 text-[13.5px] font-medium text-on-primary/75 hover:bg-primary-container hover:text-on-primary"
+            className="text-on-primary/75 hover:bg-primary-container hover:text-on-primary flex items-center gap-2.5 rounded-md px-3 py-2.5 text-[13.5px] font-medium"
             activeProps={{ className: "bg-white text-primary hover:bg-white hover:text-primary" }}
           >
             <Icon className="size-4 shrink-0" />
@@ -55,14 +54,14 @@ export default function AdminSidebar() {
           href="/"
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-md px-2 py-1.5 text-[12.5px] text-on-primary/65 hover:text-on-primary"
+          className="text-on-primary/65 hover:text-on-primary rounded-md px-2 py-1.5 text-[12.5px]"
         >
           ↗ View public site
         </a>
         <button
           type="button"
           onClick={handleLogout}
-          className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[12.5px] text-on-primary/65 hover:text-on-primary"
+          className="text-on-primary/65 hover:text-on-primary flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[12.5px]"
         >
           <LogOut className="size-3.5" />
           Log out

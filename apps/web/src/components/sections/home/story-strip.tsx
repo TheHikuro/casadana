@@ -4,10 +4,7 @@ import { m } from "@/paraglide/messages"
 
 export default function StoryStrip() {
   return (
-    <section
-      id="story"
-      className="mx-auto max-w-[1440px] px-6 py-24 md:px-10 md:py-36"
-    >
+    <section id="story" className="mx-auto max-w-[1440px] px-6 py-24 md:px-10 md:py-36">
       <div className="grid items-center gap-12 md:grid-cols-2 md:gap-24">
         <div className="relative grid grid-cols-2 gap-3 md:pr-16">
           <img
@@ -20,9 +17,7 @@ export default function StoryStrip() {
             alt={m.home_story_image_alt_pool()}
             className="mt-16 aspect-[3/4] w-full object-cover"
           />
-          <div
-            className="bg-secondary-fixed text-on-secondary-container editorial-shadow absolute right-0 bottom-0 flex h-24 w-24 -rotate-6 flex-col items-center justify-center rounded-full text-center md:right-5 md:h-32 md:w-32"
-          >
+          <div className="bg-secondary-fixed text-on-secondary-container editorial-shadow absolute right-0 bottom-0 flex h-24 w-24 -rotate-6 flex-col items-center justify-center rounded-full text-center md:right-5 md:h-32 md:w-32">
             <span className="font-display text-2xl italic md:text-3xl">
               {m.home_story_stamp_year()}
             </span>
@@ -43,10 +38,12 @@ export default function StoryStrip() {
           <p className="text-on-surface-variant mb-6 max-w-[50ch] leading-relaxed">
             {m.home_story_p1()}
           </p>
-          <p className="text-on-surface-variant max-w-[50ch] leading-relaxed">{m.home_story_p2()}</p>
+          <p className="text-on-surface-variant max-w-[50ch] leading-relaxed">
+            {m.home_story_p2()}
+          </p>
           <div className="font-display text-primary mt-8 text-xl italic">
             {m.home_story_signed_name()}
-            <small className="text-on-surface-variant mt-1 block font-mono text-[10.5px] not-italic tracking-[0.22em] uppercase">
+            <small className="text-on-surface-variant mt-1 block font-mono text-[10.5px] tracking-[0.22em] uppercase not-italic">
               {m.home_story_signed_role()}
             </small>
           </div>

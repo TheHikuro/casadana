@@ -7,18 +7,11 @@ interface VillaLocalAreaProps {
 
 export default function VillaLocalArea({ data }: VillaLocalAreaProps) {
   return (
-    <section
-      id="location"
-      className="mx-auto max-w-[1440px] px-6 py-20 md:px-10 md:py-[140px]"
-    >
+    <section id="location" className="mx-auto max-w-[1440px] px-6 py-20 md:px-10 md:py-[140px]">
       <div className="grid items-center gap-12 md:grid-cols-2 md:gap-24">
         <div className="relative pt-6 pr-12 pb-12 md:pr-16 md:pb-16">
           <div className="aspect-[4/5] overflow-hidden">
-            <img
-              src={data.mainImage}
-              alt={data.titleLead}
-              className="h-full w-full object-cover"
-            />
+            <img src={data.mainImage} alt={data.titleLead} className="h-full w-full object-cover" />
           </div>
           {data.overlapImage && (
             <div className="border-background editorial-shadow absolute right-0 bottom-0 hidden h-48 w-48 overflow-hidden border-[10px] md:block md:h-60 md:w-60">

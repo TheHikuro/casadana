@@ -1,10 +1,7 @@
 import { X } from "lucide-react"
 import { useEffect } from "react"
 
-import {
-  GalleryCategory,
-  getCategoryLabel,
-} from "@/constants/gallery-categories.const"
+import { GalleryCategory, getCategoryLabel } from "@/constants/gallery-categories.const"
 import type { GalleryEntry } from "@/constants/villas.const"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
@@ -93,20 +90,10 @@ export default function VillaLightbox({
       <div className="flex-1 overflow-auto px-6 py-8 pb-16 md:px-10">
         <div className="mx-auto grid max-w-[1440px] auto-rows-[200px] grid-cols-1 gap-2.5 md:auto-rows-[240px] md:grid-cols-12">
           {tiles.map((img, i) => (
-            <div
-              key={i}
-              className={cn(
-                "relative overflow-hidden",
-                spanClassFor(i, tiles.length),
-              )}
-            >
-              <img
-                src={img.src}
-                alt={img.label}
-                className="h-full w-full object-cover"
-              />
+            <div key={i} className={cn("relative overflow-hidden", spanClassFor(i, tiles.length))}>
+              <img src={img.src} alt={img.label} className="h-full w-full object-cover" />
               <div
-                className="absolute bottom-3.5 left-4 font-mono text-[10.5px] tracking-[0.18em] uppercase text-white"
+                className="absolute bottom-3.5 left-4 font-mono text-[10.5px] tracking-[0.18em] text-white uppercase"
                 style={{ textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}
               >
                 {img.label}

@@ -1,6 +1,6 @@
+import { getAdminMeQueryOptions } from "@casa-dana/api"
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router"
 
-import { getAdminMeQueryOptions } from "@casa-dana/api"
 import AdminSidebar from "@/components/admin/admin-sidebar"
 import { ToastProvider } from "@/components/ui/toast"
 

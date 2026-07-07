@@ -194,11 +194,26 @@ function buildCasadana(): VillaData {
       titleItalic: m.villa_casadana_hero_title_italic(),
       titleSuffix: m.villa_casadana_hero_title_suffix(),
       stats: [
-        { label: m.villa_casadana_hero_stat_1_label(), value: m.villa_casadana_hero_stat_1_value() },
-        { label: m.villa_casadana_hero_stat_2_label(), value: m.villa_casadana_hero_stat_2_value() },
-        { label: m.villa_casadana_hero_stat_3_label(), value: m.villa_casadana_hero_stat_3_value() },
-        { label: m.villa_casadana_hero_stat_4_label(), value: m.villa_casadana_hero_stat_4_value() },
-        { label: m.villa_casadana_hero_stat_5_label(), value: m.villa_casadana_hero_stat_5_value() },
+        {
+          label: m.villa_casadana_hero_stat_1_label(),
+          value: m.villa_casadana_hero_stat_1_value(),
+        },
+        {
+          label: m.villa_casadana_hero_stat_2_label(),
+          value: m.villa_casadana_hero_stat_2_value(),
+        },
+        {
+          label: m.villa_casadana_hero_stat_3_label(),
+          value: m.villa_casadana_hero_stat_3_value(),
+        },
+        {
+          label: m.villa_casadana_hero_stat_4_label(),
+          value: m.villa_casadana_hero_stat_4_value(),
+        },
+        {
+          label: m.villa_casadana_hero_stat_5_label(),
+          value: m.villa_casadana_hero_stat_5_value(),
+        },
       ],
       price: 185,
       priceLabel: m.villa_casadana_hero_price_label(),
@@ -228,9 +243,18 @@ function buildCasadana(): VillaData {
         { icon: "bed", label: m.villa_casadana_about_feature_linens() },
       ],
       meta: [
-        { label: m.villa_casadana_about_meta_1_label(), value: m.villa_casadana_about_meta_1_value() },
-        { label: m.villa_casadana_about_meta_2_label(), value: m.villa_casadana_about_meta_2_value() },
-        { label: m.villa_casadana_about_meta_3_label(), value: m.villa_casadana_about_meta_3_value() },
+        {
+          label: m.villa_casadana_about_meta_1_label(),
+          value: m.villa_casadana_about_meta_1_value(),
+        },
+        {
+          label: m.villa_casadana_about_meta_2_label(),
+          value: m.villa_casadana_about_meta_2_value(),
+        },
+        {
+          label: m.villa_casadana_about_meta_3_label(),
+          value: m.villa_casadana_about_meta_3_value(),
+        },
       ],
     },
     booking: {
@@ -290,10 +314,26 @@ function buildCasadana(): VillaData {
       ],
       images: {
         LIVING_SPACES: [
-          { src: LIVING_1, label: m.villa_casadana_gallery_img_living_1(), category: "LIVING_SPACES" },
-          { src: LIVING_2, label: m.villa_casadana_gallery_img_living_2(), category: "LIVING_SPACES" },
-          { src: LIVING_4, label: m.villa_casadana_gallery_img_living_3(), category: "LIVING_SPACES" },
-          { src: LIVING_3, label: m.villa_casadana_gallery_img_living_4(), category: "LIVING_SPACES" },
+          {
+            src: LIVING_1,
+            label: m.villa_casadana_gallery_img_living_1(),
+            category: "LIVING_SPACES",
+          },
+          {
+            src: LIVING_2,
+            label: m.villa_casadana_gallery_img_living_2(),
+            category: "LIVING_SPACES",
+          },
+          {
+            src: LIVING_4,
+            label: m.villa_casadana_gallery_img_living_3(),
+            category: "LIVING_SPACES",
+          },
+          {
+            src: LIVING_3,
+            label: m.villa_casadana_gallery_img_living_4(),
+            category: "LIVING_SPACES",
+          },
         ],
         BEDROOMS: [
           { src: BEDROOM_3, label: m.villa_casadana_gallery_img_bedroom_1(), category: "BEDROOMS" },
@@ -308,7 +348,11 @@ function buildCasadana(): VillaData {
           { src: KITCHEN_2, label: m.villa_casadana_gallery_img_kitchen_2(), category: "KITCHEN" },
         ],
         BATHROOMS: [
-          { src: BATHROOM, label: m.villa_casadana_gallery_img_bathroom_1(), category: "BATHROOMS" },
+          {
+            src: BATHROOM,
+            label: m.villa_casadana_gallery_img_bathroom_1(),
+            category: "BATHROOMS",
+          },
         ],
         OUTDOOR: [
           { src: ROOFTOP_7, label: m.villa_casadana_gallery_img_outdoor_1(), category: "OUTDOOR" },
@@ -497,11 +541,26 @@ function buildCasacasay(): VillaData {
       titleItalic: m.villa_casacasay_hero_title_italic(),
       titleSuffix: m.villa_casacasay_hero_title_suffix(),
       stats: [
-        { label: m.villa_casacasay_hero_stat_1_label(), value: m.villa_casacasay_hero_stat_1_value() },
-        { label: m.villa_casacasay_hero_stat_2_label(), value: m.villa_casacasay_hero_stat_2_value() },
-        { label: m.villa_casacasay_hero_stat_3_label(), value: m.villa_casacasay_hero_stat_3_value() },
-        { label: m.villa_casacasay_hero_stat_4_label(), value: m.villa_casacasay_hero_stat_4_value() },
-        { label: m.villa_casacasay_hero_stat_5_label(), value: m.villa_casacasay_hero_stat_5_value() },
+        {
+          label: m.villa_casacasay_hero_stat_1_label(),
+          value: m.villa_casacasay_hero_stat_1_value(),
+        },
+        {
+          label: m.villa_casacasay_hero_stat_2_label(),
+          value: m.villa_casacasay_hero_stat_2_value(),
+        },
+        {
+          label: m.villa_casacasay_hero_stat_3_label(),
+          value: m.villa_casacasay_hero_stat_3_value(),
+        },
+        {
+          label: m.villa_casacasay_hero_stat_4_label(),
+          value: m.villa_casacasay_hero_stat_4_value(),
+        },
+        {
+          label: m.villa_casacasay_hero_stat_5_label(),
+          value: m.villa_casacasay_hero_stat_5_value(),
+        },
       ],
       price: 145,
       priceLabel: m.villa_casacasay_hero_price_label(),
@@ -531,9 +590,18 @@ function buildCasacasay(): VillaData {
         { icon: "flag", label: m.villa_casacasay_about_feature_golf() },
       ],
       meta: [
-        { label: m.villa_casacasay_about_meta_1_label(), value: m.villa_casacasay_about_meta_1_value() },
-        { label: m.villa_casacasay_about_meta_2_label(), value: m.villa_casacasay_about_meta_2_value() },
-        { label: m.villa_casacasay_about_meta_3_label(), value: m.villa_casacasay_about_meta_3_value() },
+        {
+          label: m.villa_casacasay_about_meta_1_label(),
+          value: m.villa_casacasay_about_meta_1_value(),
+        },
+        {
+          label: m.villa_casacasay_about_meta_2_label(),
+          value: m.villa_casacasay_about_meta_2_value(),
+        },
+        {
+          label: m.villa_casacasay_about_meta_3_label(),
+          value: m.villa_casacasay_about_meta_3_value(),
+        },
       ],
     },
     booking: {

@@ -74,10 +74,7 @@ function PropertyFeatures({ features }: { features: PropertyCardProps["features"
   )
 }
 
-function PropertyMeta({
-  price,
-  rating,
-}: Pick<PropertyCardProps, "price" | "rating">) {
+function PropertyMeta({ price, rating }: Pick<PropertyCardProps, "price" | "rating">) {
   return (
     <div className="flex flex-col items-start justify-between gap-3 md:flex-row md:items-baseline">
       <div className="font-display text-primary text-[26px] italic">
@@ -126,12 +123,7 @@ export default function PropertyCard({
             <PropertyImage imageUrl={imageUrl} imageAlt={imageAlt} badge={badge} villaId={id} />
           </div>
 
-          <div
-            className={cn(
-              "order-2 space-y-6",
-              isLeft ? "md:pl-8" : "md:order-1 md:pr-8",
-            )}
-          >
+          <div className={cn("order-2 space-y-6", isLeft ? "md:pl-8" : "md:order-1 md:pr-8")}>
             <span className="bg-secondary-container text-on-secondary-container inline-block rounded-full px-3.5 py-1.5 font-mono text-[11px] tracking-[0.22em] uppercase">
               {category}
             </span>

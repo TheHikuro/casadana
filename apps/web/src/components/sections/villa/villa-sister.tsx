@@ -16,7 +16,8 @@ export default function VillaSister({ data }: VillaSisterProps) {
             {data.chapter}
           </span>
           <h2 className="font-display mt-4 mb-6 text-[clamp(36px,5vw,60px)] leading-[1.04] font-light tracking-[-0.025em]">
-            {data.titleLead} <em className="italic-display text-secondary-fixed">{data.titleItalic}</em>
+            {data.titleLead}{" "}
+            <em className="italic-display text-secondary-fixed">{data.titleItalic}</em>
           </h2>
           <p className="mb-8 max-w-[48ch] leading-relaxed opacity-80">{data.description}</p>
           <Link

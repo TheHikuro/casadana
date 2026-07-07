@@ -1,7 +1,7 @@
+import { ApiError, getAdminMeQueryOptions, useAdminLogin } from "@casa-dana/api"
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router"
 import { useForm } from "react-hook-form"
 
-import { ApiError, getAdminMeQueryOptions, useAdminLogin } from "@casa-dana/api"
 import { Button } from "@/components/ui/button"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
@@ -55,19 +55,24 @@ function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-primary px-4">
+    <div className="bg-primary flex min-h-screen items-center justify-center px-4">
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="w-full max-w-sm rounded-xl bg-surface p-10 shadow-editorial"
+        className="bg-surface shadow-editorial w-full max-w-sm rounded-xl p-10"
       >
-        <p className="mb-1.5 font-mono text-[11px] tracking-[0.22em] text-on-surface-variant uppercase">
+        <p className="text-on-surface-variant mb-1.5 font-mono text-[11px] tracking-[0.22em] uppercase">
           Casa DaNa &amp; CasAy
         </p>
-        <h1 className="mb-6 text-xl font-bold text-on-surface">Admin access</h1>
+        <h1 className="text-on-surface mb-6 text-xl font-bold">Admin access</h1>
 
         <Field className="mb-3">
           <FieldLabel htmlFor="email">Email</FieldLabel>
-          <Input id="email" type="email" autoComplete="username" {...register("email", { required: true })} />
+          <Input
+            id="email"
+            type="email"
+            autoComplete="username"
+            {...register("email", { required: true })}
+          />
         </Field>
         <Field className="mb-1">
           <FieldLabel htmlFor="password">Password</FieldLabel>

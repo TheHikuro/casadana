@@ -91,7 +91,7 @@ export default function VillaHero({
         <div className="flex flex-col items-start justify-between gap-4 py-7 md:flex-row md:items-center md:py-8">
           <div className="font-display text-[26px] italic md:text-[28px]">
             €{price}
-            <small className="text-white/75 ml-1 font-sans text-[12px] not-italic tracking-[0.05em]">
+            <small className="ml-1 font-sans text-[12px] tracking-[0.05em] text-white/75 not-italic">
               {priceLabel}
             </small>
           </div>

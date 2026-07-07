@@ -72,7 +72,8 @@ export default function HomeHero() {
               textShadow: "0 2px 24px oklch(23.6% 0.108 253 / 0.35)",
             }}
           >
-            {m.home_hero_title_prefix()} <em className="italic-display">{m.home_hero_title_dana()}</em>
+            {m.home_hero_title_prefix()}{" "}
+            <em className="italic-display">{m.home_hero_title_dana()}</em>
             <br />
             {m.home_hero_title_and()}{" "}
             <em className="italic-display">{m.home_hero_title_casay()}</em>
