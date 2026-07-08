@@ -1,0 +1,7 @@
+keys:
+  - &admin age1fnp06gckgdnw858l0rzc639kf2k4t5smh7y7ldjwnmpypxrc3pkqx9m2lt
+creation_rules:
+  - path_regex: \.env.*
+    key_groups:
+      - age:
+          - *admin
