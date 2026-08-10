@@ -114,8 +114,14 @@ jobs:
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           # StrictHostKeyChecking=yes: the host key is pinned in the secret, so a MITM
           # or a rebuilt host fails the deploy loudly instead of trusting on first use.
+          # BatchMode + PreferredAuthentications=publickey: the host still has
+          # PasswordAuthentication enabled, so without these ssh falls back to trying a
+          # password three times before failing. That wastes time and, on a runner with any
+          # tty, could block. Key or nothing.
           ssh -i ~/.ssh/deploy_key \
               -o StrictHostKeyChecking=yes \
               -o UserKnownHostsFile=~/.ssh/known_hosts \
               -o ConnectTimeout=15 \
+              -o BatchMode=yes \
+              -o PreferredAuthentications=publickey \
               "root@${VPS_HOST}" "deploy ${{ github.sha }}"
