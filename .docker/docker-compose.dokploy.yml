@@ -24,7 +24,13 @@ services:
       api:
         condition: service_started
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:80 || exit 1"]
+      # 127.0.0.1, not localhost. nginx here has a bare `listen 80;` (IPv4 only),
+      # but the image's /etc/hosts maps localhost to both 127.0.0.1 and ::1, and
+      # BusyBox wget tries ::1 first -- so `http://localhost:80` fails with
+      # "can't connect to remote host: Connection refused" even though the site
+      # is serving fine. Observed on demo.casa-dana.com 2026-08-10: the container
+      # sat (unhealthy) while both 127.0.0.1:3001 and the public URL returned 200.
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80 || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

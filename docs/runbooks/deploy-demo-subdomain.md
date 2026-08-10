@@ -56,9 +56,47 @@ issues apex + `www`.
 sets it at fork time, so it engages on the next restart. `Restart=always` is already
 in effect (systemd re-reads it when the process exits).
 
-## What is left
+## Status: deployed 2026-08-10 22:05 UTC
 
-Only two things: the images must be reachable, and the secrets must exist.
+All three containers are up and the site is live. Everything in the *Verify* section
+below passes except outbound mail, which needs a real `RESEND_API_KEY`.
+
+The stack was brought up with `docker compose` directly, not through Dokploy:
+
+```bash
+docker compose -f .docker/docker-compose.dokploy.yml --env-file /root/casadana-demo.env up -d
+```
+
+`/root/casadana-demo.env` (mode 600, **not** in the repo) holds the live values.
+Adopting this into Dokploy later is cosmetic — same compose file, same images.
+
+### Two bugs this deploy surfaced
+
+**No CA trust store in the api image.** The final stage is `FROM scratch`, which ships
+no `ca-certificates.crt`, so `crypto/tls` could not verify *any* outbound peer. Every
+Resend call failed with `x509: certificate signed by unknown authority` — a valid
+`RESEND_API_KEY` would have failed identically. It is WARN-level and the booking still
+returns 201, so mail was dropped silently. Fixed by copying the bundle out of the
+builder stage. The proof of the fix is that the log line changes from the x509 error to
+Resend's own `[ERROR]: API key is invalid`: a reply from Resend means the HTTPS request
+now completes. Any future rewrite that produces a scratch/distroless image must carry
+the same `COPY`.
+
+**Permanently `(unhealthy)` web container.** The healthcheck used
+`wget -q --spider http://localhost:80`, but `nginx.conf` has a bare `listen 80;`
+(IPv4 only) while the image's `/etc/hosts` maps `localhost` to `::1` too, and BusyBox
+wget tries `::1` first. It reported `Connection refused` while the site served 200 on
+both `127.0.0.1:3001` and the public URL. Fixed to `http://127.0.0.1:80` in both
+compose files. Worth knowing generally: a `localhost` healthcheck against an
+IPv4-only listener is a false negative, and under Swarm it would restart-loop a
+perfectly good container.
+
+The api service has **no** healthcheck by design — a scratch image has no shell and no
+`wget`/`curl`, so every form of `test:` is unrunnable. Probe it from the host instead.
+
+## Reference — first-time setup
+
+Kept for rebuilding from scratch, and because Phase 4 repeats most of it.
 
 ### 1. Images
 
@@ -88,7 +126,7 @@ publicly reachable:
 ssh -L 3000:localhost:3000 root@147.93.89.239   # then http://localhost:3000
 ```
 
-The admin account is still unclaimed; whoever opens it first becomes admin.
+The Dokploy admin account was claimed on 2026-08-10.
 
 Required (the API refuses to boot if any is missing — see
 `apps/api/internal/platform/config/config.go`):
@@ -108,8 +146,33 @@ here — pointing it at `localhost` would reach *v1's* database.
 Create a Docker Compose application in Dokploy against this repo and
 `.docker/docker-compose.dokploy.yml`. Migrations are embedded and apply on API start
 (`MIGRATE_ON_BOOT`, default true), so the schema needs no manual step. Optionally load
-`apps/api/internal/db/seed_dev.sql`. Create the v2 admin through the app's own
-`adminauth` path — v1's ASP.NET Identity hash cannot be reused.
+`apps/api/internal/db/seed_dev.sql`.
+
+### 3. Bootstrapping the first admin
+
+**There is no API route that can do this.** `POST /api/admin/users` sits inside the
+`r.Group` guarded by `RequireAdminSession` (`apps/api/internal/adminauth/http.go`), so
+creating an admin requires already being one. Only `/api/admin/login` and
+`/api/admin/logout` are unauthenticated. v1's ASP.NET Identity PBKDF2 hash cannot be
+reused either.
+
+So the first row goes in by hand, with a bcrypt hash at the same cost the app uses
+(`bcrypt.DefaultCost`, `adminauth/domain.go:34`):
+
+```bash
+docker exec casadana-postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+  -c "insert into admin_users (email, password_hash) values ('you@example.com', '<bcrypt hash>');"
+```
+
+Then verify through the public URL — the response must set `HttpOnly; Secure; SameSite=Lax`:
+
+```bash
+curl -si -X POST https://demo.casa-dana.com/api/admin/login \
+  -H 'Content-Type: application/json' -d '{"email":"...","password":"..."}' | grep -i set-cookie
+```
+
+Note there is **no password-change endpoint** — only create, list and delete. To rotate
+a password: log in, create a second admin, delete the first.
 
 ## Verify
 
@@ -128,6 +191,14 @@ firewall enabled. Re-run it after every compose change.
 
 Then in a browser: admin login (cookie must be `Secure` and survive a reload), create a
 booking, confirm the Resend mail fires.
+
+The only valid `villa_slug` values are **`casadana`** and **`casacasay`** — no hyphens.
+The list is hardcoded in `apps/api/internal/villaslug/catalog.go`, which mirrors
+`apps/web/src/constants/villas.const.ts` and must be edited by hand when a villa is
+added. Anything else gets `404 UNKNOWN_VILLA`. There is no `/api/villas` endpoint and
+no `villas` table, so the catalog is not discoverable at runtime.
+
+A booking `POST` also requires `guest_phone`; omitting it is a `422`, not a `400`.
 
 ## Traps
 
