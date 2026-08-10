@@ -11,15 +11,15 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as PublicIndexRouteImport } from './routes/_public/index'
-import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminAuthedRouteImport } from './routes/admin/_authed'
-import { Route as AdminAuthedIndexRouteImport } from './routes/admin/_authed/index'
-import { Route as AdminAuthedReviewsRouteImport } from './routes/admin/_authed/reviews'
-import { Route as AdminAuthedReservationsRouteImport } from './routes/admin/_authed/reservations'
-import { Route as AdminAuthedPricingRouteImport } from './routes/admin/_authed/pricing'
-import { Route as AdminAuthedOwnerRouteImport } from './routes/admin/_authed/owner'
-import { Route as AdminAuthedHistoryRouteImport } from './routes/admin/_authed/history'
+import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as PublicVillaVillaIdRouteImport } from './routes/_public/villa/$villaId'
+import { Route as AdminAuthedIndexRouteImport } from './routes/admin/_authed/index'
+import { Route as AdminAuthedHistoryRouteImport } from './routes/admin/_authed/history'
+import { Route as AdminAuthedOwnerRouteImport } from './routes/admin/_authed/owner'
+import { Route as AdminAuthedPricingRouteImport } from './routes/admin/_authed/pricing'
+import { Route as AdminAuthedReservationsRouteImport } from './routes/admin/_authed/reservations'
+import { Route as AdminAuthedReviewsRouteImport } from './routes/admin/_authed/reviews'
 
 const PublicRoute = PublicRouteImport.update({
   id: '/_public',
@@ -30,39 +30,24 @@ const PublicIndexRoute = PublicIndexRouteImport.update({
   path: '/',
   getParentRoute: () => PublicRoute,
 } as any)
-const AdminLoginRoute = AdminLoginRouteImport.update({
-  id: '/admin/login',
-  path: '/admin/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AdminAuthedRoute = AdminAuthedRouteImport.update({
   id: '/admin/_authed',
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublicVillaVillaIdRoute = PublicVillaVillaIdRouteImport.update({
+  id: '/villa/$villaId',
+  path: '/villa/$villaId',
+  getParentRoute: () => PublicRoute,
+} as any)
 const AdminAuthedIndexRoute = AdminAuthedIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AdminAuthedRoute,
-} as any)
-const AdminAuthedReviewsRoute = AdminAuthedReviewsRouteImport.update({
-  id: '/reviews',
-  path: '/reviews',
-  getParentRoute: () => AdminAuthedRoute,
-} as any)
-const AdminAuthedReservationsRoute = AdminAuthedReservationsRouteImport.update({
-  id: '/reservations',
-  path: '/reservations',
-  getParentRoute: () => AdminAuthedRoute,
-} as any)
-const AdminAuthedPricingRoute = AdminAuthedPricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
-  getParentRoute: () => AdminAuthedRoute,
-} as any)
-const AdminAuthedOwnerRoute = AdminAuthedOwnerRouteImport.update({
-  id: '/owner',
-  path: '/owner',
   getParentRoute: () => AdminAuthedRoute,
 } as any)
 const AdminAuthedHistoryRoute = AdminAuthedHistoryRouteImport.update({
@@ -70,10 +55,25 @@ const AdminAuthedHistoryRoute = AdminAuthedHistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => AdminAuthedRoute,
 } as any)
-const PublicVillaVillaIdRoute = PublicVillaVillaIdRouteImport.update({
-  id: '/villa/$villaId',
-  path: '/villa/$villaId',
-  getParentRoute: () => PublicRoute,
+const AdminAuthedOwnerRoute = AdminAuthedOwnerRouteImport.update({
+  id: '/owner',
+  path: '/owner',
+  getParentRoute: () => AdminAuthedRoute,
+} as any)
+const AdminAuthedPricingRoute = AdminAuthedPricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => AdminAuthedRoute,
+} as any)
+const AdminAuthedReservationsRoute = AdminAuthedReservationsRouteImport.update({
+  id: '/reservations',
+  path: '/reservations',
+  getParentRoute: () => AdminAuthedRoute,
+} as any)
+const AdminAuthedReviewsRoute = AdminAuthedReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
+  getParentRoute: () => AdminAuthedRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -174,13 +174,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicIndexRouteImport
       parentRoute: typeof PublicRoute
     }
-    '/admin/login': {
-      id: '/admin/login'
-      path: '/admin/login'
-      fullPath: '/admin/login'
-      preLoaderRoute: typeof AdminLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/admin/_authed': {
       id: '/admin/_authed'
       path: '/admin'
@@ -188,39 +181,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_public/villa/$villaId': {
+      id: '/_public/villa/$villaId'
+      path: '/villa/$villaId'
+      fullPath: '/villa/$villaId'
+      preLoaderRoute: typeof PublicVillaVillaIdRouteImport
+      parentRoute: typeof PublicRoute
+    }
     '/admin/_authed/': {
       id: '/admin/_authed/'
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminAuthedIndexRouteImport
-      parentRoute: typeof AdminAuthedRoute
-    }
-    '/admin/_authed/reviews': {
-      id: '/admin/_authed/reviews'
-      path: '/reviews'
-      fullPath: '/admin/reviews'
-      preLoaderRoute: typeof AdminAuthedReviewsRouteImport
-      parentRoute: typeof AdminAuthedRoute
-    }
-    '/admin/_authed/reservations': {
-      id: '/admin/_authed/reservations'
-      path: '/reservations'
-      fullPath: '/admin/reservations'
-      preLoaderRoute: typeof AdminAuthedReservationsRouteImport
-      parentRoute: typeof AdminAuthedRoute
-    }
-    '/admin/_authed/pricing': {
-      id: '/admin/_authed/pricing'
-      path: '/pricing'
-      fullPath: '/admin/pricing'
-      preLoaderRoute: typeof AdminAuthedPricingRouteImport
-      parentRoute: typeof AdminAuthedRoute
-    }
-    '/admin/_authed/owner': {
-      id: '/admin/_authed/owner'
-      path: '/owner'
-      fullPath: '/admin/owner'
-      preLoaderRoute: typeof AdminAuthedOwnerRouteImport
       parentRoute: typeof AdminAuthedRoute
     }
     '/admin/_authed/history': {
@@ -230,12 +209,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthedHistoryRouteImport
       parentRoute: typeof AdminAuthedRoute
     }
-    '/_public/villa/$villaId': {
-      id: '/_public/villa/$villaId'
-      path: '/villa/$villaId'
-      fullPath: '/villa/$villaId'
-      preLoaderRoute: typeof PublicVillaVillaIdRouteImport
-      parentRoute: typeof PublicRoute
+    '/admin/_authed/owner': {
+      id: '/admin/_authed/owner'
+      path: '/owner'
+      fullPath: '/admin/owner'
+      preLoaderRoute: typeof AdminAuthedOwnerRouteImport
+      parentRoute: typeof AdminAuthedRoute
+    }
+    '/admin/_authed/pricing': {
+      id: '/admin/_authed/pricing'
+      path: '/pricing'
+      fullPath: '/admin/pricing'
+      preLoaderRoute: typeof AdminAuthedPricingRouteImport
+      parentRoute: typeof AdminAuthedRoute
+    }
+    '/admin/_authed/reservations': {
+      id: '/admin/_authed/reservations'
+      path: '/reservations'
+      fullPath: '/admin/reservations'
+      preLoaderRoute: typeof AdminAuthedReservationsRouteImport
+      parentRoute: typeof AdminAuthedRoute
+    }
+    '/admin/_authed/reviews': {
+      id: '/admin/_authed/reviews'
+      path: '/reviews'
+      fullPath: '/admin/reviews'
+      preLoaderRoute: typeof AdminAuthedReviewsRouteImport
+      parentRoute: typeof AdminAuthedRoute
     }
   }
 }
