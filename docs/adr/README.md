@@ -9,6 +9,7 @@ Format: `NNNN-kebab-case-title.md`, with Context / Decision / Consequences. Reco
 | [0001](0001-v2-rewrite-and-v1-decommission.md) | v2 rewrite, and how v1 gets decommissioned | Accepted |
 | [0002](0002-nginx-fronts-dokploy-traefik-disabled.md) | nginx fronts 80/443; Dokploy's Traefik stays parked | Accepted |
 | [0003](0003-same-origin-api-routing.md) | Web and API must share one origin | Accepted |
+| [0004](0004-github-actions-owns-deploys-dokploy-observes.md) | GitHub Actions owns deploys; Dokploy is an observation surface | Accepted |
 
 ## Runbooks
 
