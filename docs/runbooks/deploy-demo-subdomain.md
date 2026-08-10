@@ -19,67 +19,66 @@ throughout. Nothing here edits `casadana.conf` or touches the v1 database.
 | Dokploy | installed, Swarm active, `dokploy` + `dokploy-postgres` running |
 | `dokploy-traefik` | stopped, `--restart=no` — nginx owns 80/443 |
 | UI port 3000 | firewalled to loopback (iptables `INPUT` + `DOCKER-USER`, persisted) |
-| nginx vhost | staged at `/etc/nginx/sites-available/demo-casadana.conf`, **deliberately not symlinked** |
+| DNS | `demo.casa-dana.com` A → `147.93.89.239`, resolving |
+| TLS | cert issued via `certonly --webroot`, expires 2026-11-08, renews as `authenticator = webroot` with **no installer** so it can never rewrite v1's config |
+| nginx vhost | `demo-casadana.conf` **enabled**, reloaded (not restarted); serves 502 until containers exist |
+| certbot `cli.ini` | `renew-by-default` and `nginx` globals disabled — see below |
 
-> The vhost is unlinked on purpose: it references a certificate that does not exist yet,
-> so enabling it before step 3 makes `nginx -t` fail and takes v1 down with it.
+Both certs pass `certbot renew --dry-run` together.
+
+### The certbot `cli.ini` globals (fixed 2026-08-10)
+
+`/etc/letsencrypt/cli.ini` held two settings that applied to *every* certbot command
+on the host. Backup at `/root/backups/cli.ini.bak-2026-08-10`.
+
+`renew-by-default = True` forced `--force-renewal` on every run. `certbot.timer` fires
+twice daily, so `api.casa-dana.com` was reissued continuously instead of at the
+30-days-remaining threshold: **487 lineages** in `/etc/letsencrypt/archive` and **1428
+`urn:ietf:params:acme:error:rateLimited` / "too many certificates"** rejections in the
+logs. It never caused an outage — enough attempts succeeded to stay ahead of expiry —
+but it kept the account pinned against Let's Encrypt's 5-duplicate-certs-per-week
+limit, and that budget is shared with every other `casa-dana.com` name.
+
+`nginx = True` forced the nginx authenticator *and installer* globally. It made
+`certonly --webroot` fail outright with `Too many flags setting
+configurators/installers/authenticators 'nginx' -> 'webroot'`, and would have let the
+nginx installer rewrite v1's live `casadana.conf` on any bare `certonly`. It was
+redundant: `renewal/api.casa-dana.com.conf` records `authenticator = nginx` and
+`installer = nginx` in its own `[renewalparams]`, which is what `certbot renew`
+actually uses — verified by dry-run after the change.
+
+`domains = api.casa-dana.com` is still set. Harmless for renewal (only consulted when
+a command passes no `-d`), but **never run a bare `certonly` on this host** or the new
+cert picks up v1's hostname. Pass `-d` explicitly. This matters at Phase 4, which
+issues apex + `www`.
 
 `OOMScoreAdjust=-500` is loaded but not yet applied to the running process — systemd
 sets it at fork time, so it engages on the next restart. `Restart=always` is already
 in effect (systemd re-reads it when the process exits).
 
-## Blockers — these need credentials or DNS, in this order
+## What is left
 
-### 1. Push the branch
+Only two things: the images must be reachable, and the secrets must exist.
 
-Two commits exist only on the host, at `/root/src/casadana`. CI must run before there
-is anything to deploy.
+### 1. Images
 
-```bash
-cd /root/src/casadana
-git push -u origin chore/dokploy-deploy-and-adrs
-```
+The host has locally-built `ghcr.io/lcleris/casadana-api:latest` and
+`-web:latest`, so a deploy can proceed **without CI**. Compose uses a local image when
+one is present under that tag.
 
-Then merge to `main` — `.github/workflows/deploy.yml` triggers on `main` and publishes
-`ghcr.io/lcleris/casadana-api:latest` and `-web:latest`. Confirm on the host:
+For a reproducible pipeline, push `main` (5 commits ahead) and let
+`.github/workflows/deploy.yml` publish them:
 
 ```bash
+cd /root/src/casadana && git push origin main
 docker pull ghcr.io/lcleris/casadana-api:latest   # `denied` = not published yet
 ```
 
-If the GHCR packages are private, give Dokploy a PAT with `read:packages`.
+If the GHCR packages are private, give Dokploy a PAT with `read:packages`. Note that a
+pull then *replaces* the local image, so make sure CI has actually built the merge
+first — otherwise a stale registry image overwrites a good local one.
 
-### 2. DNS
-
-`demo.casa-dana.com` A → `147.93.89.239`. Leave `casa-dana.com` and `www` on Vercel.
-
-```bash
-getent hosts demo.casa-dana.com   # must resolve before step 3
-```
-
-### 3. TLS
-
-`certonly --webroot`, **never `--nginx`** — the nginx installer rewrites
-`casadana.conf`, which is v1's live config.
-
-```bash
-certbot certonly --webroot -w /var/www/letsencrypt -d demo.casa-dana.com
-```
-
-The port-80 default server already answers the ACME challenge for any hostname via
-`/etc/nginx/snippets/letsencrypt-acme-challenge.conf`, so no config change is needed
-to get the challenge served.
-
-### 4. Enable the vhost
-
-```bash
-ln -s /etc/nginx/sites-available/demo-casadana.conf /etc/nginx/sites-enabled/
-nginx -t && systemctl reload nginx    # reload, not restart — v1 keeps serving
-```
-
-If `nginx -t` fails, `rm` the symlink and reload again; v1 is unaffected either way.
-
-### 5. Secrets, then deploy
+### 2. Secrets, then deploy
 
 There is no age key on the host, so `make decrypt` cannot run there. Decrypt locally
 and paste into Dokploy's environment UI. Reach the UI over a tunnel — it is not
@@ -144,13 +143,20 @@ booking, confirm the Resend mail fires.
   reservations have ended. Before then, those 7 must be resolved in v1 or re-entered by
   hand in v2 — no data is migrated.
 
+Until containers exist, all three demo paths return **502**. That is the correct
+response and confirms nginx is resolving the vhost and dialling `127.0.0.1:3001` /
+`:8080` — not a config error.
+
 ## Rollback
 
-| Step | Undo |
+| Change | Undo |
 |---|---|
-| 1–2 | nothing to undo (repo + DNS only) |
-| 3 | `certbot delete --cert-name demo.casa-dana.com` |
-| 4 | `rm /etc/nginx/sites-enabled/demo-casadana.conf && systemctl reload nginx` |
-| 5 | stop the Dokploy app; `docker compose down -v` drops the v2 database |
+| deployed app | stop it in Dokploy; `docker compose down -v` also drops the v2 database |
+| nginx vhost | `rm /etc/nginx/sites-enabled/demo-casadana.conf && systemctl reload nginx` |
+| demo cert | `certbot delete --cert-name demo.casa-dana.com` |
+| `cli.ini` edits | `cp /root/backups/cli.ini.bak-2026-08-10 /etc/letsencrypt/cli.ini` |
+| DNS | remove the `demo` A record |
 
-None of these touch v1.
+None of these touch v1. After any nginx or certbot change, re-run
+`certbot renew --dry-run --no-random-sleep-on-renew` — it must report success for
+**both** lineages.
