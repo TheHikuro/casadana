@@ -3,6 +3,10 @@ node_modules
 .gitignore
 .env
 .env.*.local
+# Must stay out of the build context. bun auto-loads it into process.env when NODE_ENV
+# is unset and Vite prioritises process.env over .env files, so it silently overrode
+# VITE_API_BASE_URL with http://localhost:8080 in production bundles. See .docker/web/Dockerfile.
+.env.development
 dist
 build
 .DS_Store
