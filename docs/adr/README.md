@@ -16,6 +16,10 @@ ADRs record *why*. Step-by-step *how* lives in [`docs/runbooks/`](../runbooks/):
 
 - [`deploy-demo-subdomain.md`](../runbooks/deploy-demo-subdomain.md) — bring v2 up on
   `demo.casa-dana.com` while v1 keeps serving.
+- [`continuous-deployment.md`](../runbooks/continuous-deployment.md) — how a merge to `main`
+  reaches the VPS, and how to roll back.
+- [`dokploy-panel-subdomain.md`](../runbooks/dokploy-panel-subdomain.md) — expose the Dokploy
+  UI on `dokploy.casa-dana.com`, and the exposure that buys.
 
 ## Why these exist
 
