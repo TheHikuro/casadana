@@ -45,12 +45,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    healthcheck:
-      test:
-        ["CMD-SHELL", "wget -q --spider http://localhost:8080/api/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+    # No healthcheck: .docker/api/Dockerfile builds `FROM scratch`, so the image
+    # holds the Go binary and nothing else. Any CMD-SHELL probe fails with
+    #   exec: "/bin/sh": stat /bin/sh: no such file or directory
+    # and the container goes permanently `unhealthy` (verified 2026-08-10).
+    # To restore one: give the binary a `healthcheck` subcommand and use
+    # ["CMD", "/server", "healthcheck"], or base the final stage on alpine.
 
   postgres:
     image: postgres:16-alpine
@@ -64,7 +64,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      # $$ escapes the $, so these expand inside the container from the vars set
+      # in `environment:` above. With a single $, Compose interpolates them at
+      # parse time instead and substitutes empty strings when they are not set
+      # in the shell or in .docker/.env, silently probing the wrong role.
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 5
