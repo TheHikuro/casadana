@@ -1,0 +1,79 @@
+# Production compose for the Dokploy host (147.93.89.239).
+#
+# Differences from .docker/docker-compose.yml (dev), and why:
+#   - no `caddy` service        -> nginx on the host owns 80/443 (docs/adr/0002)
+#   - no `web-dev` service      -> not a dev box
+#   - `image:` not `build:`     -> images come from GHCR, built in CI (docs/adr/0001)
+#   - ports bound to 127.0.0.1  -> Docker BYPASSES ufw; a bare "8080:8080" would
+#                                  publish the API to the internet (docs/adr/0002)
+#   - web on 3001, not 3000     -> Dokploy's own UI owns 3000
+#   - postgres has NO host port -> reachable only on the compose network
+#
+# nginx terminates TLS and splits traffic by path; the frontend calls the API on a
+# relative /api path, so both must be served from one origin (docs/adr/0003).
+name: casadana
+
+services:
+  web:
+    image: ghcr.io/lcleris/casadana-web:latest
+    container_name: casadana-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:80"
+    depends_on:
+      api:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    mem_limit: 128m
+
+  api:
+    image: ghcr.io/lcleris/casadana-api:latest
+    container_name: casadana-api
+    restart: unless-stopped
+    environment:
+      # POSTGRES_HOST must be the service name, not localhost: the API runs in its
+      # own network namespace and the host's Postgres is v1's, which must not be touched.
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PORT: "8080"
+      COOKIE_SECURE: "true"
+      JWT_SECRET: ${JWT_SECRET}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    mem_limit: 256m
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: casadana-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 512m
+
+volumes:
+  postgres_data:
