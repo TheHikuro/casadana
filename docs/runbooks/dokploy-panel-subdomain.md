@@ -3,11 +3,23 @@
 Puts the Dokploy UI behind nginx + TLS + basic auth so it can be managed from a browser
 instead of an SSH tunnel.
 
+## Status: live 2026-08-10 22:40 UTC
+
+DNS resolves on 1.1.1.1 / 8.8.8.8 / 9.9.9.9. Certificate issued via webroot, expires
+2026-11-08, covers **only** `dokploy.casa-dana.com` (the global `domains` in `cli.ini` did
+not leak in, because `-d` was passed explicitly). Renewal is `authenticator = webroot` with
+**no installer** line, so it can never rewrite v1's config — and
+`certbot renew --dry-run` succeeds for all three lineages together
+(`api`, `demo`, `dokploy`).
+
+Verified: 401 with no credentials, 401 with wrong credentials, 200 with correct ones, v1 and
+the demo unaffected, and WebSocket upgrade working (below).
+
 Host config lives outside the repo (it is host state, not code):
 
 | Path | Purpose |
 |---|---|
-| `/etc/nginx/sites-available/dokploy-casadana.conf` | the vhost — **staged, not enabled** |
+| `/etc/nginx/sites-available/dokploy-casadana.conf` | the vhost — **enabled 2026-08-10** |
 | `/etc/nginx/conf.d/websocket-upgrade.conf` | `$connection_upgrade` map, already active |
 | `/etc/nginx/.htpasswd-dokploy` | bcrypt basic-auth file, `root:www-data 640` |
 | `/root/casadana-dokploy-basicauth.txt` | the credentials, mode 600 |
@@ -88,8 +100,29 @@ curl -so /dev/null -w '%{http_code}\n' https://demo.casa-dana.com/              
 certbot renew --dry-run --no-random-sleep-on-renew                               # all lineages
 ```
 
-Then in a browser confirm the **build-log view and the container terminal** work — those are
-the WebSocket paths, and they are the part most likely to break behind a proxy.
+### Checking the WebSocket paths from the shell
+
+Dokploy's WebSocket routes are `/listen-deployment`, `/listen-keys`,
+`/listen-docker-stats-monitoring`, `/docker-container-logs` and
+`/docker-container-terminal`. A successful upgrade is logged by nginx as **101**:
+
+```bash
+curl -s -i --http1.1 -u loan:<pw> \
+  -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
+  -H 'Sec-WebSocket-Version: 13' -H "Sec-WebSocket-Key: $(openssl rand -base64 16)" \
+  https://dokploy.casa-dana.com/listen-deployment
+awk '{print $6, $7, $9}' /var/log/nginx/dokploy_access.log | tail -3   # want 101
+```
+
+**`--http1.1` is required and is not a detail.** Without it curl negotiates HTTP/2, where
+`Connection: Upgrade` / `Upgrade: websocket` are meaningless, and the request comes back
+**404** — which looks exactly like a broken proxy but is a broken *test*. Browsers do the
+right thing automatically: they open WebSockets over HTTP/1.1 even when the page itself was
+served over h2. Confirmed 101 on `/listen-deployment` and `/docker-container-logs`
+2026-08-10.
+
+curl cannot speak WebSocket framing, so a working upgrade shows up as the command hanging
+until its timeout. That is success, not a hang — read the access log for the real answer.
 
 ## Traps
 
