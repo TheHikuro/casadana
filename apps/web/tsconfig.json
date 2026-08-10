@@ -9,6 +9,10 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noEmit": true,
+    // Matches packages/api/tsconfig.json. Without it, `tsc` type-checks every
+    // dependency's .d.ts and the build fails on upstream issues we cannot fix
+    // (@tanstack/router-core, lucide-react, vite/client).
+    "skipLibCheck": true,
     "paths": {
       "@/*": ["./src/*"]
     }

@@ -46,16 +46,34 @@ services:
       COOKIE_SECURE: "true"
       JWT_SECRET: ${JWT_SECRET}
       RESEND_API_KEY: ${RESEND_API_KEY}
+      MAIL_FROM: ${MAIL_FROM}
+      ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL}
+      # Comma-separated CORS allow-list (internal/platform/httpserver/router.go).
+      # Same-origin serving means the browser never needs it, but the API requires
+      # it to be set. Must match the public origin exactly, scheme included:
+      #   demo -> https://demo.casa-dana.com    prod -> https://casa-dana.com
+      WEB_ORIGIN: ${WEB_ORIGIN}
+      # Applies the embedded migrations at startup (cmd/server/casadana.go).
+      # Explicit here because it silently defaults to true.
+      MIGRATE_ON_BOOT: "true"
     ports:
       - "127.0.0.1:8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/api/health || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
+    # NO healthcheck here, deliberately.
+    #
+    # .docker/api/Dockerfile builds `FROM scratch` - the image contains the Go
+    # binary and nothing else. A CMD/CMD-SHELL healthcheck can never succeed:
+    # there is no /bin/sh and no wget, so Docker reports
+    #   exec: "/bin/sh": stat /bin/sh: no such file or directory
+    # and the container sits in `starting` before going permanently `unhealthy`.
+    # (The healthcheck in .docker/docker-compose.yml has this bug - verified
+    # 2026-08-10.) Liveness is covered by nginx and by GET /api/health.
+    #
+    # To restore a real healthcheck, either give the server binary a `healthcheck`
+    # subcommand and use ["CMD", "/server", "healthcheck"], or switch the final
+    # stage to alpine so wget exists.
     mem_limit: 256m
 
   postgres:

@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "bun run paraglide && tsc && vite build",
     "preview": "vite preview",
     "paraglide": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",
     "paraglide:watch": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --watch",
@@ -15,6 +15,7 @@
     "lint:fix": "oxlint --fix"
   },
   "dependencies": {
+    "@base-ui/react": "^1.7.0",
     "@casa-dana/api": "workspace:*",
     "@fontsource-variable/geist": "^5.2.8",
     "@tailwindcss/postcss": "^4.2.2",

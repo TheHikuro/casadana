@@ -1,26 +1,6 @@
 /// <reference types="vite/client" />
 
-declare module "*.jpeg" {
-  const content: string
-  export default content
-}
-
-declare module "*.jpg" {
-  const content: string
-  export default content
-}
-
-declare module "*.png" {
-  const content: string
-  export default content
-}
-
-declare module "*.gif" {
-  const content: string
-  export default content
-}
-
-declare module "*.webp" {
-  const content: string
-  export default content
-}
+// Image module types (*.png, *.jpg, *.jpeg, *.gif, *.webp, *.svg, *.avif, ...)
+// come from vite/client above. Re-declaring them here made TypeScript merge two
+// declarations of the same wildcard modules, each with its own default export,
+// which failed the build with "TS2300: Duplicate identifier".
