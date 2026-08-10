@@ -48,10 +48,12 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=long
 
-      # NOTE: deliberately no build-args. The web image must compile with
-      # VITE_API_BASE_URL unset so the API is called on a relative /api path.
-      # Setting it re-introduces cross-origin cookies. See docs/adr/0003.
-      - uses: docker/build-push-action@v6
+      # NOTE: deliberately no build-args. The web image pins VITE_API_BASE_URL="" in its
+      # own Dockerfile so the API is called on a relative /api path. Do NOT pass it here
+      # as a build-arg -- setting it to a real URL re-introduces cross-origin cookies.
+      # See docs/adr/0003. The assertion below is what actually enforces this.
+      - id: build
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ${{ matrix.dockerfile }}
@@ -60,3 +62,60 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,scope=${{ matrix.name }},mode=max
+
+      # Guards docs/adr/0003. A committed apps/web/.env.development sets
+      # VITE_API_BASE_URL=http://localhost:8080; bun auto-loads it into process.env when
+      # NODE_ENV is unset and Vite prioritises process.env over .env files, so the SPA
+      # silently shipped calling localhost and every request failed CORS in the browser.
+      # Nothing server-side can detect that, so assert on the artefact.
+      - name: Assert the web bundle embeds no absolute API URL
+        if: matrix.name == 'web'
+        run: |
+          IMG="${REGISTRY}/${{ github.repository_owner }}/casadana-web@${{ steps.build.outputs.digest }}"
+          docker pull -q "$IMG"
+          # A PORT is required in the pattern. The bundle legitimately contains a bare
+          # `http://localhost` twice -- TanStack Router falls back to it when window.origin
+          # is unavailable, and axios does the same for window.location.href. Matching bare
+          # localhost would fail every single build. A leaked VITE_API_BASE_URL always
+          # carries a port (http://localhost:8080), which is what this catches.
+          FOUND=$(docker run --rm --entrypoint sh "$IMG" -c \
+            'cat /usr/share/nginx/html/assets/*.js | grep -oE "https?://(localhost|127\.0\.0\.1):[0-9]+" | sort -u' || true)
+          if [ -n "$FOUND" ]; then
+            echo "::error::web bundle embeds absolute URL(s): $FOUND — VITE_API_BASE_URL leaked into the build. See docs/adr/0003-same-origin-api-routing.md"
+            exit 1
+          fi
+          echo "OK — bundle contains no absolute localhost/127.0.0.1 URL"
+
+  # Deploys to the VPS over SSH. Runs only after BOTH images are built and the web-bundle
+  # assertion has passed, so a bundle with a leaked API URL can never reach production.
+  #
+  # The deploy key's authorized_keys entry pins command="/usr/local/bin/casadana-deploy",
+  # so this key cannot open a shell or run any other command. The only thing the runner can
+  # influence is the argument, which that script regex-validates. See
+  # docs/runbooks/continuous-deployment.md.
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # Never let two deploys interleave; unlike the build, do not cancel one midway.
+    concurrency:
+      group: deploy-vps
+      cancel-in-progress: false
+    steps:
+      - name: Deploy ${{ github.sha }} to the VPS
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          install -d -m 700 ~/.ssh
+          install -m 600 /dev/null ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # StrictHostKeyChecking=yes: the host key is pinned in the secret, so a MITM
+          # or a rebuilt host fails the deploy loudly instead of trusting on first use.
+          ssh -i ~/.ssh/deploy_key \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              -o ConnectTimeout=15 \
+              "root@${VPS_HOST}" "deploy ${{ github.sha }}"

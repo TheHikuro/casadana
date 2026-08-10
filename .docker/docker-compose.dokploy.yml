@@ -11,11 +11,17 @@
 #
 # nginx terminates TLS and splits traffic by path; the frontend calls the API on a
 # relative /api path, so both must be served from one origin (docs/adr/0003).
+#
+# IMAGE_TAG selects which build to run. CI tags every image with both `latest` and
+# `sha-<40-hex-commit>`, and the deploy script pins the sha so a deploy is reproducible
+# and a rollback is just re-running with the previous tag:
+#   IMAGE_TAG=sha-<sha> docker compose -f ... up -d
+# It defaults to `latest` so an interactive `docker compose up -d` still works.
 name: casadana
 
 services:
   web:
-    image: ghcr.io/lcleris/casadana-web:latest
+    image: ghcr.io/lcleris/casadana-web:${IMAGE_TAG:-latest}
     container_name: casadana-web
     restart: unless-stopped
     ports:
@@ -37,7 +43,7 @@ services:
     mem_limit: 128m
 
   api:
-    image: ghcr.io/lcleris/casadana-api:latest
+    image: ghcr.io/lcleris/casadana-api:${IMAGE_TAG:-latest}
     container_name: casadana-api
     restart: unless-stopped
     environment:
