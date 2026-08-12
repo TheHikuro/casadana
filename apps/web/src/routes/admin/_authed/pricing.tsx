@@ -64,10 +64,12 @@ function PricingPage() {
       </div>
 
       {/* Keyed on the property so both cards drop their local form state on a
-          switch instead of showing the previous villa's numbers. */}
+          switch instead of showing the previous villa's numbers. The keys must
+          also be unique between the two cards: sharing one value made React
+          leave the stale card mounted on every switch, stacking up duplicates. */}
       <div className="flex flex-col gap-5">
-        <BasePricingCard key={property} property={property} />
-        <SeasonRulesCard key={property} property={property} />
+        <BasePricingCard key={`base-${property}`} property={property} />
+        <SeasonRulesCard key={`rules-${property}`} property={property} />
       </div>
     </div>
   )
