@@ -1,7 +1,8 @@
 import Axios, { AxiosError, AxiosRequestConfig } from "axios"
 
 export const AXIOS_INSTANCE = Axios.create({
-  baseURL: (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_BASE_URL) || "",
+  baseURL:
+    (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_BASE_URL) || "",
   headers: { "Content-Type": "application/json" },
   withCredentials: true,
 })
