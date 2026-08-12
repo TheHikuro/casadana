@@ -22,7 +22,7 @@ export default function VillaFaq({ data }: VillaFaqProps) {
           </h2>
           <p className="text-on-surface-variant mb-8 max-w-[36ch] leading-relaxed">{data.intro}</p>
           <a
-            href="mailto:hello@casa-dana.com"
+            href="mailto:casadana.contact@gmail.com"
             className="text-primary border-outline-variant hover:bg-surface-container-low inline-flex items-center gap-3 border px-6 py-4 font-mono text-[11px] tracking-[0.28em] uppercase transition-colors"
           >
             {m.villa_faq_email_host()}

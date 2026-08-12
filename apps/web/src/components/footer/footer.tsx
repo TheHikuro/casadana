@@ -76,8 +76,8 @@ export default function Footer() {
       external: true,
     },
     {
-      href: "mailto:hello@casa-dana.com",
-      label: "hello@casa-dana.com",
+      href: "mailto:casadana.contact@gmail.com",
+      label: "casadana.contact@gmail.com",
     },
   ]
 
