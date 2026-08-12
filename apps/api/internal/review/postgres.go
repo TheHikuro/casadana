@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -26,18 +27,26 @@ func (r *pgRepo) Save(ctx context.Context, rv *Review) error {
 	if err != nil {
 		return fmt.Errorf("review: invalid id: %w", err)
 	}
-	bookingID, err := uuid.Parse(rv.BookingID)
-	if err != nil {
-		return fmt.Errorf("review: invalid booking id: %w", err)
+	// Admin-authored reviews have no booking behind them: booking_id is NULL.
+	var bookingID pgtype.UUID
+	if rv.BookingID != "" {
+		bid, err := uuid.Parse(rv.BookingID)
+		if err != nil {
+			return fmt.Errorf("review: invalid booking id: %w", err)
+		}
+		bookingID = pgtype.UUID{Bytes: [16]byte(bid), Valid: true}
 	}
 	_, err = r.q().InsertReview(ctx, db.InsertReviewParams{
 		ID:         pgtype.UUID{Bytes: [16]byte(id), Valid: true},
-		BookingID:  pgtype.UUID{Bytes: [16]byte(bookingID), Valid: true},
+		BookingID:  bookingID,
 		VillaSlug:  rv.VillaSlug,
 		AuthorName: rv.AuthorName,
 		Rating:     int16(rv.Rating),
 		Body:       rv.Body,
 		Status:     db.ReviewStatus(rv.Status),
+		Meta:       rv.Meta,
+		Source:     rv.Source,
+		Featured:   rv.Featured,
 	})
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -49,8 +58,16 @@ func (r *pgRepo) Save(ctx context.Context, rv *Review) error {
 	return nil
 }
 
-func (r *pgRepo) ListByVillaSlug(ctx context.Context, slug string) ([]Review, error) {
-	rows, err := r.q().ListReviewsByVilla(ctx, slug)
+func (r *pgRepo) ListByVillaAndStatus(ctx context.Context, slug string, status *Status) ([]Review, error) {
+	var dbStatus *db.ReviewStatus
+	if status != nil {
+		s := db.ReviewStatus(*status)
+		dbStatus = &s
+	}
+	rows, err := r.q().ListReviewsByVillaAndStatus(ctx, db.ListReviewsByVillaAndStatusParams{
+		VillaSlug: slug,
+		Status:    dbStatus,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -59,6 +76,53 @@ func (r *pgRepo) ListByVillaSlug(ctx context.Context, slug string) ([]Review, er
 		out = append(out, rowToReview(row))
 	}
 	return out, nil
+}
+
+func (r *pgRepo) Get(ctx context.Context, id string) (*Review, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("review: invalid id: %w", err)
+	}
+	row, err := r.q().GetReview(ctx, pgtype.UUID{Bytes: [16]byte(uid), Valid: true})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	rv := rowToReview(row)
+	return &rv, nil
+}
+
+func (r *pgRepo) Update(ctx context.Context, id string, patch UpdatePatch) (*Review, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("review: invalid id: %w", err)
+	}
+	params := db.UpdateReviewParams{
+		ID:       pgtype.UUID{Bytes: [16]byte(uid), Valid: true},
+		Featured: patch.Featured,
+		Meta:     patch.Meta,
+		Source:   patch.Source,
+		Body:     patch.Body,
+	}
+	if patch.Status != nil {
+		s := db.ReviewStatus(*patch.Status)
+		params.Status = &s
+	}
+	if patch.Rating != nil {
+		rating := int16(*patch.Rating)
+		params.Rating = &rating
+	}
+	row, err := r.q().UpdateReview(ctx, params)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	rv := rowToReview(row)
+	return &rv, nil
 }
 
 func (r *pgRepo) Delete(ctx context.Context, id string) error {
@@ -74,6 +138,35 @@ func (r *pgRepo) Delete(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	return nil
+}
+
+func (r *pgRepo) GetMeta(ctx context.Context, slug string) (ReviewMeta, error) {
+	row, err := r.q().GetReviewMeta(ctx, slug)
+	if err != nil {
+		// A villa nobody has curated yet simply has no numbers to show.
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ReviewMeta{VillaSlug: slug}, nil
+		}
+		return ReviewMeta{}, err
+	}
+	return rowToMeta(row), nil
+}
+
+func (r *pgRepo) UpsertMeta(ctx context.Context, m ReviewMeta) (ReviewMeta, error) {
+	row, err := r.q().UpsertReviewMeta(ctx, db.UpsertReviewMetaParams{
+		VillaSlug:    m.VillaSlug,
+		DisplayAvg:   numericFromFloat(m.DisplayAvg),
+		DisplayCount: int32(m.DisplayCount),
+		Cleanliness:  numericFromFloat(m.Breakdown.Cleanliness),
+		Comfort:      numericFromFloat(m.Breakdown.Comfort),
+		Location:     numericFromFloat(m.Breakdown.Location),
+		Host:         numericFromFloat(m.Breakdown.Host),
+		Value:        numericFromFloat(m.Breakdown.Value),
+	})
+	if err != nil {
+		return ReviewMeta{}, err
+	}
+	return rowToMeta(row), nil
 }
 
 func rowToReview(row db.Review) Review {
@@ -95,7 +188,25 @@ func rowToReview(row db.Review) Review {
 		Rating:     int(row.Rating),
 		Body:       row.Body,
 		Status:     Status(row.Status),
+		Meta:       row.Meta,
+		Source:     row.Source,
+		Featured:   row.Featured,
 		CreatedAt:  row.CreatedAt.Time,
 		UpdatedAt:  row.UpdatedAt.Time,
+	}
+}
+
+func rowToMeta(row db.VillaReviewMetum) ReviewMeta {
+	return ReviewMeta{
+		VillaSlug:    row.VillaSlug,
+		DisplayAvg:   numericToFloat(row.DisplayAvg),
+		DisplayCount: int(row.DisplayCount),
+		Breakdown: Breakdown{
+			Cleanliness: numericToFloat(row.Cleanliness),
+			Comfort:     numericToFloat(row.Comfort),
+			Location:    numericToFloat(row.Location),
+			Host:        numericToFloat(row.Host),
+			Value:       numericToFloat(row.Value),
+		},
 	}
 }
