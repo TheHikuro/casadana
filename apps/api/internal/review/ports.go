@@ -13,9 +13,9 @@ type Repository interface {
 	Get(ctx context.Context, id string) (*Review, error)
 	Update(ctx context.Context, id string, patch UpdatePatch) (*Review, error)
 	Delete(ctx context.Context, id string) error
-	// GetMeta returns zero values (not an error) for a villa with no meta row.
-	GetMeta(ctx context.Context, slug string) (ReviewMeta, error)
-	UpsertMeta(ctx context.Context, m ReviewMeta) (ReviewMeta, error)
+	// GetAggregate computes the villa's published rating from its approved
+	// reviews. A villa with none reads back as a zero count, not an error.
+	GetAggregate(ctx context.Context, slug string) (ReviewMeta, error)
 }
 
 type BookingReader interface {

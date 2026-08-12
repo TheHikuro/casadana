@@ -27,8 +27,12 @@ type Querier interface {
 	GetBookingByID(ctx context.Context, id pgtype.UUID) (Booking, error)
 	GetPricingSettings(ctx context.Context, villaSlug string) (VillaPricingSetting, error)
 	GetReview(ctx context.Context, id pgtype.UUID) (Review, error)
-	GetReviewMeta(ctx context.Context, villaSlug string) (VillaReviewMetum, error)
 	GetSeasonRule(ctx context.Context, id pgtype.UUID) (SeasonRule, error)
+	// The villa's published rating, computed from its approved reviews only: a
+	// review that is pending or hidden contributes nothing, and approving one folds
+	// it straight in. The per-category AVGs skip NULLs, so each category is averaged
+	// over the reviews that actually scored it and reads back NULL when none did.
+	GetVillaReviewAggregate(ctx context.Context, villaSlug string) (GetVillaReviewAggregateRow, error)
 	InsertAdminUser(ctx context.Context, arg InsertAdminUserParams) (AdminUser, error)
 	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) (AuditEvent, error)
 	InsertBooking(ctx context.Context, arg InsertBookingParams) (Booking, error)
@@ -52,7 +56,6 @@ type Querier interface {
 	UpdateSeasonRule(ctx context.Context, arg UpdateSeasonRuleParams) (SeasonRule, error)
 	UpsertPriceOverride(ctx context.Context, arg UpsertPriceOverrideParams) error
 	UpsertPricingSettings(ctx context.Context, arg UpsertPricingSettingsParams) (VillaPricingSetting, error)
-	UpsertReviewMeta(ctx context.Context, arg UpsertReviewMetaParams) (VillaReviewMetum, error)
 }
 
 var _ Querier = (*Queries)(nil)

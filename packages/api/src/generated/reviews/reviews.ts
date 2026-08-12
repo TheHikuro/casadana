@@ -492,7 +492,10 @@ export function useListVillaReviews<TData = Awaited<ReturnType<typeof listVillaR
 
 
 /**
- * @summary Curated rating figures for a villa
+ * Computed from the villa's approved reviews. Read-only: the figures move
+when a review is added, moderated or removed, never by being set.
+
+ * @summary Published rating figures for a villa
  */
 export const getVillaReviewMeta = (
     slug: string,
@@ -563,7 +566,7 @@ export function useGetVillaReviewMeta<TData = Awaited<ReturnType<typeof getVilla
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary Curated rating figures for a villa
+ * @summary Published rating figures for a villa
  */
 
 export function useGetVillaReviewMeta<TData = Awaited<ReturnType<typeof getVillaReviewMeta>>, TError = ErrorResponse>(
@@ -583,68 +586,3 @@ export function useGetVillaReviewMeta<TData = Awaited<ReturnType<typeof getVilla
 
 
 
-/**
- * @summary Replace the curated rating figures
- */
-export const putVillaReviewMeta = (
-    slug: string,
-    reviewMeta: ReviewMeta,
- ) => {
-      
-      
-      return customAxios<ReviewMeta>(
-      {url: `/api/villas/${slug}/reviews/meta`, method: 'PUT',
-      headers: {'Content-Type': 'application/json', },
-      data: reviewMeta
-    },
-      );
-    }
-  
-
-
-export const getPutVillaReviewMetaMutationOptions = <TError = ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putVillaReviewMeta>>, TError,{slug: string;data: ReviewMeta}, TContext>, }
-): UseMutationOptions<Awaited<ReturnType<typeof putVillaReviewMeta>>, TError,{slug: string;data: ReviewMeta}, TContext> => {
-
-const mutationKey = ['putVillaReviewMeta'];
-const {mutation: mutationOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }};
-
-      
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putVillaReviewMeta>>, {slug: string;data: ReviewMeta}> = (props) => {
-          const {slug,data} = props ?? {};
-
-          return  putVillaReviewMeta(slug,data,)
-        }
-
-        
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type PutVillaReviewMetaMutationResult = NonNullable<Awaited<ReturnType<typeof putVillaReviewMeta>>>
-    export type PutVillaReviewMetaMutationBody = ReviewMeta
-    export type PutVillaReviewMetaMutationError = ErrorResponse
-
-    /**
- * @summary Replace the curated rating figures
- */
-export const usePutVillaReviewMeta = <TError = ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putVillaReviewMeta>>, TError,{slug: string;data: ReviewMeta}, TContext>, }
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof putVillaReviewMeta>>,
-        TError,
-        {slug: string;data: ReviewMeta},
-        TContext
-      > => {
-
-      const mutationOptions = getPutVillaReviewMetaMutationOptions(options);
-
-      return useMutation(mutationOptions, queryClient);
-    }
-    

@@ -37,16 +37,21 @@ func (r *pgRepo) Save(ctx context.Context, rv *Review) error {
 		bookingID = pgtype.UUID{Bytes: [16]byte(bid), Valid: true}
 	}
 	_, err = r.q().InsertReview(ctx, db.InsertReviewParams{
-		ID:         pgtype.UUID{Bytes: [16]byte(id), Valid: true},
-		BookingID:  bookingID,
-		VillaSlug:  rv.VillaSlug,
-		AuthorName: rv.AuthorName,
-		Rating:     int16(rv.Rating),
-		Body:       rv.Body,
-		Status:     db.ReviewStatus(rv.Status),
-		Meta:       rv.Meta,
-		Source:     rv.Source,
-		Featured:   rv.Featured,
+		ID:                pgtype.UUID{Bytes: [16]byte(id), Valid: true},
+		BookingID:         bookingID,
+		VillaSlug:         rv.VillaSlug,
+		AuthorName:        rv.AuthorName,
+		Rating:            int16(rv.Rating),
+		Body:              rv.Body,
+		Status:            db.ReviewStatus(rv.Status),
+		Meta:              rv.Meta,
+		Source:            rv.Source,
+		Featured:          rv.Featured,
+		RatingCleanliness: numericFromScore(rv.Categories.Cleanliness),
+		RatingComfort:     numericFromScore(rv.Categories.Comfort),
+		RatingLocation:    numericFromScore(rv.Categories.Location),
+		RatingHost:        numericFromScore(rv.Categories.Host),
+		RatingValue:       numericFromScore(rv.Categories.Value),
 	})
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -100,11 +105,16 @@ func (r *pgRepo) Update(ctx context.Context, id string, patch UpdatePatch) (*Rev
 		return nil, fmt.Errorf("review: invalid id: %w", err)
 	}
 	params := db.UpdateReviewParams{
-		ID:       pgtype.UUID{Bytes: [16]byte(uid), Valid: true},
-		Featured: patch.Featured,
-		Meta:     patch.Meta,
-		Source:   patch.Source,
-		Body:     patch.Body,
+		ID:                pgtype.UUID{Bytes: [16]byte(uid), Valid: true},
+		Featured:          patch.Featured,
+		Meta:              patch.Meta,
+		Source:            patch.Source,
+		Body:              patch.Body,
+		RatingCleanliness: numericFromScore(patch.Categories.Cleanliness),
+		RatingComfort:     numericFromScore(patch.Categories.Comfort),
+		RatingLocation:    numericFromScore(patch.Categories.Location),
+		RatingHost:        numericFromScore(patch.Categories.Host),
+		RatingValue:       numericFromScore(patch.Categories.Value),
 	}
 	if patch.Status != nil {
 		s := db.ReviewStatus(*patch.Status)
@@ -140,33 +150,30 @@ func (r *pgRepo) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func (r *pgRepo) GetMeta(ctx context.Context, slug string) (ReviewMeta, error) {
-	row, err := r.q().GetReviewMeta(ctx, slug)
-	if err != nil {
-		// A villa nobody has curated yet simply has no numbers to show.
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ReviewMeta{VillaSlug: slug}, nil
-		}
-		return ReviewMeta{}, err
-	}
-	return rowToMeta(row), nil
-}
-
-func (r *pgRepo) UpsertMeta(ctx context.Context, m ReviewMeta) (ReviewMeta, error) {
-	row, err := r.q().UpsertReviewMeta(ctx, db.UpsertReviewMetaParams{
-		VillaSlug:    m.VillaSlug,
-		DisplayAvg:   numericFromFloat(m.DisplayAvg),
-		DisplayCount: int32(m.DisplayCount),
-		Cleanliness:  numericFromFloat(m.Breakdown.Cleanliness),
-		Comfort:      numericFromFloat(m.Breakdown.Comfort),
-		Location:     numericFromFloat(m.Breakdown.Location),
-		Host:         numericFromFloat(m.Breakdown.Host),
-		Value:        numericFromFloat(m.Breakdown.Value),
-	})
+func (r *pgRepo) GetAggregate(ctx context.Context, slug string) (ReviewMeta, error) {
+	// An aggregate over no rows still returns one row — count 0 and NULL
+	// averages — so a villa without approved reviews needs no special case.
+	row, err := r.q().GetVillaReviewAggregate(ctx, slug)
 	if err != nil {
 		return ReviewMeta{}, err
 	}
-	return rowToMeta(row), nil
+	meta := ReviewMeta{
+		VillaSlug:    slug,
+		DisplayCount: int(row.ReviewCount),
+		Breakdown: Breakdown{
+			Cleanliness: numericToScore(row.AvgCleanliness),
+			Comfort:     numericToScore(row.AvgComfort),
+			Location:    numericToScore(row.AvgLocation),
+			Host:        numericToScore(row.AvgHost),
+			Value:       numericToScore(row.AvgValue),
+		},
+	}
+	// The overall average is the headline figure, so it reads as a plain 0 when
+	// there is nothing to average rather than as an absent value.
+	if avg := numericToScore(row.AvgRating); avg != nil {
+		meta.DisplayAvg = *avg
+	}
+	return meta, nil
 }
 
 func rowToReview(row db.Review) Review {
@@ -191,22 +198,14 @@ func rowToReview(row db.Review) Review {
 		Meta:       row.Meta,
 		Source:     row.Source,
 		Featured:   row.Featured,
-		CreatedAt:  row.CreatedAt.Time,
-		UpdatedAt:  row.UpdatedAt.Time,
-	}
-}
-
-func rowToMeta(row db.VillaReviewMetum) ReviewMeta {
-	return ReviewMeta{
-		VillaSlug:    row.VillaSlug,
-		DisplayAvg:   numericToFloat(row.DisplayAvg),
-		DisplayCount: int(row.DisplayCount),
-		Breakdown: Breakdown{
-			Cleanliness: numericToFloat(row.Cleanliness),
-			Comfort:     numericToFloat(row.Comfort),
-			Location:    numericToFloat(row.Location),
-			Host:        numericToFloat(row.Host),
-			Value:       numericToFloat(row.Value),
+		Categories: CategoryRatings{
+			Cleanliness: numericToScore(row.RatingCleanliness),
+			Comfort:     numericToScore(row.RatingComfort),
+			Location:    numericToScore(row.RatingLocation),
+			Host:        numericToScore(row.RatingHost),
+			Value:       numericToScore(row.RatingValue),
 		},
+		CreatedAt: row.CreatedAt.Time,
+		UpdatedAt: row.UpdatedAt.Time,
 	}
 }

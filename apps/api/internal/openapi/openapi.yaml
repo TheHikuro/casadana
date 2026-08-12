@@ -795,7 +795,10 @@ paths:
     get:
       operationId: getVillaReviewMeta
       tags: [reviews]
-      summary: Curated rating figures for a villa
+      summary: Published rating figures for a villa
+      description: |
+        Computed from the villa's approved reviews. Read-only: the figures move
+        when a review is added, moderated or removed, never by being set.
       parameters:
         - name: slug
           in: path
@@ -809,49 +812,6 @@ paths:
               schema: { $ref: "#/components/schemas/ReviewMeta" }
         "404":
           description: Villa slug not in allowlist
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/ErrorResponse" }
-        "500":
-          description: Internal server error
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/ErrorResponse" }
-    put:
-      operationId: putVillaReviewMeta
-      tags: [reviews]
-      summary: Replace the curated rating figures
-      security:
-        - adminSession: []
-      parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ReviewMeta"
-      responses:
-        "200":
-          description: Saved review meta
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/ReviewMeta" }
-        "401":
-          description: Missing or invalid admin session
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/ErrorResponse" }
-        "404":
-          description: Villa slug not in allowlist
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/ErrorResponse" }
-        "422":
-          description: Invalid payload
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
@@ -1304,7 +1264,22 @@ components:
         featured:
           type: boolean
           description: Pinned to the top of the public reviews section.
+        categories:  { $ref: "#/components/schemas/ReviewCategoryRatings" }
         created_at:  { type: string, format: date-time }
+
+    ReviewCategoryRatings:
+      type: object
+      description: |
+        Per-category scores for a single review. Every field is optional and
+        nullable: a null means the reviewer did not score that category, which
+        keeps it out of the villa's average for that category rather than
+        pulling it down with a zero.
+      properties:
+        cleanliness: { type: number, format: double, minimum: 1, maximum: 5, nullable: true }
+        comfort:     { type: number, format: double, minimum: 1, maximum: 5, nullable: true }
+        location:    { type: number, format: double, minimum: 1, maximum: 5, nullable: true }
+        host:        { type: number, format: double, minimum: 1, maximum: 5, nullable: true }
+        value:       { type: number, format: double, minimum: 1, maximum: 5, nullable: true }
 
     CreateAdminReviewRequest:
       type: object
@@ -1318,34 +1293,44 @@ components:
         meta:        { type: string, maxLength: 2000, default: "" }
         source:      { type: string, maxLength: 64, default: "" }
         featured:    { type: boolean, default: false }
+        categories:  { $ref: "#/components/schemas/ReviewCategoryRatings" }
 
     PatchReviewRequest:
       type: object
       description: Every field is optional; an omitted field is left unchanged.
       properties:
-        status:   { $ref: "#/components/schemas/ReviewStatus" }
-        featured: { type: boolean }
-        meta:     { type: string, maxLength: 2000 }
-        source:   { type: string, maxLength: 64 }
-        body:     { type: string, maxLength: 2000 }
-        rating:   { type: integer, minimum: 1, maximum: 5 }
+        status:     { $ref: "#/components/schemas/ReviewStatus" }
+        featured:   { type: boolean }
+        meta:       { type: string, maxLength: 2000 }
+        source:     { type: string, maxLength: 64 }
+        body:       { type: string, maxLength: 2000 }
+        rating:     { type: integer, minimum: 1, maximum: 5 }
+        categories: { $ref: "#/components/schemas/ReviewCategoryRatings" }
 
     ReviewBreakdown:
       type: object
       required: [cleanliness, comfort, location, host, value]
+      description: |
+        Per-category averages over the villa's approved reviews. A null means no
+        approved review has scored that category yet, so the bar is left off
+        rather than drawn at zero.
       properties:
-        cleanliness: { type: number, format: double, minimum: 0, maximum: 5 }
-        comfort:     { type: number, format: double, minimum: 0, maximum: 5 }
-        location:    { type: number, format: double, minimum: 0, maximum: 5 }
-        host:        { type: number, format: double, minimum: 0, maximum: 5 }
-        value:       { type: number, format: double, minimum: 0, maximum: 5 }
+        cleanliness: { type: number, format: double, minimum: 1, maximum: 5, nullable: true }
+        comfort:     { type: number, format: double, minimum: 1, maximum: 5, nullable: true }
+        location:    { type: number, format: double, minimum: 1, maximum: 5, nullable: true }
+        host:        { type: number, format: double, minimum: 1, maximum: 5, nullable: true }
+        value:       { type: number, format: double, minimum: 1, maximum: 5, nullable: true }
 
     ReviewMeta:
       type: object
       required: [display_avg, display_count, breakdown]
       description: |
-        Editorial figures shown on the public villa page, curated independently
-        of what is actually stored in `reviews`.
+        The villa's published rating, computed from its approved reviews.
+        Nothing here is stored or hand-entered: moderating a review into or out
+        of `approved` is what moves these numbers, so the figures a guest reads
+        always match the reviews on show. `display_avg` is 0 when the villa has
+        no approved reviews — read `display_count` to tell that apart from a
+        genuine average.
       properties:
         display_avg:   { type: number, format: double, minimum: 0, maximum: 5, example: 4.92 }
         display_count: { type: integer, minimum: 0, example: 128 }

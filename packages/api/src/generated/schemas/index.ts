@@ -46,6 +46,7 @@ export * from './pricingSettings';
 export * from './putPricingSettingsRequest';
 export * from './review';
 export * from './reviewBreakdown';
+export * from './reviewCategoryRatings';
 export * from './reviewMeta';
 export * from './reviewStatus';
 export * from './seasonRule';

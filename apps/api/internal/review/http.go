@@ -21,7 +21,9 @@ func init() {
 // Mount wires review routes. requireAuth guards the moderation routes; guest
 // submission and the two public reads stay open. The public villa listing
 // returns approved reviews only — the admin listing is the one that sees
-// pending and rejected rows.
+// pending and rejected rows. The meta route is read-only on purpose: the
+// figures it serves are computed from those approved reviews, so there is
+// nothing for an admin to write.
 func Mount(r chi.Router, svc *Service, requireAuth func(http.Handler) http.Handler) {
 	r.Post("/api/reviews", submitHandler(svc))
 	r.Get("/api/villas/{slug}/reviews", listByVillaHandler(svc))
@@ -32,7 +34,6 @@ func Mount(r chi.Router, svc *Service, requireAuth func(http.Handler) http.Handl
 		r.Patch("/api/reviews/{id}", patchHandler(svc))
 		r.Get("/api/admin/reviews", listForAdminHandler(svc))
 		r.Post("/api/admin/reviews", createByAdminHandler(svc))
-		r.Put("/api/villas/{slug}/reviews/meta", putMetaHandler(svc))
 	})
 }
 
@@ -43,53 +44,80 @@ type submitReviewRequest struct {
 	Body       string `json:"body"        validate:"max=2000"`
 }
 
+// categoryRatingsDTO carries the optional per-category scores. Every field is a
+// pointer so that "not scored" stays distinguishable from a score of zero, both
+// on the way in and on the way out.
+type categoryRatingsDTO struct {
+	Cleanliness *float64 `json:"cleanliness" validate:"omitempty,min=1,max=5"`
+	Comfort     *float64 `json:"comfort"     validate:"omitempty,min=1,max=5"`
+	Location    *float64 `json:"location"    validate:"omitempty,min=1,max=5"`
+	Host        *float64 `json:"host"        validate:"omitempty,min=1,max=5"`
+	Value       *float64 `json:"value"       validate:"omitempty,min=1,max=5"`
+}
+
+func (d categoryRatingsDTO) toDomain() CategoryRatings {
+	return CategoryRatings{
+		Cleanliness: d.Cleanliness,
+		Comfort:     d.Comfort,
+		Location:    d.Location,
+		Host:        d.Host,
+		Value:       d.Value,
+	}
+}
+
 type createAdminReviewRequest struct {
-	VillaSlug  string `json:"villa_slug"  validate:"required,min=1,max=64"`
-	AuthorName string `json:"author_name" validate:"required,min=1,max=120"`
-	Rating     int    `json:"rating"      validate:"required,min=1,max=5"`
-	Body       string `json:"body"        validate:"max=2000"`
-	Status     string `json:"status"      validate:"omitempty,oneof=pending approved rejected"`
-	Meta       string `json:"meta"        validate:"max=2000"`
-	Source     string `json:"source"      validate:"max=64"`
-	Featured   bool   `json:"featured"`
+	VillaSlug  string             `json:"villa_slug"  validate:"required,min=1,max=64"`
+	AuthorName string             `json:"author_name" validate:"required,min=1,max=120"`
+	Rating     int                `json:"rating"      validate:"required,min=1,max=5"`
+	Body       string             `json:"body"        validate:"max=2000"`
+	Status     string             `json:"status"      validate:"omitempty,oneof=pending approved rejected"`
+	Meta       string             `json:"meta"        validate:"max=2000"`
+	Source     string             `json:"source"      validate:"max=64"`
+	Featured   bool               `json:"featured"`
+	Categories categoryRatingsDTO `json:"categories"`
 }
 
 // patchReviewRequest is all-optional: a nil field means "leave unchanged".
 type patchReviewRequest struct {
-	Status   *string `json:"status"   validate:"omitempty,oneof=pending approved rejected"`
-	Featured *bool   `json:"featured"`
-	Meta     *string `json:"meta"     validate:"omitempty,max=2000"`
-	Source   *string `json:"source"   validate:"omitempty,max=64"`
-	Body     *string `json:"body"     validate:"omitempty,max=2000"`
-	Rating   *int    `json:"rating"   validate:"omitempty,min=1,max=5"`
+	Status     *string            `json:"status"   validate:"omitempty,oneof=pending approved rejected"`
+	Featured   *bool              `json:"featured"`
+	Meta       *string            `json:"meta"     validate:"omitempty,max=2000"`
+	Source     *string            `json:"source"   validate:"omitempty,max=64"`
+	Body       *string            `json:"body"     validate:"omitempty,max=2000"`
+	Rating     *int               `json:"rating"   validate:"omitempty,min=1,max=5"`
+	Categories categoryRatingsDTO `json:"categories"`
 }
 
+// breakdownDTO is the computed per-category average. A null means no approved
+// review has scored that category, which the clients render as an absent bar
+// rather than as a zero.
 type breakdownDTO struct {
-	Cleanliness float64 `json:"cleanliness" validate:"min=0,max=5"`
-	Comfort     float64 `json:"comfort"     validate:"min=0,max=5"`
-	Location    float64 `json:"location"    validate:"min=0,max=5"`
-	Host        float64 `json:"host"        validate:"min=0,max=5"`
-	Value       float64 `json:"value"       validate:"min=0,max=5"`
+	Cleanliness *float64 `json:"cleanliness"`
+	Comfort     *float64 `json:"comfort"`
+	Location    *float64 `json:"location"`
+	Host        *float64 `json:"host"`
+	Value       *float64 `json:"value"`
 }
 
 type reviewMetaDTO struct {
-	DisplayAvg   float64      `json:"display_avg"   validate:"min=0,max=5"`
-	DisplayCount int          `json:"display_count" validate:"min=0"`
+	DisplayAvg   float64      `json:"display_avg"`
+	DisplayCount int          `json:"display_count"`
 	Breakdown    breakdownDTO `json:"breakdown"`
 }
 
 type reviewDTO struct {
-	ID         string  `json:"id"`
-	BookingID  *string `json:"booking_id"`
-	VillaSlug  string  `json:"villa_slug"`
-	AuthorName string  `json:"author_name"`
-	Rating     int     `json:"rating"`
-	Body       string  `json:"body"`
-	Status     string  `json:"status"`
-	Meta       string  `json:"meta"`
-	Source     string  `json:"source"`
-	Featured   bool    `json:"featured"`
-	CreatedAt  string  `json:"created_at"`
+	ID         string             `json:"id"`
+	BookingID  *string            `json:"booking_id"`
+	VillaSlug  string             `json:"villa_slug"`
+	AuthorName string             `json:"author_name"`
+	Rating     int                `json:"rating"`
+	Body       string             `json:"body"`
+	Status     string             `json:"status"`
+	Meta       string             `json:"meta"`
+	Source     string             `json:"source"`
+	Featured   bool               `json:"featured"`
+	Categories categoryRatingsDTO `json:"categories"`
+	CreatedAt  string             `json:"created_at"`
 }
 
 type listReviewsResponse struct {
@@ -112,9 +140,16 @@ func toDTO(r *Review) reviewDTO {
 		Body:       r.Body,
 		Status:     string(r.Status),
 		Meta:       r.Meta,
-		Source:     r.Source,
-		Featured:   r.Featured,
-		CreatedAt:  r.CreatedAt.Format(time.RFC3339),
+		Source:   r.Source,
+		Featured: r.Featured,
+		Categories: categoryRatingsDTO{
+			Cleanliness: r.Categories.Cleanliness,
+			Comfort:     r.Categories.Comfort,
+			Location:    r.Categories.Location,
+			Host:        r.Categories.Host,
+			Value:       r.Categories.Value,
+		},
+		CreatedAt: r.CreatedAt.Format(time.RFC3339),
 	}
 }
 
@@ -190,6 +225,7 @@ func createByAdminHandler(svc *Service) http.HandlerFunc {
 			Meta:       req.Meta,
 			Source:     req.Source,
 			Featured:   req.Featured,
+			Categories: req.Categories.toDomain(),
 		})
 		if err != nil {
 			httpserver.WriteError(w, r, err)
@@ -245,11 +281,12 @@ func patchHandler(svc *Service) http.HandlerFunc {
 			return
 		}
 		patch := UpdatePatch{
-			Featured: req.Featured,
-			Meta:     req.Meta,
-			Source:   req.Source,
-			Body:     req.Body,
-			Rating:   req.Rating,
+			Featured:   req.Featured,
+			Meta:       req.Meta,
+			Source:     req.Source,
+			Body:       req.Body,
+			Rating:     req.Rating,
+			Categories: req.Categories.toDomain(),
 		}
 		if req.Status != nil {
 			st := Status(*req.Status)
@@ -289,30 +326,3 @@ func metaHandler(svc *Service) http.HandlerFunc {
 	}
 }
 
-func putMetaHandler(svc *Service) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		slug := chi.URLParam(r, "slug")
-		var req reviewMetaDTO
-		if !decodeAndValidate(w, r, &req) {
-			return
-		}
-		saved, err := svc.SaveMeta(r.Context(), ReviewMeta{
-			VillaSlug:    slug,
-			DisplayAvg:   req.DisplayAvg,
-			DisplayCount: req.DisplayCount,
-			Breakdown: Breakdown{
-				Cleanliness: req.Breakdown.Cleanliness,
-				Comfort:     req.Breakdown.Comfort,
-				Location:    req.Breakdown.Location,
-				Host:        req.Breakdown.Host,
-				Value:       req.Breakdown.Value,
-			},
-		})
-		if err != nil {
-			httpserver.WriteError(w, r, err)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(toMetaDTO(saved))
-	}
-}

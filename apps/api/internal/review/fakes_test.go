@@ -2,13 +2,13 @@ package review
 
 import (
 	"context"
+	"math"
 	"sort"
 	"time"
 )
 
 type fakeRepo struct {
 	saved   []Review
-	meta    map[string]ReviewMeta
 	saveErr error
 }
 
@@ -75,6 +75,20 @@ func (f *fakeRepo) Update(_ context.Context, id string, patch UpdatePatch) (*Rev
 		if patch.Rating != nil {
 			f.saved[i].Rating = *patch.Rating
 		}
+		for _, c := range []struct {
+			in  *float64
+			out **float64
+		}{
+			{patch.Categories.Cleanliness, &f.saved[i].Categories.Cleanliness},
+			{patch.Categories.Comfort, &f.saved[i].Categories.Comfort},
+			{patch.Categories.Location, &f.saved[i].Categories.Location},
+			{patch.Categories.Host, &f.saved[i].Categories.Host},
+			{patch.Categories.Value, &f.saved[i].Categories.Value},
+		} {
+			if c.in != nil {
+				*c.out = c.in
+			}
+		}
 		r := f.saved[i]
 		return &r, nil
 	}
@@ -91,21 +105,60 @@ func (f *fakeRepo) Delete(_ context.Context, id string) error {
 	return ErrNotFound
 }
 
-func (f *fakeRepo) GetMeta(_ context.Context, slug string) (ReviewMeta, error) {
-	m, ok := f.meta[slug]
-	if !ok {
-		return ReviewMeta{VillaSlug: slug}, nil
+// GetAggregate mirrors what the SQL does: average over the villa's approved
+// reviews only, and let an unscored category fall out of its own average rather
+// than counting as zero.
+func (f *fakeRepo) GetAggregate(_ context.Context, slug string) (ReviewMeta, error) {
+	meta := ReviewMeta{VillaSlug: slug}
+	var ratingSum float64
+	cleanliness, comfort, location, host, value := &avg{}, &avg{}, &avg{}, &avg{}, &avg{}
+	for _, r := range f.saved {
+		if r.VillaSlug != slug || r.Status != StatusApproved {
+			continue
+		}
+		meta.DisplayCount++
+		ratingSum += float64(r.Rating)
+		cleanliness.add(r.Categories.Cleanliness)
+		comfort.add(r.Categories.Comfort)
+		location.add(r.Categories.Location)
+		host.add(r.Categories.Host)
+		value.add(r.Categories.Value)
 	}
-	return m, nil
+	if meta.DisplayCount > 0 {
+		meta.DisplayAvg = round2(ratingSum / float64(meta.DisplayCount))
+	}
+	meta.Breakdown = Breakdown{
+		Cleanliness: cleanliness.mean(),
+		Comfort:     comfort.mean(),
+		Location:    location.mean(),
+		Host:        host.mean(),
+		Value:       value.mean(),
+	}
+	return meta, nil
 }
 
-func (f *fakeRepo) UpsertMeta(_ context.Context, m ReviewMeta) (ReviewMeta, error) {
-	if f.meta == nil {
-		f.meta = map[string]ReviewMeta{}
-	}
-	f.meta[m.VillaSlug] = m
-	return m, nil
+type avg struct {
+	sum float64
+	n   int
 }
+
+func (a *avg) add(v *float64) {
+	if v == nil {
+		return
+	}
+	a.sum += *v
+	a.n++
+}
+
+func (a *avg) mean() *float64 {
+	if a.n == 0 {
+		return nil
+	}
+	m := round2(a.sum / float64(a.n))
+	return &m
+}
+
+func round2(f float64) float64 { return math.Round(f*100) / 100 }
 
 type recordedEvent struct {
 	villaSlug string

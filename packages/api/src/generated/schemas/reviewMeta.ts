@@ -11,8 +11,12 @@ in the frontend and not exposed by this API.
 import type { ReviewBreakdown } from './reviewBreakdown';
 
 /**
- * Editorial figures shown on the public villa page, curated independently
-of what is actually stored in `reviews`.
+ * The villa's published rating, computed from its approved reviews.
+Nothing here is stored or hand-entered: moderating a review into or out
+of `approved` is what moves these numbers, so the figures a guest reads
+always match the reviews on show. `display_avg` is 0 when the villa has
+no approved reviews — read `display_count` to tell that apart from a
+genuine average.
 
  */
 export interface ReviewMeta {

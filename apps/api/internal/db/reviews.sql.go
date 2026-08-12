@@ -24,7 +24,7 @@ func (q *Queries) DeleteReview(ctx context.Context, id pgtype.UUID) (int64, erro
 }
 
 const getReview = `-- name: GetReview :one
-SELECT id, booking_id, villa_slug, author_name, rating, body, status, created_at, updated_at, featured, meta, source FROM reviews WHERE id = $1
+SELECT id, booking_id, villa_slug, author_name, rating, body, status, created_at, updated_at, featured, meta, source, rating_cleanliness, rating_comfort, rating_location, rating_host, rating_value FROM reviews WHERE id = $1
 `
 
 func (q *Queries) GetReview(ctx context.Context, id pgtype.UUID) (Review, error) {
@@ -43,48 +43,82 @@ func (q *Queries) GetReview(ctx context.Context, id pgtype.UUID) (Review, error)
 		&i.Featured,
 		&i.Meta,
 		&i.Source,
+		&i.RatingCleanliness,
+		&i.RatingComfort,
+		&i.RatingLocation,
+		&i.RatingHost,
+		&i.RatingValue,
 	)
 	return i, err
 }
 
-const getReviewMeta = `-- name: GetReviewMeta :one
-SELECT villa_slug, display_avg, display_count, cleanliness, comfort, location, host, value, updated_at FROM villa_review_meta WHERE villa_slug = $1
+const getVillaReviewAggregate = `-- name: GetVillaReviewAggregate :one
+SELECT
+    COUNT(*)                          AS review_count,
+    AVG(rating)::numeric              AS avg_rating,
+    AVG(rating_cleanliness)::numeric  AS avg_cleanliness,
+    AVG(rating_comfort)::numeric      AS avg_comfort,
+    AVG(rating_location)::numeric     AS avg_location,
+    AVG(rating_host)::numeric         AS avg_host,
+    AVG(rating_value)::numeric        AS avg_value
+FROM reviews
+WHERE villa_slug = $1 AND status = 'approved'
 `
 
-func (q *Queries) GetReviewMeta(ctx context.Context, villaSlug string) (VillaReviewMetum, error) {
-	row := q.db.QueryRow(ctx, getReviewMeta, villaSlug)
-	var i VillaReviewMetum
+type GetVillaReviewAggregateRow struct {
+	ReviewCount    int64
+	AvgRating      pgtype.Numeric
+	AvgCleanliness pgtype.Numeric
+	AvgComfort     pgtype.Numeric
+	AvgLocation    pgtype.Numeric
+	AvgHost        pgtype.Numeric
+	AvgValue       pgtype.Numeric
+}
+
+// The villa's published rating, computed from its approved reviews only: a
+// review that is pending or hidden contributes nothing, and approving one folds
+// it straight in. The per-category AVGs skip NULLs, so each category is averaged
+// over the reviews that actually scored it and reads back NULL when none did.
+func (q *Queries) GetVillaReviewAggregate(ctx context.Context, villaSlug string) (GetVillaReviewAggregateRow, error) {
+	row := q.db.QueryRow(ctx, getVillaReviewAggregate, villaSlug)
+	var i GetVillaReviewAggregateRow
 	err := row.Scan(
-		&i.VillaSlug,
-		&i.DisplayAvg,
-		&i.DisplayCount,
-		&i.Cleanliness,
-		&i.Comfort,
-		&i.Location,
-		&i.Host,
-		&i.Value,
-		&i.UpdatedAt,
+		&i.ReviewCount,
+		&i.AvgRating,
+		&i.AvgCleanliness,
+		&i.AvgComfort,
+		&i.AvgLocation,
+		&i.AvgHost,
+		&i.AvgValue,
 	)
 	return i, err
 }
 
 const insertReview = `-- name: InsertReview :one
-INSERT INTO reviews (id, booking_id, villa_slug, author_name, rating, body, status, meta, source, featured)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-RETURNING id, booking_id, villa_slug, author_name, rating, body, status, created_at, updated_at, featured, meta, source
+INSERT INTO reviews (
+    id, booking_id, villa_slug, author_name, rating, body, status, meta, source, featured,
+    rating_cleanliness, rating_comfort, rating_location, rating_host, rating_value
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+RETURNING id, booking_id, villa_slug, author_name, rating, body, status, created_at, updated_at, featured, meta, source, rating_cleanliness, rating_comfort, rating_location, rating_host, rating_value
 `
 
 type InsertReviewParams struct {
-	ID         pgtype.UUID
-	BookingID  pgtype.UUID
-	VillaSlug  string
-	AuthorName string
-	Rating     int16
-	Body       string
-	Status     ReviewStatus
-	Meta       string
-	Source     string
-	Featured   bool
+	ID                pgtype.UUID
+	BookingID         pgtype.UUID
+	VillaSlug         string
+	AuthorName        string
+	Rating            int16
+	Body              string
+	Status            ReviewStatus
+	Meta              string
+	Source            string
+	Featured          bool
+	RatingCleanliness pgtype.Numeric
+	RatingComfort     pgtype.Numeric
+	RatingLocation    pgtype.Numeric
+	RatingHost        pgtype.Numeric
+	RatingValue       pgtype.Numeric
 }
 
 func (q *Queries) InsertReview(ctx context.Context, arg InsertReviewParams) (Review, error) {
@@ -99,6 +133,11 @@ func (q *Queries) InsertReview(ctx context.Context, arg InsertReviewParams) (Rev
 		arg.Meta,
 		arg.Source,
 		arg.Featured,
+		arg.RatingCleanliness,
+		arg.RatingComfort,
+		arg.RatingLocation,
+		arg.RatingHost,
+		arg.RatingValue,
 	)
 	var i Review
 	err := row.Scan(
@@ -114,12 +153,17 @@ func (q *Queries) InsertReview(ctx context.Context, arg InsertReviewParams) (Rev
 		&i.Featured,
 		&i.Meta,
 		&i.Source,
+		&i.RatingCleanliness,
+		&i.RatingComfort,
+		&i.RatingLocation,
+		&i.RatingHost,
+		&i.RatingValue,
 	)
 	return i, err
 }
 
 const listReviewsByVilla = `-- name: ListReviewsByVilla :many
-SELECT id, booking_id, villa_slug, author_name, rating, body, status, created_at, updated_at, featured, meta, source FROM reviews
+SELECT id, booking_id, villa_slug, author_name, rating, body, status, created_at, updated_at, featured, meta, source, rating_cleanliness, rating_comfort, rating_location, rating_host, rating_value FROM reviews
 WHERE villa_slug = $1
 ORDER BY created_at DESC
 `
@@ -146,6 +190,11 @@ func (q *Queries) ListReviewsByVilla(ctx context.Context, villaSlug string) ([]R
 			&i.Featured,
 			&i.Meta,
 			&i.Source,
+			&i.RatingCleanliness,
+			&i.RatingComfort,
+			&i.RatingLocation,
+			&i.RatingHost,
+			&i.RatingValue,
 		); err != nil {
 			return nil, err
 		}
@@ -158,7 +207,7 @@ func (q *Queries) ListReviewsByVilla(ctx context.Context, villaSlug string) ([]R
 }
 
 const listReviewsByVillaAndStatus = `-- name: ListReviewsByVillaAndStatus :many
-SELECT id, booking_id, villa_slug, author_name, rating, body, status, created_at, updated_at, featured, meta, source FROM reviews
+SELECT id, booking_id, villa_slug, author_name, rating, body, status, created_at, updated_at, featured, meta, source, rating_cleanliness, rating_comfort, rating_location, rating_host, rating_value FROM reviews
 WHERE villa_slug = $1
   AND ($2::review_status IS NULL OR status = $2::review_status)
 ORDER BY featured DESC, created_at DESC
@@ -191,6 +240,11 @@ func (q *Queries) ListReviewsByVillaAndStatus(ctx context.Context, arg ListRevie
 			&i.Featured,
 			&i.Meta,
 			&i.Source,
+			&i.RatingCleanliness,
+			&i.RatingComfort,
+			&i.RatingLocation,
+			&i.RatingHost,
+			&i.RatingValue,
 		); err != nil {
 			return nil, err
 		}
@@ -204,25 +258,35 @@ func (q *Queries) ListReviewsByVillaAndStatus(ctx context.Context, arg ListRevie
 
 const updateReview = `-- name: UpdateReview :one
 UPDATE reviews
-SET status     = COALESCE($1::review_status, status),
-    featured   = COALESCE($2, featured),
-    meta       = COALESCE($3, meta),
-    source     = COALESCE($4, source),
-    body       = COALESCE($5, body),
-    rating     = COALESCE($6, rating),
-    updated_at = NOW()
-WHERE id = $7
-RETURNING id, booking_id, villa_slug, author_name, rating, body, status, created_at, updated_at, featured, meta, source
+SET status             = COALESCE($1::review_status, status),
+    featured           = COALESCE($2, featured),
+    meta               = COALESCE($3, meta),
+    source             = COALESCE($4, source),
+    body               = COALESCE($5, body),
+    rating             = COALESCE($6, rating),
+    rating_cleanliness = COALESCE($7, rating_cleanliness),
+    rating_comfort     = COALESCE($8, rating_comfort),
+    rating_location    = COALESCE($9, rating_location),
+    rating_host        = COALESCE($10, rating_host),
+    rating_value       = COALESCE($11, rating_value),
+    updated_at         = NOW()
+WHERE id = $12
+RETURNING id, booking_id, villa_slug, author_name, rating, body, status, created_at, updated_at, featured, meta, source, rating_cleanliness, rating_comfort, rating_location, rating_host, rating_value
 `
 
 type UpdateReviewParams struct {
-	Status   *ReviewStatus
-	Featured *bool
-	Meta     *string
-	Source   *string
-	Body     *string
-	Rating   *int16
-	ID       pgtype.UUID
+	Status            *ReviewStatus
+	Featured          *bool
+	Meta              *string
+	Source            *string
+	Body              *string
+	Rating            *int16
+	RatingCleanliness pgtype.Numeric
+	RatingComfort     pgtype.Numeric
+	RatingLocation    pgtype.Numeric
+	RatingHost        pgtype.Numeric
+	RatingValue       pgtype.Numeric
+	ID                pgtype.UUID
 }
 
 func (q *Queries) UpdateReview(ctx context.Context, arg UpdateReviewParams) (Review, error) {
@@ -233,6 +297,11 @@ func (q *Queries) UpdateReview(ctx context.Context, arg UpdateReviewParams) (Rev
 		arg.Source,
 		arg.Body,
 		arg.Rating,
+		arg.RatingCleanliness,
+		arg.RatingComfort,
+		arg.RatingLocation,
+		arg.RatingHost,
+		arg.RatingValue,
 		arg.ID,
 	)
 	var i Review
@@ -249,59 +318,11 @@ func (q *Queries) UpdateReview(ctx context.Context, arg UpdateReviewParams) (Rev
 		&i.Featured,
 		&i.Meta,
 		&i.Source,
-	)
-	return i, err
-}
-
-const upsertReviewMeta = `-- name: UpsertReviewMeta :one
-INSERT INTO villa_review_meta (
-    villa_slug, display_avg, display_count, cleanliness, comfort, location, host, value
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-ON CONFLICT (villa_slug) DO UPDATE
-SET display_avg   = EXCLUDED.display_avg,
-    display_count = EXCLUDED.display_count,
-    cleanliness   = EXCLUDED.cleanliness,
-    comfort       = EXCLUDED.comfort,
-    location      = EXCLUDED.location,
-    host          = EXCLUDED.host,
-    value         = EXCLUDED.value,
-    updated_at    = NOW()
-RETURNING villa_slug, display_avg, display_count, cleanliness, comfort, location, host, value, updated_at
-`
-
-type UpsertReviewMetaParams struct {
-	VillaSlug    string
-	DisplayAvg   pgtype.Numeric
-	DisplayCount int32
-	Cleanliness  pgtype.Numeric
-	Comfort      pgtype.Numeric
-	Location     pgtype.Numeric
-	Host         pgtype.Numeric
-	Value        pgtype.Numeric
-}
-
-func (q *Queries) UpsertReviewMeta(ctx context.Context, arg UpsertReviewMetaParams) (VillaReviewMetum, error) {
-	row := q.db.QueryRow(ctx, upsertReviewMeta,
-		arg.VillaSlug,
-		arg.DisplayAvg,
-		arg.DisplayCount,
-		arg.Cleanliness,
-		arg.Comfort,
-		arg.Location,
-		arg.Host,
-		arg.Value,
-	)
-	var i VillaReviewMetum
-	err := row.Scan(
-		&i.VillaSlug,
-		&i.DisplayAvg,
-		&i.DisplayCount,
-		&i.Cleanliness,
-		&i.Comfort,
-		&i.Location,
-		&i.Host,
-		&i.Value,
-		&i.UpdatedAt,
+		&i.RatingCleanliness,
+		&i.RatingComfort,
+		&i.RatingLocation,
+		&i.RatingHost,
+		&i.RatingValue,
 	)
 	return i, err
 }

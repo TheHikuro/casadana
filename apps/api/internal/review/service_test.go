@@ -387,7 +387,7 @@ func TestDelete_RecordsEvent(t *testing.T) {
 	}
 }
 
-func TestMeta_MissingRowIsZero(t *testing.T) {
+func TestMeta_NoApprovedReviewsIsZero(t *testing.T) {
 	svc := newSvc(&fakeRepo{}, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
 
 	m, err := svc.Meta(context.Background(), "casadana")
@@ -399,48 +399,56 @@ func TestMeta_MissingRowIsZero(t *testing.T) {
 	}
 }
 
-func TestSaveMeta_RoundTrip(t *testing.T) {
-	repo := &fakeRepo{}
-	events := &fakeEvents{}
-	svc := newSvcWithEvents(repo, fakeBookingReader{}, fixedClock{t: d("2026-08-01")}, events)
+// The published rating is derived, so it can only ever reflect the approved
+// reviews the villa actually has.
+func TestMeta_AveragesApprovedReviews(t *testing.T) {
+	repo := &fakeRepo{saved: []Review{
+		{ID: "r1", VillaSlug: "casadana", Status: StatusApproved, Rating: 5,
+			Categories: CategoryRatings{Cleanliness: ptr(5.0), Value: ptr(4.0)}},
+		{ID: "r2", VillaSlug: "casadana", Status: StatusApproved, Rating: 4,
+			Categories: CategoryRatings{Cleanliness: ptr(4.5)}},
+		{ID: "r3", VillaSlug: "casadana", Status: StatusPending, Rating: 1,
+			Categories: CategoryRatings{Cleanliness: ptr(1.0)}},
+	}}
+	svc := newSvc(repo, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
 
-	in := ReviewMeta{
-		VillaSlug:    "casadana",
-		DisplayAvg:   4.8,
-		DisplayCount: 42,
-		Breakdown:    Breakdown{Cleanliness: 5, Comfort: 4.9, Location: 5, Host: 4.7, Value: 4.5},
-	}
-	if _, err := svc.SaveMeta(context.Background(), in); err != nil {
-		t.Fatalf("SaveMeta: %v", err)
-	}
-	got, err := svc.Meta(context.Background(), "casadana")
+	m, err := svc.Meta(context.Background(), "casadana")
 	if err != nil {
 		t.Fatalf("Meta: %v", err)
 	}
-	if got != in {
-		t.Errorf("meta = %+v, want %+v", got, in)
+	if m.DisplayCount != 2 || m.DisplayAvg != 4.5 {
+		t.Errorf("meta = %+v, want avg 4.5 over 2 approved reviews", m)
 	}
-	if len(events.events) != 1 || events.events[0].message != "Review meta updated" {
-		t.Errorf("events = %+v", events.events)
+	if m.Breakdown.Cleanliness == nil || *m.Breakdown.Cleanliness != 4.75 {
+		t.Errorf("cleanliness = %v, want 4.75", m.Breakdown.Cleanliness)
+	}
+	// One review scored value, so it stands alone as the average.
+	if m.Breakdown.Value == nil || *m.Breakdown.Value != 4 {
+		t.Errorf("value = %v, want 4", m.Breakdown.Value)
+	}
+	// No approved review scored comfort at all.
+	if m.Breakdown.Comfort != nil {
+		t.Errorf("comfort = %v, want nil", *m.Breakdown.Comfort)
 	}
 }
 
-func TestSaveMeta_OutOfRange(t *testing.T) {
+// A category score outside 1..5 is rejected before it can skew an average.
+func TestCreateByAdmin_RejectsOutOfRangeCategory(t *testing.T) {
 	svc := newSvc(&fakeRepo{}, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
 
-	tests := []struct {
+	for _, tc := range []struct {
 		name string
-		meta ReviewMeta
+		cats CategoryRatings
 	}{
-		{name: "no villa", meta: ReviewMeta{DisplayAvg: 4}},
-		{name: "avg above 5", meta: ReviewMeta{VillaSlug: "casadana", DisplayAvg: 5.1}},
-		{name: "negative count", meta: ReviewMeta{VillaSlug: "casadana", DisplayCount: -1}},
-		{name: "breakdown above 5", meta: ReviewMeta{VillaSlug: "casadana", Breakdown: Breakdown{Host: 6}}},
-		{name: "breakdown negative", meta: ReviewMeta{VillaSlug: "casadana", Breakdown: Breakdown{Value: -0.5}}},
-	}
-	for _, tc := range tests {
+		{name: "above five", cats: CategoryRatings{Host: ptr(6.0)}},
+		{name: "below one", cats: CategoryRatings{Value: ptr(0.5)}},
+		{name: "negative", cats: CategoryRatings{Comfort: ptr(-1.0)}},
+	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if _, err := svc.SaveMeta(context.Background(), tc.meta); err != ErrInvalidPayload {
+			_, err := svc.CreateByAdmin(context.Background(), CreateByAdminCommand{
+				VillaSlug: "casadana", AuthorName: "Ana", Rating: 5, Categories: tc.cats,
+			})
+			if err != ErrInvalidPayload {
 				t.Fatalf("err = %v, want ErrInvalidPayload", err)
 			}
 		})

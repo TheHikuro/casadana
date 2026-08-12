@@ -9,6 +9,7 @@ in the frontend and not exposed by this API.
  * OpenAPI spec version: 0.1.0
  */
 import type { ReviewStatus } from './reviewStatus';
+import type { ReviewCategoryRatings } from './reviewCategoryRatings';
 
 /**
  * Every field is optional; an omitted field is left unchanged.
@@ -27,4 +28,5 @@ export interface PatchReviewRequest {
    * @maximum 5
    */
   rating?: number;
+  categories?: ReviewCategoryRatings;
 }

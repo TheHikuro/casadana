@@ -186,18 +186,23 @@ type PriceOverride struct {
 }
 
 type Review struct {
-	ID         pgtype.UUID
-	BookingID  pgtype.UUID
-	VillaSlug  string
-	AuthorName string
-	Rating     int16
-	Body       string
-	Status     ReviewStatus
-	CreatedAt  pgtype.Timestamptz
-	UpdatedAt  pgtype.Timestamptz
-	Featured   bool
-	Meta       string
-	Source     string
+	ID                pgtype.UUID
+	BookingID         pgtype.UUID
+	VillaSlug         string
+	AuthorName        string
+	Rating            int16
+	Body              string
+	Status            ReviewStatus
+	CreatedAt         pgtype.Timestamptz
+	UpdatedAt         pgtype.Timestamptz
+	Featured          bool
+	Meta              string
+	Source            string
+	RatingCleanliness pgtype.Numeric
+	RatingComfort     pgtype.Numeric
+	RatingLocation    pgtype.Numeric
+	RatingHost        pgtype.Numeric
+	RatingValue       pgtype.Numeric
 }
 
 type SeasonRule struct {
@@ -219,16 +224,4 @@ type VillaPricingSetting struct {
 	ConciergeFeeCents int32
 	CreatedAt         pgtype.Timestamptz
 	UpdatedAt         pgtype.Timestamptz
-}
-
-type VillaReviewMetum struct {
-	VillaSlug    string
-	DisplayAvg   pgtype.Numeric
-	DisplayCount int32
-	Cleanliness  pgtype.Numeric
-	Comfort      pgtype.Numeric
-	Location     pgtype.Numeric
-	Host         pgtype.Numeric
-	Value        pgtype.Numeric
-	UpdatedAt    pgtype.Timestamptz
 }

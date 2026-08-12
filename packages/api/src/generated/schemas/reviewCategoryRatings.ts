@@ -10,40 +10,41 @@ in the frontend and not exposed by this API.
  */
 
 /**
- * Per-category averages over the villa's approved reviews. A null means no
-approved review has scored that category yet, so the bar is left off
-rather than drawn at zero.
+ * Per-category scores for a single review. Every field is optional and
+nullable: a null means the reviewer did not score that category, which
+keeps it out of the villa's average for that category rather than
+pulling it down with a zero.
 
  */
-export interface ReviewBreakdown {
+export interface ReviewCategoryRatings {
   /**
    * @minimum 1
    * @maximum 5
    * @nullable
    */
-  cleanliness: number | null;
+  cleanliness?: number | null;
   /**
    * @minimum 1
    * @maximum 5
    * @nullable
    */
-  comfort: number | null;
+  comfort?: number | null;
   /**
    * @minimum 1
    * @maximum 5
    * @nullable
    */
-  location: number | null;
+  location?: number | null;
   /**
    * @minimum 1
    * @maximum 5
    * @nullable
    */
-  host: number | null;
+  host?: number | null;
   /**
    * @minimum 1
    * @maximum 5
    * @nullable
    */
-  value: number | null;
+  value?: number | null;
 }

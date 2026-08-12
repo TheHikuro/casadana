@@ -60,6 +60,7 @@ type CreateByAdminCommand struct {
 	Meta       string
 	Source     string
 	Featured   bool
+	Categories CategoryRatings
 }
 
 // CreateByAdmin adds a review with no booking behind it — typically one
@@ -74,6 +75,7 @@ func (s *Service) CreateByAdmin(ctx context.Context, cmd CreateByAdminCommand) (
 		Meta:       cmd.Meta,
 		Source:     cmd.Source,
 		Featured:   cmd.Featured,
+		Categories: cmd.Categories,
 		Now:        s.clock.Now(),
 	})
 	if err != nil {
@@ -138,22 +140,12 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-// Meta returns the villa's display aggregate. A villa with no meta row yet
-// reads as zero values rather than an error.
+// Meta returns the villa's published rating, computed from its approved
+// reviews. There is no setter: the figures move only when a review is added,
+// moderated or removed. A villa with no approved reviews reads as a zero count
+// rather than an error.
 func (s *Service) Meta(ctx context.Context, villaSlug string) (ReviewMeta, error) {
-	return s.repo.GetMeta(ctx, villaSlug)
-}
-
-func (s *Service) SaveMeta(ctx context.Context, m ReviewMeta) (ReviewMeta, error) {
-	if err := m.Validate(); err != nil {
-		return ReviewMeta{}, err
-	}
-	saved, err := s.repo.UpsertMeta(ctx, m)
-	if err != nil {
-		return ReviewMeta{}, err
-	}
-	s.record(ctx, m.VillaSlug, "Review meta updated")
-	return saved, nil
+	return s.repo.GetAggregate(ctx, villaSlug)
 }
 
 // patchMessage renders the audit line for a moderation edit, leading with the

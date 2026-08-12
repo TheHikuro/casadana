@@ -25,6 +25,18 @@ func (s Status) valid() bool {
 	}
 }
 
+// CategoryRatings are the optional per-category scores a review may carry
+// alongside its overall rating. A nil field means that category was not scored,
+// which keeps it out of the villa's average for that category instead of
+// dragging it down with a zero. Each score is 1..5.
+type CategoryRatings struct {
+	Cleanliness *float64
+	Comfort     *float64
+	Location    *float64
+	Host        *float64
+	Value       *float64
+}
+
 // Review is a guest- or admin-authored testimonial for a villa. BookingID is
 // empty for admin-authored reviews: those are transcribed from Airbnb /
 // Booking.com and have no booking row of ours behind them.
@@ -39,6 +51,7 @@ type Review struct {
 	Meta       string
 	Source     string
 	Featured   bool
+	Categories CategoryRatings
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
@@ -63,33 +76,37 @@ type NewAdminReviewInput struct {
 	Meta       string
 	Source     string
 	Featured   bool
+	Categories CategoryRatings
 	Now        time.Time
 }
 
 // UpdatePatch carries a partial moderation edit. A nil field means "leave
-// unchanged".
+// unchanged" — including each individual category score.
 type UpdatePatch struct {
-	Status   *Status
-	Featured *bool
-	Meta     *string
-	Source   *string
-	Body     *string
-	Rating   *int
+	Status     *Status
+	Featured   *bool
+	Meta       *string
+	Source     *string
+	Body       *string
+	Rating     *int
+	Categories CategoryRatings
 }
 
-// Breakdown holds the five per-axis scores shown next to the overall rating.
-// Each is 0..5.
+// Breakdown holds the five per-category averages shown next to the overall
+// rating. A nil score means no approved review has rated that category yet, so
+// the bar is left off rather than drawn at zero.
 type Breakdown struct {
-	Cleanliness float64
-	Comfort     float64
-	Location    float64
-	Host        float64
-	Value       float64
+	Cleanliness *float64
+	Comfort     *float64
+	Location    *float64
+	Host        *float64
+	Value       *float64
 }
 
-// ReviewMeta is the villa-level display aggregate. It is admin-curated rather
-// than computed: the public numbers include reviews left on Airbnb /
-// Booking.com that we never store row by row.
+// ReviewMeta is the villa's published rating, computed from its approved
+// reviews. Nothing in it is stored or hand-entered: moderating a review into or
+// out of `approved` is what moves these numbers, so what a guest reads always
+// matches the reviews on show.
 type ReviewMeta struct {
 	VillaSlug    string
 	DisplayAvg   float64
@@ -152,6 +169,9 @@ func NewAdminReview(in NewAdminReviewInput) (*Review, error) {
 	if len(in.Meta) > 2000 || len(in.Source) > 64 {
 		return nil, ErrInvalidPayload
 	}
+	if err := in.Categories.Validate(); err != nil {
+		return nil, err
+	}
 
 	now := in.Now
 	return &Review{
@@ -164,9 +184,21 @@ func NewAdminReview(in NewAdminReviewInput) (*Review, error) {
 		Meta:       in.Meta,
 		Source:     in.Source,
 		Featured:   in.Featured,
+		Categories: in.Categories,
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}, nil
+}
+
+// Validate rejects any category score that was set but sits outside 1..5. An
+// unset score is always fine: it simply means "not rated".
+func (c CategoryRatings) Validate() error {
+	for _, s := range []*float64{c.Cleanliness, c.Comfort, c.Location, c.Host, c.Value} {
+		if s != nil && (*s < 1 || *s > 5) {
+			return ErrInvalidPayload
+		}
+	}
+	return nil
 }
 
 // Validate rejects a patch whose set fields are out of range. An entirely
@@ -187,32 +219,7 @@ func (p UpdatePatch) Validate() error {
 	if p.Source != nil && len(*p.Source) > 64 {
 		return ErrInvalidPayload
 	}
-	return nil
-}
-
-// Validate rejects out-of-range display aggregates. Scores are 0..5; a zero
-// score means "not published" rather than "rated zero".
-func (m ReviewMeta) Validate() error {
-	if m.VillaSlug == "" {
-		return ErrInvalidPayload
-	}
-	if m.DisplayCount < 0 {
-		return ErrInvalidPayload
-	}
-	scores := []float64{
-		m.DisplayAvg,
-		m.Breakdown.Cleanliness,
-		m.Breakdown.Comfort,
-		m.Breakdown.Location,
-		m.Breakdown.Host,
-		m.Breakdown.Value,
-	}
-	for _, s := range scores {
-		if s < 0 || s > 5 {
-			return ErrInvalidPayload
-		}
-	}
-	return nil
+	return p.Categories.Validate()
 }
 
 func validateContent(authorName string, rating int, body string) error {

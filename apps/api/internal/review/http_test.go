@@ -309,12 +309,9 @@ func TestDeleteReview_NotFound(t *testing.T) {
 	}
 }
 
-func TestGetReviewMeta_MissingIsZero(t *testing.T) {
-	svc := newSvc(&fakeRepo{}, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
-	srv := httptest.NewServer(newRouter(svc))
-	defer srv.Close()
-
-	resp, err := http.Get(srv.URL + "/api/villas/casadana/reviews/meta")
+func getMeta(t *testing.T, url string) reviewMetaDTO {
+	t.Helper()
+	resp, err := http.Get(url + "/api/villas/casadana/reviews/meta")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -326,44 +323,98 @@ func TestGetReviewMeta_MissingIsZero(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		t.Fatal(err)
 	}
+	return out
+}
+
+func TestGetReviewMeta_NoApprovedReviewsIsZero(t *testing.T) {
+	svc := newSvc(&fakeRepo{}, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
+	srv := httptest.NewServer(newRouter(svc))
+	defer srv.Close()
+
+	out := getMeta(t, srv.URL)
 	if out.DisplayAvg != 0 || out.DisplayCount != 0 || out.Breakdown != (breakdownDTO{}) {
 		t.Errorf("meta = %+v, want zero values", out)
 	}
 }
 
-func TestPutReviewMeta(t *testing.T) {
-	repo := &fakeRepo{}
+// The published figures are an average of the approved reviews and nothing
+// else: a pending or hidden review must not move them.
+func TestGetReviewMeta_CountsApprovedOnly(t *testing.T) {
+	repo := &fakeRepo{saved: []Review{
+		{ID: "r1", VillaSlug: "casadana", Status: StatusApproved, Rating: 5,
+			Categories: CategoryRatings{Cleanliness: ptr(5.0), Host: ptr(4.0)}},
+		{ID: "r2", VillaSlug: "casadana", Status: StatusApproved, Rating: 4,
+			Categories: CategoryRatings{Cleanliness: ptr(4.0)}},
+		{ID: "r3", VillaSlug: "casadana", Status: StatusPending, Rating: 1,
+			Categories: CategoryRatings{Cleanliness: ptr(1.0)}},
+		{ID: "r4", VillaSlug: "casadana", Status: StatusRejected, Rating: 1},
+		{ID: "r5", VillaSlug: "casacasay", Status: StatusApproved, Rating: 1},
+	}}
 	svc := newSvc(repo, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
 	srv := httptest.NewServer(newRouter(svc))
 	defer srv.Close()
 
-	body := `{"display_avg":4.8,"display_count":42,"breakdown":{"cleanliness":5,"comfort":4.9,"location":5,"host":4.7,"value":4.5}}`
-	resp := do(t, http.MethodPut, srv.URL+"/api/villas/casadana/reviews/meta", body)
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("status = %d, want 200", resp.StatusCode)
+	out := getMeta(t, srv.URL)
+	if out.DisplayCount != 2 {
+		t.Errorf("display_count = %d, want 2 (approved only)", out.DisplayCount)
 	}
-	var out reviewMetaDTO
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		t.Fatal(err)
+	if out.DisplayAvg != 4.5 {
+		t.Errorf("display_avg = %v, want 4.5", out.DisplayAvg)
 	}
-	if out.DisplayAvg != 4.8 || out.DisplayCount != 42 || out.Breakdown.Host != 4.7 {
-		t.Errorf("unexpected response: %+v", out)
+	if out.Breakdown.Cleanliness == nil || *out.Breakdown.Cleanliness != 4.5 {
+		t.Errorf("cleanliness = %v, want 4.5", out.Breakdown.Cleanliness)
 	}
-	if repo.meta["casadana"].Breakdown.Value != 4.5 {
-		t.Errorf("stored meta = %+v", repo.meta["casadana"])
+	// Only r1 scored the host, so that one review is the whole average.
+	if out.Breakdown.Host == nil || *out.Breakdown.Host != 4 {
+		t.Errorf("host = %v, want 4", out.Breakdown.Host)
+	}
+	// Nobody scored comfort: an absent bar, not a zero-width one.
+	if out.Breakdown.Comfort != nil {
+		t.Errorf("comfort = %v, want null", *out.Breakdown.Comfort)
 	}
 }
 
-func TestPutReviewMeta_OutOfRange(t *testing.T) {
+// Moderating a review is what moves the published rating — the whole reason the
+// figures are computed rather than typed in.
+func TestGetReviewMeta_FollowsModeration(t *testing.T) {
+	repo := &fakeRepo{saved: []Review{
+		{ID: "r1", VillaSlug: "casadana", Status: StatusApproved, Rating: 5},
+		{ID: "r2", VillaSlug: "casadana", Status: StatusPending, Rating: 3},
+	}}
+	svc := newSvc(repo, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
+	srv := httptest.NewServer(newRouter(svc))
+	defer srv.Close()
+
+	if out := getMeta(t, srv.URL); out.DisplayAvg != 5 || out.DisplayCount != 1 {
+		t.Fatalf("before = %+v, want avg 5 over 1 review", out)
+	}
+
+	resp := do(t, http.MethodPatch, srv.URL+"/api/reviews/r2", `{"status":"approved"}`)
+	resp.Body.Close()
+
+	if out := getMeta(t, srv.URL); out.DisplayAvg != 4 || out.DisplayCount != 2 {
+		t.Errorf("after approving = %+v, want avg 4 over 2 reviews", out)
+	}
+
+	resp = do(t, http.MethodPatch, srv.URL+"/api/reviews/r1", `{"status":"rejected"}`)
+	resp.Body.Close()
+
+	if out := getMeta(t, srv.URL); out.DisplayAvg != 3 || out.DisplayCount != 1 {
+		t.Errorf("after hiding = %+v, want avg 3 over 1 review", out)
+	}
+}
+
+// The figures have no setter any more; the route only reads.
+func TestPutReviewMetaIsGone(t *testing.T) {
 	svc := newSvc(&fakeRepo{}, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
 	srv := httptest.NewServer(newRouter(svc))
 	defer srv.Close()
 
-	resp := do(t, http.MethodPut, srv.URL+"/api/villas/casadana/reviews/meta", `{"display_avg":9,"display_count":1}`)
+	body := `{"display_avg":4.8,"display_count":42}`
+	resp := do(t, http.MethodPut, srv.URL+"/api/villas/casadana/reviews/meta", body)
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusUnprocessableEntity {
-		t.Fatalf("status = %d, want 422", resp.StatusCode)
+	if resp.StatusCode != http.StatusMethodNotAllowed {
+		t.Fatalf("status = %d, want 405", resp.StatusCode)
 	}
 }
 
@@ -384,7 +435,6 @@ func TestAdminRoutesRequireAuth(t *testing.T) {
 		{method: http.MethodPatch, path: "/api/reviews/r1", body: `{"status":"approved"}`},
 		{method: http.MethodGet, path: "/api/admin/reviews?villa_slug=casadana"},
 		{method: http.MethodPost, path: "/api/admin/reviews", body: `{"villa_slug":"casadana","author_name":"X","rating":5}`},
-		{method: http.MethodPut, path: "/api/villas/casadana/reviews/meta", body: `{"display_avg":4,"display_count":1}`},
 	}
 	for _, tc := range guarded {
 		t.Run(tc.method+" "+tc.path, func(t *testing.T) {

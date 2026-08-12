@@ -9,6 +9,7 @@ in the frontend and not exposed by this API.
  * OpenAPI spec version: 0.1.0
  */
 import type { ReviewStatus } from './reviewStatus';
+import type { ReviewCategoryRatings } from './reviewCategoryRatings';
 
 export interface CreateAdminReviewRequest {
   /**
@@ -34,4 +35,5 @@ export interface CreateAdminReviewRequest {
   /** @maxLength 64 */
   source?: string;
   featured?: boolean;
+  categories?: ReviewCategoryRatings;
 }
