@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react"
 import { DynamicIcon, type IconName } from "lucide-react/dynamic"
 
 import { GalleryCategory } from "@/constants/gallery-categories.const"
+import { usePublishedRating } from "@/lib/use-published-rating"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
 
@@ -91,6 +92,10 @@ function PropertyMeta({
     ? Math.round(settings.base_price_cents / 100)
     : price.amount
 
+  // Computed from the villa's approved reviews, so this card agrees with the
+  // reviews section on the villa page it links to.
+  const { score, count, filledStars } = usePublishedRating(villaId, rating)
+
   return (
     <div className="flex flex-col items-start justify-between gap-3 md:flex-row md:items-baseline">
       <div className="font-display text-primary text-[26px] italic">
@@ -101,8 +106,11 @@ function PropertyMeta({
         </small>
       </div>
       <div className="text-on-surface-variant font-mono text-[11px] tracking-[0.15em]">
-        <span className="text-secondary mr-1 tracking-[2px]">★★★★★</span>
-        {rating.score.toFixed(2)} · {m.prop_rating_reviews({ count: rating.count })}
+        <span className="text-secondary mr-1 tracking-[2px]">
+          {"★".repeat(filledStars)}
+          {"☆".repeat(5 - filledStars)}
+        </span>
+        {score.toFixed(2)} · {m.prop_rating_reviews({ count })}
       </div>
     </div>
   )

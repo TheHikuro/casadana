@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import type { VillaData } from "@/constants/villas.const"
+import { usePublishedRating } from "@/lib/use-published-rating"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
 
@@ -191,6 +192,13 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
   const baseNightlyCents = settings?.base_price_cents || booking.nightly * 100
   const cleaningFeeCents = settings?.cleaning_fee_cents ?? 0
 
+  // Computed from approved reviews — the same figures the reviews section
+  // further down the page shows.
+  const publishedRating = usePublishedRating(villaSlug, {
+    score: booking.rating,
+    count: booking.reviewCount,
+  })
+
   function datesToSet(ranges: Array<{ check_in: string; check_out: string }>): Set<string> {
     const set = new Set<string>()
     for (const r of ranges) {
@@ -366,10 +374,13 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
           </small>
         </div>
         <div className="flex flex-col items-end gap-1 font-mono text-[11px] tracking-[0.1em]">
-          <span className="text-secondary text-[13px] tracking-[2px]">★★★★★</span>
+          <span className="text-secondary text-[13px] tracking-[2px]">
+            {"★".repeat(publishedRating.filledStars)}
+            {"☆".repeat(5 - publishedRating.filledStars)}
+          </span>
           <span className="text-on-surface-variant">
-            {booking.rating.toFixed(2)} ·{" "}
-            {m.villa_booking_review_count({ count: booking.reviewCount })}
+            {publishedRating.score.toFixed(2)} ·{" "}
+            {m.villa_booking_review_count({ count: publishedRating.count })}
           </span>
         </div>
       </div>
