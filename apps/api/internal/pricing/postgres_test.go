@@ -77,3 +77,92 @@ func TestPgRepo_ListOverrides(t *testing.T) {
 		t.Errorf("price_cents = %d, want 25000", out[0].PriceCents)
 	}
 }
+
+func TestPgRepo_GetSettings_NeverConfigured(t *testing.T) {
+	pool := setupPg(t)
+	repo := NewPgRepo(pool)
+
+	got, err := repo.GetSettings(context.Background(), "casadana")
+	if err != nil {
+		t.Fatalf("get settings: %v", err)
+	}
+	if got != (Settings{VillaSlug: "casadana"}) {
+		t.Errorf("settings = %+v, want zero value", got)
+	}
+}
+
+func TestPgRepo_SaveAndGetSettings(t *testing.T) {
+	pool := setupPg(t)
+	ctx := context.Background()
+	repo := NewPgRepo(pool)
+
+	in := Settings{VillaSlug: "casadana", BasePriceCents: 18500, MinNights: 3, CleaningFeeCents: 8000, ConciergeFeeCents: 5000}
+	saved, err := repo.SaveSettings(ctx, in)
+	if err != nil {
+		t.Fatalf("save settings: %v", err)
+	}
+	if saved != in {
+		t.Errorf("saved = %+v, want %+v", saved, in)
+	}
+
+	// Second write must update in place rather than conflict.
+	in.BasePriceCents = 19500
+	if _, err := repo.SaveSettings(ctx, in); err != nil {
+		t.Fatalf("re-save settings: %v", err)
+	}
+	got, err := repo.GetSettings(ctx, "casadana")
+	if err != nil {
+		t.Fatalf("get settings: %v", err)
+	}
+	if got != in {
+		t.Errorf("settings = %+v, want %+v", got, in)
+	}
+}
+
+func TestPgRepo_SeasonRuleLifecycle(t *testing.T) {
+	pool := setupPg(t)
+	ctx := context.Background()
+	repo := NewPgRepo(pool)
+
+	rule, err := NewSeasonRule(NewSeasonRuleInput{
+		VillaSlug: "casadana", Label: "Summer peak",
+		Start: d("2026-07-01"), End: d("2026-08-31"), PriceCents: 25000,
+	})
+	if err != nil {
+		t.Fatalf("new rule: %v", err)
+	}
+	inserted, err := repo.InsertSeasonRule(ctx, *rule)
+	if err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+	if inserted.ID != rule.ID || !inserted.Start.Equal(d("2026-07-01")) {
+		t.Errorf("inserted = %+v, want %+v", inserted, *rule)
+	}
+
+	inserted.PriceCents = 30000
+	updated, err := repo.UpdateSeasonRule(ctx, inserted)
+	if err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	if updated.PriceCents != 30000 || updated.Label != "Summer peak" {
+		t.Errorf("updated = %+v", updated)
+	}
+
+	rules, err := repo.ListSeasonRules(ctx, "casadana")
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(rules) != 1 {
+		t.Fatalf("rules = %d, want 1", len(rules))
+	}
+
+	if err := repo.DeleteSeasonRule(ctx, rule.ID); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+	if _, err := repo.GetSeasonRule(ctx, rule.ID); err != ErrRuleNotFound {
+		t.Fatalf("get after delete = %v, want ErrRuleNotFound", err)
+	}
+	if err := repo.DeleteSeasonRule(ctx, rule.ID); err != ErrRuleNotFound {
+		t.Fatalf("double delete = %v, want ErrRuleNotFound", err)
+	}
+}
