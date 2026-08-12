@@ -1,3 +1,4 @@
+import { useGetVillaPricingSettings } from "@casa-dana/api"
 import { Link } from "@tanstack/react-router"
 import { ArrowRight } from "lucide-react"
 import { DynamicIcon, type IconName } from "lucide-react/dynamic"
@@ -77,12 +78,24 @@ function PropertyFeatures({ features }: { features: PropertyCardProps["features"
   )
 }
 
-function PropertyMeta({ price, rating }: Pick<PropertyCardProps, "price" | "rating">) {
+function PropertyMeta({
+  villaId,
+  price,
+  rating,
+}: Pick<PropertyCardProps, "price" | "rating"> & { villaId: string }) {
+  // The nightly rate is edited per villa in the back-office (same source as the
+  // villa page's booking panel). `price.amount` is only a fallback: settings
+  // read back all-zero for a villa that has never been configured.
+  const { data: settings } = useGetVillaPricingSettings(villaId)
+  const amount = settings?.base_price_cents
+    ? Math.round(settings.base_price_cents / 100)
+    : price.amount
+
   return (
     <div className="flex flex-col items-start justify-between gap-3 md:flex-row md:items-baseline">
       <div className="font-display text-primary text-[26px] italic">
         {m.prop_price_from()} {price.currency}
-        {price.amount}
+        {amount}
         <small className="text-on-surface-variant ml-1 font-sans text-[13px] not-italic">
           {m.prop_price_per_night()}
         </small>
@@ -150,7 +163,7 @@ export default function PropertyCard({
 
             <PropertyFeatures features={features} />
 
-            <PropertyMeta price={price} rating={rating} />
+            <PropertyMeta villaId={id} price={price} rating={rating} />
 
             <Link
               to="/villa/$villaId"

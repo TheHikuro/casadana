@@ -1,3 +1,5 @@
+import { useGetVillaPricingSettings } from "@casa-dana/api"
+
 import { m } from "@/paraglide/messages"
 
 interface Stat {
@@ -6,6 +8,7 @@ interface Stat {
 }
 
 interface VillaHeroProps {
+  villaSlug: string
   image: string
   eyebrow: Array<string>
   titlePrefix: string
@@ -17,6 +20,7 @@ interface VillaHeroProps {
 }
 
 export default function VillaHero({
+  villaSlug,
   image,
   eyebrow,
   titlePrefix,
@@ -26,6 +30,12 @@ export default function VillaHero({
   price,
   priceLabel,
 }: VillaHeroProps) {
+  // Same back-office base rate the booking panel below uses, so the two prices
+  // on this page can't drift apart. `price` is only a fallback for a villa that
+  // has never been configured (settings read back all-zero then).
+  const { data: settings } = useGetVillaPricingSettings(villaSlug)
+  const amount = settings?.base_price_cents ? Math.round(settings.base_price_cents / 100) : price
+
   return (
     <section className="relative h-screen min-h-[600px] overflow-hidden text-white md:min-h-[720px]">
       <div className="absolute inset-0">
@@ -90,7 +100,7 @@ export default function VillaHero({
 
         <div className="flex flex-col items-start justify-between gap-4 py-7 md:flex-row md:items-center md:py-8">
           <div className="font-display text-[26px] italic md:text-[28px]">
-            €{price}
+            €{amount}
             <small className="ml-1 font-sans text-[12px] tracking-[0.05em] text-white/75 not-italic">
               {priceLabel}
             </small>

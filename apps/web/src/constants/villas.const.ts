@@ -216,7 +216,7 @@ function buildCasadana(): VillaData {
           value: m.villa_casadana_hero_stat_5_value(),
         },
       ],
-      price: 185,
+      price: 95,
       priceLabel: m.villa_casadana_hero_price_label(),
     },
     ribbon: [
@@ -567,7 +567,7 @@ function buildCasacasay(): VillaData {
           value: m.villa_casacasay_hero_stat_5_value(),
         },
       ],
-      price: 145,
+      price: 58,
       priceLabel: m.villa_casacasay_hero_price_label(),
     },
     ribbon: [

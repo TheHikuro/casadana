@@ -60,7 +60,7 @@ export default function VillaDetailPage() {
 
   return (
     <>
-      <VillaHero {...villa.hero} />
+      <VillaHero villaSlug={villaId} {...villa.hero} />
       <VillaRibbon phrases={villa.ribbon} />
       <VillaAbout villaSlug={villaId} about={villa.about} booking={villa.booking} />
       <VillaGalleryBento data={villa.gallery} onTileClick={openLb} onOpenAll={openAll} />
