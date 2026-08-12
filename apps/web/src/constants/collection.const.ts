@@ -2,7 +2,11 @@ import CASADANA_BATHROOM from "@/assets/casadana/bathroom.jpeg"
 import CASADANA_BEDROOM from "@/assets/casadana/bedroom1_1.jpeg"
 import CASADANA_KITCHEN from "@/assets/casadana/kitchen1.jpeg"
 import CASADANA_BG from "@/assets/casadana/rooftop7.jpeg"
+import CASACASAY_BEDROOM from "@/assets/casadessy/bedroom1.jpeg"
+import CASACASAY_KITCHEN from "@/assets/casadessy/kitchen1.jpeg"
+import CASACASAY_LIVING from "@/assets/casadessy/living_room1.jpeg"
 import CASACASAY_BG from "@/assets/casadessy/pool1.jpeg"
+import CASACASAY_TERRACE from "@/assets/casadessy/terrace1.jpeg"
 import type { PropertyCardProps } from "@/components/sections/property-card"
 import { m } from "@/paraglide/messages"
 
@@ -24,8 +28,7 @@ export const properties = [
       m.prop_casadana_p4(),
     ],
     exploreLabel: m.prop_explore_dana(),
-    price: { amount: 95, currency: "€" },
-    rating: { score: 4.96, count: 87 },
+    price: { amount: 85, currency: "€" },
     imageUrl: CASADANA_BG,
     imageAlt: m.prop_casadana_image_alt(),
     layout: "left",
@@ -81,7 +84,6 @@ export const properties = [
     ],
     exploreLabel: m.prop_explore_casay(),
     price: { amount: 58, currency: "€" },
-    rating: { score: 4.92, count: 41 },
     imageUrl: CASACASAY_BG,
     imageAlt: m.prop_casacasay_image_alt(),
     layout: "right",
@@ -97,6 +99,34 @@ export const properties = [
         label: "POOL VIEW",
         size: "large" as const,
         category: "OUTDOOR" as GalleryCategory,
+      },
+      {
+        src: CASACASAY_TERRACE,
+        alt: "Casa CasAy - Terrace over the green",
+        label: "GOLF TERRACE",
+        size: "medium" as const,
+        category: "OUTDOOR" as GalleryCategory,
+      },
+      {
+        src: CASACASAY_LIVING,
+        alt: "Casa CasAy - Living room",
+        label: "OPEN LIVING",
+        size: "medium" as const,
+        category: "LIVING_SPACES" as GalleryCategory,
+      },
+      {
+        src: CASACASAY_BEDROOM,
+        alt: "Casa CasAy - Master bedroom",
+        label: "MASTER BEDROOM",
+        size: "large" as const,
+        category: "BEDROOMS" as GalleryCategory,
+      },
+      {
+        src: CASACASAY_KITCHEN,
+        alt: "Casa CasAy - Fitted kitchen",
+        label: "FITTED KITCHEN",
+        size: "medium" as const,
+        category: "KITCHEN" as GalleryCategory,
       },
     ],
   },

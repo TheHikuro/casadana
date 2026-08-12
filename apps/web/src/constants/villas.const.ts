@@ -22,7 +22,33 @@ import ROOFTOP_1 from "@/assets/casadana/rooftop1.jpeg"
 import ROOFTOP_3 from "@/assets/casadana/rooftop3.jpeg"
 import ROOFTOP_5 from "@/assets/casadana/rooftop5.jpeg"
 import ROOFTOP_7 from "@/assets/casadana/rooftop7.jpeg"
+import ROOFTOP_8 from "@/assets/casadana/rooftop8.jpeg"
+import ROOFTOP_9 from "@/assets/casadana/rooftop9.jpeg"
+import ROOFTOP_10 from "@/assets/casadana/rooftop10.jpeg"
+import ROOFTOP_11 from "@/assets/casadana/rooftop11.jpeg"
+import CASAY_BATHROOM_1 from "@/assets/casadessy/bathroom1.jpeg"
+import CASAY_BATHROOM_2 from "@/assets/casadessy/bathroom2.jpeg"
+import CASAY_BEDROOM_1 from "@/assets/casadessy/bedroom1.jpeg"
+import CASAY_BEDROOM_1_1 from "@/assets/casadessy/bedroom1_1.jpeg"
+import CASAY_BEDROOM_2 from "@/assets/casadessy/bedroom2.jpeg"
+import CASAY_BEDROOM_2_1 from "@/assets/casadessy/bedroom2_1.jpeg"
+import CASAY_BEDROOM_2_2 from "@/assets/casadessy/bedroom2_2.jpeg"
+import CASAY_DINING_1 from "@/assets/casadessy/dining1.jpeg"
+import CASAY_FRONT_1 from "@/assets/casadessy/front1.jpeg"
+import CASAY_FRONT_2 from "@/assets/casadessy/front2.jpeg"
+import CASAY_KITCHEN_1 from "@/assets/casadessy/kitchen1.jpeg"
+import CASAY_KITCHEN_2 from "@/assets/casadessy/kitchen2.jpeg"
+import CASAY_LIVING_1 from "@/assets/casadessy/living_room1.jpeg"
+import CASAY_LIVING_2 from "@/assets/casadessy/living_room2.jpeg"
+import CASAY_LIVING_3 from "@/assets/casadessy/living_room3.jpeg"
 import POOL_1 from "@/assets/casadessy/pool1.jpeg"
+import CASAY_POOL_2 from "@/assets/casadessy/pool2.jpeg"
+import CASAY_POOL_3 from "@/assets/casadessy/pool3.jpeg"
+import CASAY_POOL_4 from "@/assets/casadessy/pool4.jpeg"
+import CASAY_TERRACE_1 from "@/assets/casadessy/terrace1.jpeg"
+import CASAY_TERRACE_2 from "@/assets/casadessy/terrace2.jpeg"
+import CASAY_TERRACE_3 from "@/assets/casadessy/terrace3.jpeg"
+import CASAY_TERRACE_4 from "@/assets/casadessy/terrace4.jpeg"
 import { m } from "@/paraglide/messages"
 
 import { GalleryCategory } from "./gallery-categories.const"
@@ -58,15 +84,6 @@ export interface ExperienceEntry {
   description: string
   location: string
   icon: "kart" | "wind" | "splash" | "kayak" | "fairway" | "olive" | "salt" | "spa"
-}
-
-export interface ReviewEntry {
-  initial: string
-  name: string
-  meta: string
-  quote: string
-  source: string
-  stars: number
 }
 
 export interface FaqEntry {
@@ -112,8 +129,6 @@ export interface VillaData {
   }
   booking: {
     nightly: number
-    rating: number
-    reviewCount: number
     maxGuests: number
     defaultGuests: number
   }
@@ -144,15 +159,18 @@ export interface VillaData {
     description: string
     entries: Array<ExperienceEntry>
   }
+  /**
+   * Section framing only. The scores, the bar values and the guest words all
+   * come from the approved reviews in the back-office; with none approved the
+   * section is not rendered at all.
+   */
   reviews: {
     chapter: string
     titleLead: string
     titleItalic: string
     description: string
-    score: number
-    count: number
-    bars: Array<{ label: string; pct: number; value: string }>
-    entries: Array<ReviewEntry>
+    /** Bar labels, in the category order VillaReviews pairs them with. */
+    barLabels: Array<string>
   }
   faq?: {
     chapter: string
@@ -211,12 +229,8 @@ function buildCasadana(): VillaData {
           label: m.villa_casadana_hero_stat_4_label(),
           value: m.villa_casadana_hero_stat_4_value(),
         },
-        {
-          label: m.villa_casadana_hero_stat_5_label(),
-          value: m.villa_casadana_hero_stat_5_value(),
-        },
       ],
-      price: 95,
+      price: 85,
       priceLabel: m.villa_casadana_hero_price_label(),
     },
     ribbon: [
@@ -263,9 +277,7 @@ function buildCasadana(): VillaData {
       ],
     },
     booking: {
-      nightly: 95,
-      rating: 4.96,
-      reviewCount: 87,
+      nightly: 85,
       maxGuests: 6,
       defaultGuests: 4,
     },
@@ -315,6 +327,22 @@ function buildCasadana(): VillaData {
           label: m.villa_casadana_gallery_tile_5_index(),
           caption: m.villa_casadana_gallery_tile_5_caption(),
           span: "wideFlat",
+        },
+        {
+          category: "OUTDOOR",
+          src: ROOFTOP_11,
+          index: m.villa_casadana_gallery_tile_6_index(),
+          label: m.villa_casadana_gallery_tile_6_index(),
+          caption: m.villa_casadana_gallery_tile_6_caption(),
+          span: "tall",
+        },
+        {
+          category: "OUTDOOR",
+          src: ROOFTOP_10,
+          index: m.villa_casadana_gallery_tile_7_index(),
+          label: m.villa_casadana_gallery_tile_7_index(),
+          caption: m.villa_casadana_gallery_tile_7_caption(),
+          span: "wide",
         },
       ],
       images: {
@@ -369,6 +397,18 @@ function buildCasadana(): VillaData {
           { src: FRONT_2, label: m.villa_casadana_gallery_img_outdoor_7(), category: "OUTDOOR" },
           { src: FRONT_1, label: m.villa_casadana_gallery_img_outdoor_8(), category: "OUTDOOR" },
           { src: FRONT_3, label: m.villa_casadana_gallery_img_outdoor_9(), category: "OUTDOOR" },
+          { src: ROOFTOP_8, label: m.villa_casadana_gallery_img_outdoor_10(), category: "OUTDOOR" },
+          { src: ROOFTOP_9, label: m.villa_casadana_gallery_img_outdoor_11(), category: "OUTDOOR" },
+          {
+            src: ROOFTOP_10,
+            label: m.villa_casadana_gallery_img_outdoor_12(),
+            category: "OUTDOOR",
+          },
+          {
+            src: ROOFTOP_11,
+            label: m.villa_casadana_gallery_img_outdoor_13(),
+            category: "OUTDOOR",
+          },
         ],
         DINING: [],
         UTILITY: [],
@@ -461,40 +501,12 @@ function buildCasadana(): VillaData {
       titleLead: m.villa_casadana_reviews_title_lead(),
       titleItalic: m.villa_casadana_reviews_title_italic(),
       description: m.villa_casadana_reviews_description(),
-      score: 4.96,
-      count: 87,
-      bars: [
-        { label: m.villa_casadana_reviews_bar_1_label(), pct: 99, value: "5.0" },
-        { label: m.villa_casadana_reviews_bar_2_label(), pct: 98, value: "4.9" },
-        { label: m.villa_casadana_reviews_bar_3_label(), pct: 96, value: "4.9" },
-        { label: m.villa_casadana_reviews_bar_4_label(), pct: 100, value: "5.0" },
-        { label: m.villa_casadana_reviews_bar_5_label(), pct: 94, value: "4.8" },
-      ],
-      entries: [
-        {
-          initial: "C",
-          name: m.villa_casadana_reviews_1_name(),
-          meta: m.villa_casadana_reviews_1_meta(),
-          quote: m.villa_casadana_reviews_1_quote(),
-          source: m.villa_casadana_reviews_1_source(),
-          stars: 5,
-        },
-        {
-          initial: "M",
-          name: m.villa_casadana_reviews_2_name(),
-          meta: m.villa_casadana_reviews_2_meta(),
-          quote: m.villa_casadana_reviews_2_quote(),
-          source: m.villa_casadana_reviews_2_source(),
-          stars: 5,
-        },
-        {
-          initial: "J",
-          name: m.villa_casadana_reviews_3_name(),
-          meta: m.villa_casadana_reviews_3_meta(),
-          quote: m.villa_casadana_reviews_3_quote(),
-          source: m.villa_casadana_reviews_3_source(),
-          stars: 5,
-        },
+      barLabels: [
+        m.villa_casadana_reviews_bar_1_label(),
+        m.villa_casadana_reviews_bar_2_label(),
+        m.villa_casadana_reviews_bar_3_label(),
+        m.villa_casadana_reviews_bar_4_label(),
+        m.villa_casadana_reviews_bar_5_label(),
       ],
     },
     faq: {
@@ -562,10 +574,6 @@ function buildCasacasay(): VillaData {
           label: m.villa_casacasay_hero_stat_4_label(),
           value: m.villa_casacasay_hero_stat_4_value(),
         },
-        {
-          label: m.villa_casacasay_hero_stat_5_label(),
-          value: m.villa_casacasay_hero_stat_5_value(),
-        },
       ],
       price: 58,
       priceLabel: m.villa_casacasay_hero_price_label(),
@@ -615,8 +623,6 @@ function buildCasacasay(): VillaData {
     },
     booking: {
       nightly: 58,
-      rating: 4.92,
-      reviewCount: 41,
       maxGuests: 4,
       defaultGuests: 2,
     },
@@ -637,54 +643,185 @@ function buildCasacasay(): VillaData {
         },
         {
           category: "OUTDOOR",
-          src: "",
+          src: CASAY_TERRACE_1,
           index: m.villa_casacasay_gallery_tile_2_index(),
           label: m.villa_casacasay_gallery_tile_2_index(),
           caption: m.villa_casacasay_gallery_tile_2_caption(),
-          span: "third",
-          placeholder: true,
-          placeholderLabel: m.villa_casacasay_gallery_tile_2_placeholder(),
+          span: "half",
         },
         {
           category: "LIVING_SPACES",
-          src: "",
+          src: CASAY_LIVING_1,
           index: m.villa_casacasay_gallery_tile_3_index(),
           label: m.villa_casacasay_gallery_tile_3_index(),
           caption: m.villa_casacasay_gallery_tile_3_caption(),
-          span: "third",
-          placeholder: true,
-          placeholderLabel: m.villa_casacasay_gallery_tile_3_placeholder(),
+          span: "half",
         },
         {
           category: "BEDROOMS",
-          src: "",
+          src: CASAY_BEDROOM_1,
           index: m.villa_casacasay_gallery_tile_4_index(),
           label: m.villa_casacasay_gallery_tile_4_index(),
           caption: m.villa_casacasay_gallery_tile_4_caption(),
           span: "third",
-          placeholder: true,
-          placeholderLabel: m.villa_casacasay_gallery_tile_4_placeholder(),
         },
         {
           category: "KITCHEN",
-          src: "",
+          src: CASAY_KITCHEN_1,
           index: m.villa_casacasay_gallery_tile_5_index(),
           label: m.villa_casacasay_gallery_tile_5_index(),
           caption: m.villa_casacasay_gallery_tile_5_caption(),
           span: "third",
-          placeholder: true,
-          placeholderLabel: m.villa_casacasay_gallery_tile_5_placeholder(),
+        },
+        {
+          category: "BATHROOMS",
+          src: CASAY_BATHROOM_1,
+          index: m.villa_casacasay_gallery_tile_6_index(),
+          label: m.villa_casacasay_gallery_tile_6_index(),
+          caption: m.villa_casacasay_gallery_tile_6_caption(),
+          span: "third",
+        },
+        {
+          category: "DINING",
+          src: CASAY_DINING_1,
+          index: m.villa_casacasay_gallery_tile_7_index(),
+          label: m.villa_casacasay_gallery_tile_7_index(),
+          caption: m.villa_casacasay_gallery_tile_7_caption(),
+          span: "wideFlat",
+        },
+        {
+          category: "OUTDOOR",
+          src: CASAY_TERRACE_2,
+          index: m.villa_casacasay_gallery_tile_8_index(),
+          label: m.villa_casacasay_gallery_tile_8_index(),
+          caption: m.villa_casacasay_gallery_tile_8_caption(),
+          span: "third",
         },
       ],
       images: {
-        LIVING_SPACES: [],
-        BEDROOMS: [],
-        KITCHEN: [],
-        BATHROOMS: [],
+        LIVING_SPACES: [
+          {
+            src: CASAY_LIVING_1,
+            label: m.villa_casacasay_gallery_img_living_1(),
+            category: "LIVING_SPACES",
+          },
+          {
+            src: CASAY_LIVING_2,
+            label: m.villa_casacasay_gallery_img_living_2(),
+            category: "LIVING_SPACES",
+          },
+          {
+            src: CASAY_LIVING_3,
+            label: m.villa_casacasay_gallery_img_living_3(),
+            category: "LIVING_SPACES",
+          },
+        ],
+        BEDROOMS: [
+          {
+            src: CASAY_BEDROOM_1,
+            label: m.villa_casacasay_gallery_img_bedroom_1(),
+            category: "BEDROOMS",
+          },
+          {
+            src: CASAY_BEDROOM_1_1,
+            label: m.villa_casacasay_gallery_img_bedroom_2(),
+            category: "BEDROOMS",
+          },
+          {
+            src: CASAY_BEDROOM_2,
+            label: m.villa_casacasay_gallery_img_bedroom_3(),
+            category: "BEDROOMS",
+          },
+          {
+            src: CASAY_BEDROOM_2_1,
+            label: m.villa_casacasay_gallery_img_bedroom_4(),
+            category: "BEDROOMS",
+          },
+          {
+            src: CASAY_BEDROOM_2_2,
+            label: m.villa_casacasay_gallery_img_bedroom_5(),
+            category: "BEDROOMS",
+          },
+        ],
+        KITCHEN: [
+          {
+            src: CASAY_KITCHEN_1,
+            label: m.villa_casacasay_gallery_img_kitchen_1(),
+            category: "KITCHEN",
+          },
+          {
+            src: CASAY_KITCHEN_2,
+            label: m.villa_casacasay_gallery_img_kitchen_2(),
+            category: "KITCHEN",
+          },
+        ],
+        BATHROOMS: [
+          {
+            src: CASAY_BATHROOM_1,
+            label: m.villa_casacasay_gallery_img_bathroom_1(),
+            category: "BATHROOMS",
+          },
+          {
+            src: CASAY_BATHROOM_2,
+            label: m.villa_casacasay_gallery_img_bathroom_2(),
+            category: "BATHROOMS",
+          },
+        ],
         OUTDOOR: [
           { src: POOL_1, label: m.villa_casacasay_gallery_img_outdoor_1(), category: "OUTDOOR" },
+          {
+            src: CASAY_TERRACE_1,
+            label: m.villa_casacasay_gallery_img_outdoor_2(),
+            category: "OUTDOOR",
+          },
+          {
+            src: CASAY_TERRACE_2,
+            label: m.villa_casacasay_gallery_img_outdoor_3(),
+            category: "OUTDOOR",
+          },
+          {
+            src: CASAY_TERRACE_3,
+            label: m.villa_casacasay_gallery_img_outdoor_4(),
+            category: "OUTDOOR",
+          },
+          {
+            src: CASAY_TERRACE_4,
+            label: m.villa_casacasay_gallery_img_outdoor_5(),
+            category: "OUTDOOR",
+          },
+          {
+            src: CASAY_POOL_2,
+            label: m.villa_casacasay_gallery_img_outdoor_6(),
+            category: "OUTDOOR",
+          },
+          {
+            src: CASAY_POOL_3,
+            label: m.villa_casacasay_gallery_img_outdoor_7(),
+            category: "OUTDOOR",
+          },
+          {
+            src: CASAY_POOL_4,
+            label: m.villa_casacasay_gallery_img_outdoor_8(),
+            category: "OUTDOOR",
+          },
+          {
+            src: CASAY_FRONT_1,
+            label: m.villa_casacasay_gallery_img_outdoor_9(),
+            category: "OUTDOOR",
+          },
+          {
+            src: CASAY_FRONT_2,
+            label: m.villa_casacasay_gallery_img_outdoor_10(),
+            category: "OUTDOOR",
+          },
         ],
-        DINING: [],
+        DINING: [
+          {
+            src: CASAY_DINING_1,
+            label: m.villa_casacasay_gallery_img_dining_1(),
+            category: "DINING",
+          },
+        ],
         UTILITY: [],
       },
     },
@@ -693,7 +830,8 @@ function buildCasacasay(): VillaData {
       titleLead: m.villa_casacasay_local_area_title_lead(),
       titleItalic: m.villa_casacasay_local_area_title_italic(),
       description: m.villa_casacasay_local_area_description(),
-      mainImage: POOL_1,
+      mainImage: CASAY_TERRACE_2,
+      overlapImage: CASAY_POOL_2,
       stampBig: m.villa_casacasay_local_area_stamp_big(),
       stampSmall: m.villa_casacasay_local_area_stamp_small(),
       points: [
@@ -728,40 +866,12 @@ function buildCasacasay(): VillaData {
       titleLead: m.villa_casacasay_reviews_title_lead(),
       titleItalic: m.villa_casacasay_reviews_title_italic(),
       description: m.villa_casacasay_reviews_description(),
-      score: 4.92,
-      count: 41,
-      bars: [
-        { label: m.villa_casacasay_reviews_bar_1_label(), pct: 98, value: "4.9" },
-        { label: m.villa_casacasay_reviews_bar_2_label(), pct: 96, value: "4.8" },
-        { label: m.villa_casacasay_reviews_bar_3_label(), pct: 94, value: "4.7" },
-        { label: m.villa_casacasay_reviews_bar_4_label(), pct: 100, value: "5.0" },
-        { label: m.villa_casacasay_reviews_bar_5_label(), pct: 96, value: "4.8" },
-      ],
-      entries: [
-        {
-          initial: "S",
-          name: m.villa_casacasay_reviews_1_name(),
-          meta: m.villa_casacasay_reviews_1_meta(),
-          quote: m.villa_casacasay_reviews_1_quote(),
-          source: m.villa_casacasay_reviews_1_source(),
-          stars: 5,
-        },
-        {
-          initial: "H",
-          name: m.villa_casacasay_reviews_2_name(),
-          meta: m.villa_casacasay_reviews_2_meta(),
-          quote: m.villa_casacasay_reviews_2_quote(),
-          source: m.villa_casacasay_reviews_2_source(),
-          stars: 5,
-        },
-        {
-          initial: "A",
-          name: m.villa_casacasay_reviews_3_name(),
-          meta: m.villa_casacasay_reviews_3_meta(),
-          quote: m.villa_casacasay_reviews_3_quote(),
-          source: m.villa_casacasay_reviews_3_source(),
-          stars: 5,
-        },
+      barLabels: [
+        m.villa_casacasay_reviews_bar_1_label(),
+        m.villa_casacasay_reviews_bar_2_label(),
+        m.villa_casacasay_reviews_bar_3_label(),
+        m.villa_casacasay_reviews_bar_4_label(),
+        m.villa_casacasay_reviews_bar_5_label(),
       ],
     },
     ctaStrip: {
