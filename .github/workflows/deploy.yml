@@ -16,7 +16,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Gates the images: format, lint, TypeScript and dead-code run before anything is
+  # built or pushed. `check` is the same script developers run locally, so a green
+  # local run means a green job here.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1"
+
+      - run: bun install --frozen-lockfile
+
+      # oxfmt --check, oxlint, then tsc (TS 7) on apps/web and packages/api.
+      # Compiles paraglide first: src/paraglide is generated and gitignored, so
+      # without it every m.* import fails to resolve.
+      - name: Format, lint and types
+        run: bun run check
+
+      # Only fails on dead code that is NOT already in fallow-suppressions.json.
+      # Regenerate that baseline with `bun run dead-code:suppress` after a cleanup.
+      - name: Dead code
+        run: bun run dead-code:ci
+
   build:
+    needs: lint
     runs-on: ubuntu-latest
     permissions:
       contents: read
