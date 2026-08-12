@@ -105,7 +105,8 @@ export interface VillaData {
     titleLead: string
     titleItalic: string
     lead: string
-    body: string
+    /** Body copy, one entry per rendered paragraph. */
+    body: Array<string>
     features: Array<VillaFeature>
     meta: Array<VillaStat>
   }
@@ -231,7 +232,11 @@ function buildCasadana(): VillaData {
       titleLead: m.villa_casadana_about_title_lead(),
       titleItalic: m.villa_casadana_about_title_italic(),
       lead: m.villa_casadana_about_lead(),
-      body: m.villa_casadana_about_body(),
+      body: [
+        m.villa_casadana_about_body(),
+        m.villa_casadana_about_body_2(),
+        m.villa_casadana_about_body_3(),
+      ],
       features: [
         { icon: "bath", label: m.villa_casadana_about_feature_jacuzzi() },
         { icon: "sun", label: m.villa_casadana_about_feature_solarium() },
@@ -578,7 +583,11 @@ function buildCasacasay(): VillaData {
       titleLead: m.villa_casacasay_about_title_lead(),
       titleItalic: m.villa_casacasay_about_title_italic(),
       lead: m.villa_casacasay_about_lead(),
-      body: m.villa_casacasay_about_body(),
+      body: [
+        m.villa_casacasay_about_body(),
+        m.villa_casacasay_about_body_2(),
+        m.villa_casacasay_about_body_3(),
+      ],
       features: [
         { icon: "waves-ladder", label: m.villa_casacasay_about_feature_pool() },
         { icon: "armchair", label: m.villa_casacasay_about_feature_terrace() },

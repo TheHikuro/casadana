@@ -31,15 +31,21 @@ export default function StoryStrip() {
           <span className="text-secondary inline-flex items-center gap-3 font-mono text-[11px] tracking-[0.22em] uppercase before:block before:h-px before:w-6 before:bg-current">
             {m.home_story_index()}
           </span>
-          <h2 className="font-display text-primary mt-4 mb-6 text-[clamp(40px,5vw,64px)] leading-tight font-light tracking-[-0.025em]">
+          <h2 className="font-display text-primary mt-4 mb-6 text-[clamp(32px,3.6vw,48px)] leading-[1.1] font-light tracking-[-0.025em]">
             {m.home_story_title_lead()}{" "}
             <em className="italic-display block">{m.home_story_title_em()}</em>
           </h2>
-          <p className="text-on-surface-variant mb-6 max-w-[50ch] leading-relaxed">
-            {m.home_story_p1()}
-          </p>
-          <p className="text-on-surface-variant max-w-[50ch] leading-relaxed">
-            {m.home_story_p2()}
+          <div className="text-on-surface-variant grid max-w-[50ch] gap-4 leading-relaxed">
+            <p>{m.home_story_p1()}</p>
+            <p>{m.home_story_p2()}</p>
+            <p>{m.home_story_p3()}</p>
+            <p>{m.home_story_p4()}</p>
+            <p>{m.home_story_p5()}</p>
+            <p>{m.home_story_p6()}</p>
+            <p>{m.home_story_p7()}</p>
+          </div>
+          <p className="font-display text-primary border-outline-variant mt-8 max-w-[38ch] border-l pl-5 text-xl leading-snug font-light italic">
+            {m.home_story_closing()}
           </p>
           <div className="font-display text-primary mt-8 text-xl italic">
             {m.home_story_signed_name()}

@@ -35,9 +35,11 @@ export default function VillaAbout({ villaSlug, about, booking }: VillaAboutProp
           <p className="font-display text-on-surface mb-8 max-w-[28ch] text-2xl leading-tight font-light tracking-[-0.01em]">
             {about.lead}
           </p>
-          <p className="text-on-surface-variant mb-12 max-w-[60ch] text-[15.5px] leading-relaxed">
-            {about.body}
-          </p>
+          <div className="text-on-surface-variant mb-12 grid max-w-[60ch] gap-4 text-[15.5px] leading-relaxed">
+            {about.body.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+          </div>
 
           <div className="border-outline-variant bg-outline-variant grid grid-cols-2 gap-px border md:grid-cols-4">
             {about.features.map((feature) => (

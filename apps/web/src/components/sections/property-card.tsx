@@ -21,7 +21,10 @@ export interface PropertyCardProps {
   titlePrefix: string
   titleName: string
   subtitle: string
-  description: string
+  /** One-line tagline shown above the body copy. */
+  lead: string
+  /** Body copy, one entry per rendered paragraph. */
+  description: Array<string>
   exploreLabel: string
   price: { amount: number; currency: string }
   rating: { score: number; count: number }
@@ -99,6 +102,7 @@ export default function PropertyCard({
   titlePrefix,
   titleName,
   subtitle,
+  lead,
   description,
   exploreLabel,
   price,
@@ -134,9 +138,15 @@ export default function PropertyCard({
               {subtitle}
             </h3>
 
-            <p className="text-on-surface-variant max-w-[50ch] text-[15.5px] leading-relaxed">
-              {description}
+            <p className="font-display text-on-surface max-w-[34ch] text-xl leading-snug font-light tracking-[-0.01em]">
+              {lead}
             </p>
+
+            <div className="text-on-surface-variant grid max-w-[50ch] gap-3.5 text-[15.5px] leading-relaxed">
+              {description.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
 
             <PropertyFeatures features={features} />
 
