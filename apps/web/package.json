@@ -8,11 +8,7 @@
     "preview": "vite preview",
     "paraglide": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide",
     "paraglide:watch": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --watch",
-    "translate": "inlang machine translate --project project.inlang",
-    "fmt": "oxfmt",
-    "fmt:check": "oxfmt --check",
-    "lint": "oxlint",
-    "lint:fix": "oxlint --fix"
+    "translate": "inlang machine translate --project project.inlang"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -43,13 +39,10 @@
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.5",
     "autoprefixer": "^10.5.4",
-    "oxfmt": "^0.63.0",
-    "oxlint": "^1.78.0",
     "postcss": "^8.5.26",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4.3.3",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^7.0.2",
     "vite": "^8.2.1"
   }
 }

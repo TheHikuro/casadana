@@ -1,0 +1,52 @@
+{
+  // This file is JSONC: fallow reads these comments; generic JSON tools may not.
+  "$schema": "./node_modules/fallow/schema.json",
+  // index.html already seeds src/main.tsx, but declaring it keeps the SPA root
+  // explicit if the Vite entry ever moves.
+  "entry": ["apps/web/src/main.tsx"],
+  "workspaces": {
+    "patterns": ["apps/web", "packages/*"]
+  },
+  // Fetched from jsDelivr by project.inlang/settings.json, so never imported
+  // from source — the package.json entries only pin the versions.
+  "ignoreDependencies": [
+    "@inlang/plugin-message-format",
+    "@inlang/plugin-m-function-matcher"
+  ],
+  "unusedComponentProps": {
+    // Same convention as TS noUnusedParameters: `_foo` is accepted-but-unused.
+    "ignorePattern": "^_"
+  },
+  "duplicates": {
+    // Hide pair-only clones; focus on widespread copy-paste
+    // worth refactoring. Lower to 2 to report every duplicate pair.
+    "minOccurrences": 3
+  },
+  "rules": {},
+  // Generated code stays in the module graph (imports keep resolving) but its
+  // own unused symbols are not our problem: the TanStack route tree is rewritten
+  // by the Vite plugin, the api client by `bun run generate` (orval).
+  // src/paraglide is gitignored, so fallow never sees it.
+  "overrides": [
+    {
+      "files": ["apps/web/src/routeTree.gen.ts", "packages/api/src/generated/**"],
+      "rules": {
+        "unused-files": "off",
+        "unused-exports": "off",
+        "unused-types": "off"
+      }
+    },
+    {
+      // Primitives déposées par le CLI shadcn (`components.json` -> aliases.ui).
+      // Un composant arrive avec toutes ses sous-parties exportées (FieldGroup,
+      // SelectSeparator...) : n'en utiliser que la moitié est le fonctionnement
+      // normal, pas de la dette. Idem pour un fichier entier pas encore branché.
+      "files": ["apps/web/src/components/ui/**"],
+      "rules": {
+        "unused-files": "off",
+        "unused-exports": "off",
+        "unused-types": "off"
+      }
+    }
+  ]
+}

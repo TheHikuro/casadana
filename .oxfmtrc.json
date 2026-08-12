@@ -1,6 +1,14 @@
 {
-  "$schema": "./apps/web/node_modules/oxfmt/configuration_schema.json",
-  "ignorePatterns": [],
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": [
+    "docs/**",
+    "**/*.md",
+    "apps/api/**",
+    "packages/api/src/generated/**",
+    "apps/web/src/routeTree.gen.ts",
+    ".fallowrc.json",
+    "fallow-suppressions.json"
+  ],
   "semi": false,
   "tabWidth": 2,
   "sortImports": true,

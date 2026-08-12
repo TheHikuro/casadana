@@ -1,0 +1,68 @@
+{
+  "analysis_identity": {
+    "mode": "syntactic",
+    "semantic_schema_version": 1,
+    "capabilities": [],
+    "project_config_hash": "",
+    "backend_family": "",
+    "completeness": "complete"
+  },
+  "unused_files": [
+    "apps/web/src/components/common/icon.tsx",
+    "apps/web/src/types/index.ts"
+  ],
+  "unused_exports": [
+    "apps/web/src/constants/gallery-categories.const.ts:GALLERY_CATEGORIES",
+    "apps/web/src/constants/gallery-categories.const.ts:getAllCategories",
+    "apps/web/src/constants/villas.const.ts:VILLAS"
+  ],
+  "unused_types": [
+    "apps/web/src/components/sections/villa/villa-photo-viewer.tsx:ViewerPhoto",
+    "apps/web/src/routes/__root.tsx:RouterContext"
+  ],
+  "private_type_leaks": [],
+  "unused_dependencies": [
+    "packages/api/package.json:zod"
+  ],
+  "unused_dev_dependencies": [
+    "apps/web/package.json:autoprefixer",
+    "apps/web/package.json:prettier-plugin-tailwindcss",
+    "apps/web/package.json:tailwindcss-animate"
+  ],
+  "circular_dependencies": [],
+  "re_export_cycles": [],
+  "unused_optional_dependencies": [],
+  "unused_enum_members": [],
+  "unused_class_members": [],
+  "unused_store_members": [],
+  "unprovided_injects": [],
+  "unrendered_components": [],
+  "unused_component_props": [],
+  "unused_component_emits": [],
+  "unused_component_inputs": [],
+  "unused_component_outputs": [],
+  "unused_svelte_events": [],
+  "unused_server_actions": [],
+  "unused_load_data_keys": [],
+  "unresolved_imports": [],
+  "unlisted_dependencies": [],
+  "duplicate_exports": [],
+  "type_only_dependencies": [],
+  "test_only_dependencies": [],
+  "dev_dependencies_in_production": [],
+  "boundary_violations": [],
+  "boundary_coverage_violations": [],
+  "boundary_call_violations": [],
+  "policy_violations": [],
+  "stale_suppressions": [],
+  "unused_catalog_entries": [],
+  "empty_catalog_groups": [],
+  "unresolved_catalog_references": [],
+  "unused_dependency_overrides": [],
+  "misconfigured_dependency_overrides": [],
+  "invalid_client_exports": [],
+  "mixed_client_server_barrels": [],
+  "misplaced_directives": [],
+  "route_collisions": [],
+  "dynamic_segment_name_conflicts": []
+}

@@ -4,5 +4,23 @@
   "workspaces": [
     "apps/web",
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "check": "bun run fmt:check && bun run lint && bun run typecheck",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "typecheck": "bun run --cwd apps/web paraglide && tsc -p apps/web/tsconfig.json && tsc -p packages/api/tsconfig.json",
+    "dead-code": "fallow dead-code --baseline fallow-suppressions.json",
+    "dead-code:ci": "fallow dead-code --baseline fallow-suppressions.json --fail-on-issues",
+    "dead-code:all": "fallow dead-code",
+    "dead-code:suppress": "fallow dead-code --save-baseline fallow-suppressions.json"
+  },
+  "devDependencies": {
+    "fallow": "^3.15.0",
+    "oxfmt": "^0.63.0",
+    "oxlint": "^1.78.0",
+    "typescript": "^7"
+  }
 }
