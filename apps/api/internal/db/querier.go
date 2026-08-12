@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	CountAuditEvents(ctx context.Context, villaSlug string) (int64, error)
 	CountBookings(ctx context.Context) (int64, error)
 	CountBookingsByStatus(ctx context.Context, status BookingStatus) (int64, error)
 	CountBookingsByVilla(ctx context.Context, villaSlug string) (int64, error)
@@ -18,15 +19,23 @@ type Querier interface {
 	DeleteAdminUser(ctx context.Context, id pgtype.UUID) (int64, error)
 	DeleteBooking(ctx context.Context, id pgtype.UUID) (int64, error)
 	DeleteReview(ctx context.Context, id pgtype.UUID) (int64, error)
+	DeleteSeasonRule(ctx context.Context, id pgtype.UUID) (int64, error)
 	FindOverlappingBookings(ctx context.Context, arg FindOverlappingBookingsParams) ([]Booking, error)
 	FindOverlappingConfirmedBookings(ctx context.Context, arg FindOverlappingConfirmedBookingsParams) ([]Booking, error)
 	GetAdminUserByEmail(ctx context.Context, email string) (AdminUser, error)
 	GetAdminUserByID(ctx context.Context, id pgtype.UUID) (AdminUser, error)
 	GetBookingByID(ctx context.Context, id pgtype.UUID) (Booking, error)
+	GetPricingSettings(ctx context.Context, villaSlug string) (VillaPricingSetting, error)
+	GetReview(ctx context.Context, id pgtype.UUID) (Review, error)
+	GetReviewMeta(ctx context.Context, villaSlug string) (VillaReviewMetum, error)
+	GetSeasonRule(ctx context.Context, id pgtype.UUID) (SeasonRule, error)
 	InsertAdminUser(ctx context.Context, arg InsertAdminUserParams) (AdminUser, error)
+	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) (AuditEvent, error)
 	InsertBooking(ctx context.Context, arg InsertBookingParams) (Booking, error)
 	InsertReview(ctx context.Context, arg InsertReviewParams) (Review, error)
+	InsertSeasonRule(ctx context.Context, arg InsertSeasonRuleParams) (SeasonRule, error)
 	ListAdminUsers(ctx context.Context) ([]AdminUser, error)
+	ListAuditEvents(ctx context.Context, arg ListAuditEventsParams) ([]AuditEvent, error)
 	ListBookedRanges(ctx context.Context, arg ListBookedRangesParams) ([]ListBookedRangesRow, error)
 	ListBookingsByStatus(ctx context.Context, status BookingStatus) ([]Booking, error)
 	ListBookingsPaged(ctx context.Context, arg ListBookingsPagedParams) ([]Booking, error)
@@ -36,8 +45,14 @@ type Querier interface {
 	ListPendingRanges(ctx context.Context, arg ListPendingRangesParams) ([]ListPendingRangesRow, error)
 	ListPriceOverrides(ctx context.Context, arg ListPriceOverridesParams) ([]ListPriceOverridesRow, error)
 	ListReviewsByVilla(ctx context.Context, villaSlug string) ([]Review, error)
+	ListReviewsByVillaAndStatus(ctx context.Context, arg ListReviewsByVillaAndStatusParams) ([]Review, error)
+	ListSeasonRules(ctx context.Context, villaSlug string) ([]SeasonRule, error)
 	UpdateBookingStatus(ctx context.Context, arg UpdateBookingStatusParams) error
+	UpdateReview(ctx context.Context, arg UpdateReviewParams) (Review, error)
+	UpdateSeasonRule(ctx context.Context, arg UpdateSeasonRuleParams) (SeasonRule, error)
 	UpsertPriceOverride(ctx context.Context, arg UpsertPriceOverrideParams) error
+	UpsertPricingSettings(ctx context.Context, arg UpsertPricingSettingsParams) (VillaPricingSetting, error)
+	UpsertReviewMeta(ctx context.Context, arg UpsertReviewMetaParams) (VillaReviewMetum, error)
 }
 
 var _ Querier = (*Queries)(nil)

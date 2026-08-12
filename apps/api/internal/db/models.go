@@ -11,6 +11,51 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AuditEventType string
+
+const (
+	AuditEventTypeReservation AuditEventType = "reservation"
+	AuditEventTypePricing     AuditEventType = "pricing"
+	AuditEventTypeReview      AuditEventType = "review"
+	AuditEventTypeOwner       AuditEventType = "owner"
+	AuditEventTypeSystem      AuditEventType = "system"
+)
+
+func (e *AuditEventType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AuditEventType(s)
+	case string:
+		*e = AuditEventType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AuditEventType: %T", src)
+	}
+	return nil
+}
+
+type NullAuditEventType struct {
+	AuditEventType AuditEventType
+	Valid          bool // Valid is true if AuditEventType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAuditEventType) Scan(value interface{}) error {
+	if value == nil {
+		ns.AuditEventType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AuditEventType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAuditEventType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AuditEventType), nil
+}
+
 type BookingStatus string
 
 const (
@@ -106,6 +151,15 @@ type AdminUser struct {
 	CreatedAt    pgtype.Timestamptz
 }
 
+type AuditEvent struct {
+	ID         pgtype.UUID
+	VillaSlug  string
+	Type       AuditEventType
+	Message    string
+	ActorEmail string
+	CreatedAt  pgtype.Timestamptz
+}
+
 type Booking struct {
 	ID         pgtype.UUID
 	VillaSlug  string
@@ -141,4 +195,40 @@ type Review struct {
 	Status     ReviewStatus
 	CreatedAt  pgtype.Timestamptz
 	UpdatedAt  pgtype.Timestamptz
+	Featured   bool
+	Meta       string
+	Source     string
+}
+
+type SeasonRule struct {
+	ID         pgtype.UUID
+	VillaSlug  string
+	Label      string
+	StartDate  pgtype.Date
+	EndDate    pgtype.Date
+	PriceCents int32
+	CreatedAt  pgtype.Timestamptz
+	UpdatedAt  pgtype.Timestamptz
+}
+
+type VillaPricingSetting struct {
+	VillaSlug         string
+	BasePriceCents    int32
+	MinNights         int16
+	CleaningFeeCents  int32
+	ConciergeFeeCents int32
+	CreatedAt         pgtype.Timestamptz
+	UpdatedAt         pgtype.Timestamptz
+}
+
+type VillaReviewMetum struct {
+	VillaSlug    string
+	DisplayAvg   pgtype.Numeric
+	DisplayCount int32
+	Cleanliness  pgtype.Numeric
+	Comfort      pgtype.Numeric
+	Location     pgtype.Numeric
+	Host         pgtype.Numeric
+	Value        pgtype.Numeric
+	UpdatedAt    pgtype.Timestamptz
 }

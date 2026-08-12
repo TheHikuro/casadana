@@ -23,10 +23,55 @@ func (q *Queries) DeleteReview(ctx context.Context, id pgtype.UUID) (int64, erro
 	return result.RowsAffected(), nil
 }
 
+const getReview = `-- name: GetReview :one
+SELECT id, booking_id, villa_slug, author_name, rating, body, status, created_at, updated_at, featured, meta, source FROM reviews WHERE id = $1
+`
+
+func (q *Queries) GetReview(ctx context.Context, id pgtype.UUID) (Review, error) {
+	row := q.db.QueryRow(ctx, getReview, id)
+	var i Review
+	err := row.Scan(
+		&i.ID,
+		&i.BookingID,
+		&i.VillaSlug,
+		&i.AuthorName,
+		&i.Rating,
+		&i.Body,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Featured,
+		&i.Meta,
+		&i.Source,
+	)
+	return i, err
+}
+
+const getReviewMeta = `-- name: GetReviewMeta :one
+SELECT villa_slug, display_avg, display_count, cleanliness, comfort, location, host, value, updated_at FROM villa_review_meta WHERE villa_slug = $1
+`
+
+func (q *Queries) GetReviewMeta(ctx context.Context, villaSlug string) (VillaReviewMetum, error) {
+	row := q.db.QueryRow(ctx, getReviewMeta, villaSlug)
+	var i VillaReviewMetum
+	err := row.Scan(
+		&i.VillaSlug,
+		&i.DisplayAvg,
+		&i.DisplayCount,
+		&i.Cleanliness,
+		&i.Comfort,
+		&i.Location,
+		&i.Host,
+		&i.Value,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const insertReview = `-- name: InsertReview :one
-INSERT INTO reviews (id, booking_id, villa_slug, author_name, rating, body, status)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, booking_id, villa_slug, author_name, rating, body, status, created_at, updated_at
+INSERT INTO reviews (id, booking_id, villa_slug, author_name, rating, body, status, meta, source, featured)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+RETURNING id, booking_id, villa_slug, author_name, rating, body, status, created_at, updated_at, featured, meta, source
 `
 
 type InsertReviewParams struct {
@@ -37,6 +82,9 @@ type InsertReviewParams struct {
 	Rating     int16
 	Body       string
 	Status     ReviewStatus
+	Meta       string
+	Source     string
+	Featured   bool
 }
 
 func (q *Queries) InsertReview(ctx context.Context, arg InsertReviewParams) (Review, error) {
@@ -48,6 +96,9 @@ func (q *Queries) InsertReview(ctx context.Context, arg InsertReviewParams) (Rev
 		arg.Rating,
 		arg.Body,
 		arg.Status,
+		arg.Meta,
+		arg.Source,
+		arg.Featured,
 	)
 	var i Review
 	err := row.Scan(
@@ -60,12 +111,15 @@ func (q *Queries) InsertReview(ctx context.Context, arg InsertReviewParams) (Rev
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Featured,
+		&i.Meta,
+		&i.Source,
 	)
 	return i, err
 }
 
 const listReviewsByVilla = `-- name: ListReviewsByVilla :many
-SELECT id, booking_id, villa_slug, author_name, rating, body, status, created_at, updated_at FROM reviews
+SELECT id, booking_id, villa_slug, author_name, rating, body, status, created_at, updated_at, featured, meta, source FROM reviews
 WHERE villa_slug = $1
 ORDER BY created_at DESC
 `
@@ -89,6 +143,9 @@ func (q *Queries) ListReviewsByVilla(ctx context.Context, villaSlug string) ([]R
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Featured,
+			&i.Meta,
+			&i.Source,
 		); err != nil {
 			return nil, err
 		}
@@ -98,4 +155,153 @@ func (q *Queries) ListReviewsByVilla(ctx context.Context, villaSlug string) ([]R
 		return nil, err
 	}
 	return items, nil
+}
+
+const listReviewsByVillaAndStatus = `-- name: ListReviewsByVillaAndStatus :many
+SELECT id, booking_id, villa_slug, author_name, rating, body, status, created_at, updated_at, featured, meta, source FROM reviews
+WHERE villa_slug = $1
+  AND ($2::review_status IS NULL OR status = $2::review_status)
+ORDER BY featured DESC, created_at DESC
+`
+
+type ListReviewsByVillaAndStatusParams struct {
+	VillaSlug string
+	Status    *ReviewStatus
+}
+
+func (q *Queries) ListReviewsByVillaAndStatus(ctx context.Context, arg ListReviewsByVillaAndStatusParams) ([]Review, error) {
+	rows, err := q.db.Query(ctx, listReviewsByVillaAndStatus, arg.VillaSlug, arg.Status)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Review
+	for rows.Next() {
+		var i Review
+		if err := rows.Scan(
+			&i.ID,
+			&i.BookingID,
+			&i.VillaSlug,
+			&i.AuthorName,
+			&i.Rating,
+			&i.Body,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Featured,
+			&i.Meta,
+			&i.Source,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateReview = `-- name: UpdateReview :one
+UPDATE reviews
+SET status     = COALESCE($1::review_status, status),
+    featured   = COALESCE($2, featured),
+    meta       = COALESCE($3, meta),
+    source     = COALESCE($4, source),
+    body       = COALESCE($5, body),
+    rating     = COALESCE($6, rating),
+    updated_at = NOW()
+WHERE id = $7
+RETURNING id, booking_id, villa_slug, author_name, rating, body, status, created_at, updated_at, featured, meta, source
+`
+
+type UpdateReviewParams struct {
+	Status   *ReviewStatus
+	Featured *bool
+	Meta     *string
+	Source   *string
+	Body     *string
+	Rating   *int16
+	ID       pgtype.UUID
+}
+
+func (q *Queries) UpdateReview(ctx context.Context, arg UpdateReviewParams) (Review, error) {
+	row := q.db.QueryRow(ctx, updateReview,
+		arg.Status,
+		arg.Featured,
+		arg.Meta,
+		arg.Source,
+		arg.Body,
+		arg.Rating,
+		arg.ID,
+	)
+	var i Review
+	err := row.Scan(
+		&i.ID,
+		&i.BookingID,
+		&i.VillaSlug,
+		&i.AuthorName,
+		&i.Rating,
+		&i.Body,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Featured,
+		&i.Meta,
+		&i.Source,
+	)
+	return i, err
+}
+
+const upsertReviewMeta = `-- name: UpsertReviewMeta :one
+INSERT INTO villa_review_meta (
+    villa_slug, display_avg, display_count, cleanliness, comfort, location, host, value
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+ON CONFLICT (villa_slug) DO UPDATE
+SET display_avg   = EXCLUDED.display_avg,
+    display_count = EXCLUDED.display_count,
+    cleanliness   = EXCLUDED.cleanliness,
+    comfort       = EXCLUDED.comfort,
+    location      = EXCLUDED.location,
+    host          = EXCLUDED.host,
+    value         = EXCLUDED.value,
+    updated_at    = NOW()
+RETURNING villa_slug, display_avg, display_count, cleanliness, comfort, location, host, value, updated_at
+`
+
+type UpsertReviewMetaParams struct {
+	VillaSlug    string
+	DisplayAvg   pgtype.Numeric
+	DisplayCount int32
+	Cleanliness  pgtype.Numeric
+	Comfort      pgtype.Numeric
+	Location     pgtype.Numeric
+	Host         pgtype.Numeric
+	Value        pgtype.Numeric
+}
+
+func (q *Queries) UpsertReviewMeta(ctx context.Context, arg UpsertReviewMetaParams) (VillaReviewMetum, error) {
+	row := q.db.QueryRow(ctx, upsertReviewMeta,
+		arg.VillaSlug,
+		arg.DisplayAvg,
+		arg.DisplayCount,
+		arg.Cleanliness,
+		arg.Comfort,
+		arg.Location,
+		arg.Host,
+		arg.Value,
+	)
+	var i VillaReviewMetum
+	err := row.Scan(
+		&i.VillaSlug,
+		&i.DisplayAvg,
+		&i.DisplayCount,
+		&i.Cleanliness,
+		&i.Comfort,
+		&i.Location,
+		&i.Host,
+		&i.Value,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
