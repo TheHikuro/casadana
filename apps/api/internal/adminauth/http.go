@@ -41,6 +41,18 @@ func adminFromContext(ctx context.Context) (*AdminUser, bool) {
 	return u, ok
 }
 
+// AdminEmailFromContext returns the authenticated admin's email, or "" when the
+// request did not pass through RequireAdminSession. Deliberately narrow: the
+// audit log only needs to attribute an action, so it gets the email rather than
+// the whole AdminUser.
+func AdminEmailFromContext(ctx context.Context) string {
+	u, ok := adminFromContext(ctx)
+	if !ok {
+		return ""
+	}
+	return u.Email
+}
+
 // RequireAdminSession validates the session cookie and injects the admin
 // identity into the request context. Exported so other modules (e.g.
 // booking) can gate their own routes without importing adminauth's

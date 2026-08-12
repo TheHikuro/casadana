@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/TheHikuro/casadana/internal/adminauth"
+	"github.com/TheHikuro/casadana/internal/audit"
 	"github.com/TheHikuro/casadana/internal/booking"
 	"github.com/TheHikuro/casadana/internal/db"
 	"github.com/TheHikuro/casadana/internal/openapi"
@@ -78,19 +79,32 @@ func main() {
 		slugAllowlist{},
 		realClock{},
 	)
-	pricingSvc := pricing.NewService(pricing.NewPgRepo(pool), slugAllowlist{})
+	auditSvc := audit.NewService(audit.NewPgRepo(pool), realClock{})
+	// The audit log attributes changes to whoever is behind the admin session;
+	// RequireAdminSession puts them on the request context.
+	auditActor := audit.ActorResolver(adminauth.AdminEmailFromContext)
+
+	pricingSvc := pricing.NewService(
+		pricing.NewPgRepo(pool),
+		slugAllowlist{},
+		audit.RecorderFor(auditSvc, audit.TypePricing).WithActorResolver(auditActor),
+	)
 	reviewSvc := review.NewService(
 		review.NewPgRepo(pool),
 		bookingReaderAdapter{svc: bookingSvc},
 		realClock{},
+		audit.RecorderFor(auditSvc, audit.TypeReview).WithActorResolver(auditActor),
 	)
+
+	requireAdmin := adminauth.RequireAdminSession(adminAuthSvc)
 
 	r := httpserver.NewRouter(log, cfg.WebOrigin)
 	openapi.Mount(r)
 	adminauth.Mount(r, adminAuthSvc, cfg.CookieSecure)
-	booking.Mount(r, bookingSvc, adminauth.RequireAdminSession(adminAuthSvc))
-	pricing.Mount(r, pricingSvc)
-	review.Mount(r, reviewSvc)
+	booking.Mount(r, bookingSvc, requireAdmin)
+	pricing.Mount(r, pricingSvc, requireAdmin)
+	review.Mount(r, reviewSvc, requireAdmin)
+	audit.Mount(r, auditSvc, requireAdmin)
 
 	if err := httpserver.Run(r, cfg.Port, log); err != nil {
 		log.Error("server crashed", "err", err.Error())
