@@ -1,10 +1,17 @@
 import type { PatchSeasonRuleRequest, SeasonRule } from "@casa-dana/api"
 import { Trash2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import { Input } from "@/components/ui/input"
 
 import { centsToEuroInput, euroInputToCents } from "./money"
+
+// Retouching a rule usually means changing several fields in a row: rename it,
+// move both dates, set the price. Sending each one the moment it commits turned
+// a single edit into four PATCHes — and four lines in the activity log. Field
+// commits are accumulated instead and sent as one patch once the row has been
+// quiet for this long.
+const SAVE_DEBOUNCE_MS = 700
 
 interface RuleRowProps {
   rule: SeasonRule
@@ -18,9 +25,44 @@ export function RuleRow({ rule, onSave, onDelete }: RuleRowProps) {
   const [endDate, setEndDate] = useState(rule.end_date)
   const [price, setPrice] = useState(() => centsToEuroInput(rule.price_cents))
 
+  const pending = useRef<PatchSeasonRuleRequest>({})
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const cancelTimer = () => {
+    if (timer.current !== null) {
+      clearTimeout(timer.current)
+      timer.current = null
+    }
+  }
+
+  const flush = useCallback(() => {
+    cancelTimer()
+    const patch = pending.current
+    pending.current = {}
+    if (Object.keys(patch).length > 0) onSave(patch)
+  }, [onSave])
+
+  // The card passes a fresh closure every render, so `flush` is never stable —
+  // the unmount effect reads the latest one through a ref rather than
+  // re-subscribing (and firing early) on each render.
+  const flushRef = useRef(flush)
+  flushRef.current = flush
+
+  // Switching villa or navigating away unmounts the row mid-debounce; the edit
+  // the user already made should still land.
+  useEffect(() => () => flushRef.current(), [])
+
+  const queue = (patch: PatchSeasonRuleRequest) => {
+    pending.current = { ...pending.current, ...patch }
+    cancelTimer()
+    timer.current = setTimeout(() => flushRef.current(), SAVE_DEBOUNCE_MS)
+  }
+
   // Once a save lands the refetched rule is the truth, so drop whatever the
-  // inputs were holding.
+  // inputs were holding — unless an edit is still queued, in which case a
+  // background refetch would otherwise wipe what the user is typing.
   useEffect(() => {
+    if (Object.keys(pending.current).length > 0) return
     setLabel(rule.label)
     setStartDate(rule.start_date)
     setEndDate(rule.end_date)
@@ -35,23 +77,31 @@ export function RuleRow({ rule, onSave, onDelete }: RuleRowProps) {
       setLabel(rule.label)
       return
     }
-    if (next !== rule.label) onSave({ label: next })
+    if (next !== rule.label) queue({ label: next })
   }
 
   const commitPrice = () => {
     const cents = euroInputToCents(price)
     setPrice(centsToEuroInput(cents))
-    if (cents !== rule.price_cents) onSave({ price_cents: cents })
+    if (cents !== rule.price_cents) queue({ price_cents: cents })
   }
 
   const commitStartDate = (value: string) => {
     setStartDate(value)
-    if (value && value !== rule.start_date) onSave({ start_date: value })
+    if (value && value !== rule.start_date) queue({ start_date: value })
   }
 
   const commitEndDate = (value: string) => {
     setEndDate(value)
-    if (value && value !== rule.end_date) onSave({ end_date: value })
+    if (value && value !== rule.end_date) queue({ end_date: value })
+  }
+
+  // Dropping the queued patch first: PATCHing a row we are about to delete
+  // only earns a 404 and a misleading error toast.
+  const handleDelete = () => {
+    cancelTimer()
+    pending.current = {}
+    onDelete()
   }
 
   return (
@@ -84,7 +134,7 @@ export function RuleRow({ rule, onSave, onDelete }: RuleRowProps) {
       />
       <button
         type="button"
-        onClick={onDelete}
+        onClick={handleDelete}
         aria-label="Delete rule"
         className="text-on-surface-variant hover:bg-error-container hover:text-on-error-container justify-self-start rounded-md p-1.5"
       >
