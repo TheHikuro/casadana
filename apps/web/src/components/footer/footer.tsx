@@ -15,8 +15,11 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
         {title}
       </h5>
       <ul className="grid gap-2.5">
+        {/* Keyed on the label, not the href: two entries can point at the same
+            place ("Book direct" and "Long stays" both go to #book), and sharing
+            a key lets React drop one of them. */}
         {links.map((link) => (
-          <li key={link.href}>
+          <li key={link.label}>
             <a
               href={link.href}
               target={link.external ? "_blank" : undefined}
