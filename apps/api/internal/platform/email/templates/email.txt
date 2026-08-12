@@ -1,0 +1,18 @@
+CASA DANA & CASAY — {{ .Tagline }}
+
+{{ .Heading }}
+{{ with .Greeting }}
+{{ . }}
+{{ end }}{{ range .Paragraphs }}
+{{ . }}
+{{ end }}{{ if .Details }}
+--
+{{ range .Details }}{{ .Label }}: {{ .Value }}
+{{ end }}--
+{{ end }}{{ with .Note }}
+{{ . }}
+{{ end }}
+{{ .SignedName }}
+{{ .SignedRole }}
+
+{{ .ReplyHint }}
