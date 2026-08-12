@@ -19,6 +19,7 @@ export * from './bookingStatus';
 export * from './createAdminReviewRequest';
 export * from './createAdminUserRequest';
 export * from './createBookingRequest';
+export * from './createBookingRequestLocale';
 export * from './createSeasonRuleRequest';
 export * from './errorResponse';
 export * from './errorResponseError';

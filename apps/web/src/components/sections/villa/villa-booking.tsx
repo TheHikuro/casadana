@@ -18,6 +18,7 @@ import type { VillaData } from "@/constants/villas.const"
 import { usePublishedRating } from "@/lib/use-published-rating"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
+import { getLocale } from "@/paraglide/runtime"
 
 interface VillaBookingProps {
   villaSlug: string
@@ -334,6 +335,10 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
         adults: values.guests,
         children: 0,
         message: values.description,
+        // The language this guest is reading the site in. It's persisted with
+        // the booking so every email about it — including the approval sent
+        // weeks later — is written in that language rather than in French.
+        locale: getLocale(),
       },
     })
   }

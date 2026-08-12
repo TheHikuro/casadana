@@ -111,24 +111,50 @@ func (f *fakeRepo) Delete(_ context.Context, id string) error {
 }
 
 type fakeMailer struct {
-	confirmations  []Booking
-	adminNotices   []Booking
-	confirmErr     error
-	adminNoticeErr error
+	received     []Booking
+	ownerNotices []Booking
+	approved     []Booking
+	rejected     []Booking
+	cancelled    []Booking
+
+	receivedErr    error
+	ownerNoticeErr error
+	statusErr      error
 }
 
-func (f *fakeMailer) SendBookingConfirmation(_ context.Context, b *Booking) error {
-	if f.confirmErr != nil {
-		return f.confirmErr
+func (f *fakeMailer) SendRequestReceived(_ context.Context, b *Booking) error {
+	if f.receivedErr != nil {
+		return f.receivedErr
 	}
-	f.confirmations = append(f.confirmations, *b)
+	f.received = append(f.received, *b)
 	return nil
 }
-func (f *fakeMailer) SendAdminNotification(_ context.Context, b *Booking) error {
-	if f.adminNoticeErr != nil {
-		return f.adminNoticeErr
+func (f *fakeMailer) SendOwnerNewRequest(_ context.Context, b *Booking) error {
+	if f.ownerNoticeErr != nil {
+		return f.ownerNoticeErr
 	}
-	f.adminNotices = append(f.adminNotices, *b)
+	f.ownerNotices = append(f.ownerNotices, *b)
+	return nil
+}
+func (f *fakeMailer) SendApproved(_ context.Context, b *Booking) error {
+	if f.statusErr != nil {
+		return f.statusErr
+	}
+	f.approved = append(f.approved, *b)
+	return nil
+}
+func (f *fakeMailer) SendRejected(_ context.Context, b *Booking) error {
+	if f.statusErr != nil {
+		return f.statusErr
+	}
+	f.rejected = append(f.rejected, *b)
+	return nil
+}
+func (f *fakeMailer) SendCancelled(_ context.Context, b *Booking) error {
+	if f.statusErr != nil {
+		return f.statusErr
+	}
+	f.cancelled = append(f.cancelled, *b)
 	return nil
 }
 

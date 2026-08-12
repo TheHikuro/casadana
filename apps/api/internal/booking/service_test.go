@@ -32,11 +32,11 @@ func TestCreate_Happy(t *testing.T) {
 	if got, want := len(repo.saved), 1; got != want {
 		t.Errorf("saved count = %d, want %d", got, want)
 	}
-	if got, want := len(mailer.confirmations), 1; got != want {
-		t.Errorf("confirmations = %d, want %d", got, want)
+	if got, want := len(mailer.received), 1; got != want {
+		t.Errorf("guest request-received emails = %d, want %d", got, want)
 	}
-	if got, want := len(mailer.adminNotices), 1; got != want {
-		t.Errorf("admin notices = %d, want %d", got, want)
+	if got, want := len(mailer.ownerNotices), 1; got != want {
+		t.Errorf("owner notices = %d, want %d", got, want)
 	}
 	if b.Status != StatusPending {
 		t.Errorf("status = %s, want pending", b.Status)
@@ -81,7 +81,7 @@ func TestCreate_DatesConflict(t *testing.T) {
 
 func TestCreate_MailerFailure_DoesNotFailBooking(t *testing.T) {
 	repo := &fakeRepo{}
-	mailer := &fakeMailer{confirmErr: errBoom}
+	mailer := &fakeMailer{receivedErr: errBoom}
 	svc := newSvc(repo, mailer, fakeAllowlist{allowed: map[string]bool{"casadana": true}}, d("2026-05-12"))
 
 	_, err := svc.Create(context.Background(), CreateCommand{
@@ -316,6 +316,73 @@ func TestTransitionStatus_ApproveIgnoresRejectedAndCancelled(t *testing.T) {
 	_, err := svc.TransitionStatus(context.Background(), "b", StatusApproved)
 	if err != nil {
 		t.Fatalf("TransitionStatus: %v, want no conflict against rejected/cancelled bookings", err)
+	}
+}
+
+// Every transition a guest can see must produce exactly one email to that
+// guest, and never one of the other kinds: an approved stay must not also be
+// told it was cancelled.
+func TestTransitionStatus_EmailsTheGuest(t *testing.T) {
+	tests := []struct {
+		name    string
+		from    Status
+		to      Status
+		mailbox func(*fakeMailer) []Booking
+	}{
+		{"approved", StatusPending, StatusApproved, func(m *fakeMailer) []Booking { return m.approved }},
+		{"rejected", StatusPending, StatusRejected, func(m *fakeMailer) []Booking { return m.rejected }},
+		{"cancelled", StatusPending, StatusCancelled, func(m *fakeMailer) []Booking { return m.cancelled }},
+		{"paid stays silent", StatusApproved, StatusPaid, nil},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := &fakeRepo{saved: []Booking{{
+				ID: "b", VillaSlug: "casadana", Status: tc.from,
+				GuestEmail: "jane@example.com",
+				CheckIn:    d("2026-07-01"), CheckOut: d("2026-07-08"),
+			}}}
+			mailer := &fakeMailer{}
+			svc := newSvc(repo, mailer, fakeAllowlist{}, d("2026-05-12"))
+
+			if _, err := svc.TransitionStatus(context.Background(), "b", tc.to); err != nil {
+				t.Fatalf("TransitionStatus: %v", err)
+			}
+
+			sent := len(mailer.approved) + len(mailer.rejected) + len(mailer.cancelled)
+			if tc.mailbox == nil {
+				if sent != 0 {
+					t.Fatalf("sent %d guest emails, want none for %s", sent, tc.to)
+				}
+				return
+			}
+			if got := len(tc.mailbox(mailer)); got != 1 {
+				t.Errorf("%s emails = %d, want 1", tc.to, got)
+			}
+			if sent != 1 {
+				t.Errorf("total guest emails = %d, want exactly 1", sent)
+			}
+		})
+	}
+}
+
+// A dead mail provider must not make the owners believe an approval failed:
+// the status is already persisted by the time the email is attempted.
+func TestTransitionStatus_MailerFailure_KeepsTheTransition(t *testing.T) {
+	repo := &fakeRepo{saved: []Booking{{
+		ID: "b", VillaSlug: "casadana", Status: StatusPending,
+		CheckIn: d("2026-07-01"), CheckOut: d("2026-07-08"),
+	}}}
+	svc := newSvc(repo, &fakeMailer{statusErr: errBoom}, fakeAllowlist{}, d("2026-05-12"))
+
+	b, err := svc.TransitionStatus(context.Background(), "b", StatusApproved)
+	if err != nil {
+		t.Fatalf("TransitionStatus: %v", err)
+	}
+	if b.Status != StatusApproved {
+		t.Errorf("returned status = %s, want approved", b.Status)
+	}
+	if repo.saved[0].Status != StatusApproved {
+		t.Errorf("persisted status = %s, want approved despite the mail failure", repo.saved[0].Status)
 	}
 }
 

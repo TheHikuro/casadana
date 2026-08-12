@@ -31,8 +31,12 @@ type Booking struct {
 	Message    string
 	Status     Status
 	Source     string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	// Locale the guest browsed the site in ("fr", "en" or "es"). Persisted so
+	// mail sent later in the lifecycle — approval, refusal, cancellation — is
+	// still written in the guest's language.
+	Locale    string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type NewBookingInput struct {
@@ -46,7 +50,25 @@ type NewBookingInput struct {
 	Children   int
 	Message    string
 	Source     string
+	Locale     string
 	Now        time.Time // injected so tests are deterministic
+}
+
+// supportedLocales mirrors both the website's message files and the
+// bookings_locale_valid CHECK constraint. Anything else — a missing locale, a
+// regional tag, a language the site does not ship — falls back to the source
+// language rather than being rejected: a booking must never be lost over the
+// language its confirmation will be written in.
+var supportedLocales = map[string]bool{"fr": true, "en": true, "es": true}
+
+const defaultLocale = "fr"
+
+func normalizeLocale(s string) string {
+	base, _, _ := strings.Cut(strings.ToLower(strings.TrimSpace(s)), "-")
+	if supportedLocales[base] {
+		return base
+	}
+	return defaultLocale
 }
 
 var (
@@ -64,6 +86,7 @@ func NewBooking(in NewBookingInput) (*Booking, error) {
 	if in.Source == "" {
 		in.Source = "direct"
 	}
+	in.Locale = normalizeLocale(in.Locale)
 
 	if in.VillaSlug == "" {
 		return nil, errors.New("villa_slug required")
@@ -101,6 +124,7 @@ func NewBooking(in NewBookingInput) (*Booking, error) {
 		Message:    in.Message,
 		Status:     StatusPending,
 		Source:     in.Source,
+		Locale:     in.Locale,
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}, nil

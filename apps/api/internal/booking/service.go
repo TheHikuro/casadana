@@ -29,6 +29,7 @@ type CreateCommand struct {
 	Children   int
 	Message    string
 	Source     string
+	Locale     string
 }
 
 func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*Booking, error) {
@@ -55,6 +56,7 @@ func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*Booking, erro
 		Children:   cmd.Children,
 		Message:    cmd.Message,
 		Source:     cmd.Source,
+		Locale:     cmd.Locale,
 		Now:        s.clock.Now(),
 	})
 	if err != nil {
@@ -66,11 +68,11 @@ func (s *Service) Create(ctx context.Context, cmd CreateCommand) (*Booking, erro
 	}
 
 	// Best-effort emails: a transient mail failure must not lose the booking.
-	if err := s.mailer.SendBookingConfirmation(ctx, b); err != nil {
-		slog.WarnContext(ctx, "booking confirmation email failed", "booking_id", b.ID, "err", err.Error())
+	if err := s.mailer.SendRequestReceived(ctx, b); err != nil {
+		slog.WarnContext(ctx, "guest request-received email failed", "booking_id", b.ID, "err", err.Error())
 	}
-	if err := s.mailer.SendAdminNotification(ctx, b); err != nil {
-		slog.WarnContext(ctx, "admin notification email failed", "booking_id", b.ID, "err", err.Error())
+	if err := s.mailer.SendOwnerNewRequest(ctx, b); err != nil {
+		slog.WarnContext(ctx, "owner new-request email failed", "booking_id", b.ID, "err", err.Error())
 	}
 
 	return b, nil
@@ -168,5 +170,34 @@ func (s *Service) TransitionStatus(ctx context.Context, id string, next Status) 
 	if err := s.repo.UpdateStatus(ctx, id, transitioned.Status, transitioned.UpdatedAt); err != nil {
 		return nil, fmt.Errorf("booking: update status: %w", err)
 	}
+	s.notifyTransition(ctx, &transitioned)
 	return &transitioned, nil
+}
+
+// notifyTransition tells the guest what just happened to their request. Like
+// creation-time mail this is best-effort: the transition is already persisted,
+// and failing the request here would leave the caller thinking the status did
+// not change when it did.
+//
+// StatusPaid sends nothing: payment is recorded by the owners after the fact,
+// and the guest already got the confirmation when the booking was approved.
+func (s *Service) notifyTransition(ctx context.Context, b *Booking) {
+	var (
+		err  error
+		kind string
+	)
+	switch b.Status {
+	case StatusApproved:
+		kind, err = "approved", s.mailer.SendApproved(ctx, b)
+	case StatusRejected:
+		kind, err = "rejected", s.mailer.SendRejected(ctx, b)
+	case StatusCancelled:
+		kind, err = "cancelled", s.mailer.SendCancelled(ctx, b)
+	default:
+		return
+	}
+	if err != nil {
+		slog.WarnContext(ctx, "booking status email failed",
+			"booking_id", b.ID, "status", string(b.Status), "kind", kind, "err", err.Error())
+	}
 }

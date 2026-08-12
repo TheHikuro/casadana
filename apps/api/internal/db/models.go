@@ -175,6 +175,7 @@ type Booking struct {
 	CreatedAt  pgtype.Timestamptz
 	UpdatedAt  pgtype.Timestamptz
 	Source     string
+	Locale     string
 }
 
 type PriceOverride struct {

@@ -73,7 +73,7 @@ func (q *Queries) DeleteBooking(ctx context.Context, id pgtype.UUID) (int64, err
 }
 
 const findOverlappingBookings = `-- name: FindOverlappingBookings :many
-SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source FROM bookings
+SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source, locale FROM bookings
 WHERE villa_slug = $1
   AND status IN ('pending', 'approved', 'paid')
   AND check_in  < $3
@@ -110,6 +110,7 @@ func (q *Queries) FindOverlappingBookings(ctx context.Context, arg FindOverlappi
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Source,
+			&i.Locale,
 		); err != nil {
 			return nil, err
 		}
@@ -122,7 +123,7 @@ func (q *Queries) FindOverlappingBookings(ctx context.Context, arg FindOverlappi
 }
 
 const findOverlappingConfirmedBookings = `-- name: FindOverlappingConfirmedBookings :many
-SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source FROM bookings
+SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source, locale FROM bookings
 WHERE villa_slug = $1
   AND status IN ('approved', 'paid')
   AND id != $4
@@ -166,6 +167,7 @@ func (q *Queries) FindOverlappingConfirmedBookings(ctx context.Context, arg Find
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Source,
+			&i.Locale,
 		); err != nil {
 			return nil, err
 		}
@@ -178,7 +180,7 @@ func (q *Queries) FindOverlappingConfirmedBookings(ctx context.Context, arg Find
 }
 
 const getBookingByID = `-- name: GetBookingByID :one
-SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source FROM bookings WHERE id = $1
+SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source, locale FROM bookings WHERE id = $1
 `
 
 func (q *Queries) GetBookingByID(ctx context.Context, id pgtype.UUID) (Booking, error) {
@@ -199,6 +201,7 @@ func (q *Queries) GetBookingByID(ctx context.Context, id pgtype.UUID) (Booking, 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Source,
+		&i.Locale,
 	)
 	return i, err
 }
@@ -206,12 +209,12 @@ func (q *Queries) GetBookingByID(ctx context.Context, id pgtype.UUID) (Booking, 
 const insertBooking = `-- name: InsertBooking :one
 INSERT INTO bookings (
     id, villa_slug, guest_name, guest_email, guest_phone,
-    check_in, check_out, adults, children, message, status, source
+    check_in, check_out, adults, children, message, status, source, locale
 ) VALUES (
     $1, $2, $3, $4, $5,
-    $6, $7, $8, $9, $10, $11, $12
+    $6, $7, $8, $9, $10, $11, $12, $13
 )
-RETURNING id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source
+RETURNING id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source, locale
 `
 
 type InsertBookingParams struct {
@@ -227,6 +230,7 @@ type InsertBookingParams struct {
 	Message    string
 	Status     BookingStatus
 	Source     string
+	Locale     string
 }
 
 func (q *Queries) InsertBooking(ctx context.Context, arg InsertBookingParams) (Booking, error) {
@@ -243,6 +247,7 @@ func (q *Queries) InsertBooking(ctx context.Context, arg InsertBookingParams) (B
 		arg.Message,
 		arg.Status,
 		arg.Source,
+		arg.Locale,
 	)
 	var i Booking
 	err := row.Scan(
@@ -260,6 +265,7 @@ func (q *Queries) InsertBooking(ctx context.Context, arg InsertBookingParams) (B
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Source,
+		&i.Locale,
 	)
 	return i, err
 }
@@ -305,7 +311,7 @@ func (q *Queries) ListBookedRanges(ctx context.Context, arg ListBookedRangesPara
 }
 
 const listBookingsByStatus = `-- name: ListBookingsByStatus :many
-SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source FROM bookings
+SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source, locale FROM bookings
 WHERE status = $1
 ORDER BY created_at DESC
 `
@@ -334,6 +340,7 @@ func (q *Queries) ListBookingsByStatus(ctx context.Context, status BookingStatus
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Source,
+			&i.Locale,
 		); err != nil {
 			return nil, err
 		}
@@ -346,7 +353,7 @@ func (q *Queries) ListBookingsByStatus(ctx context.Context, status BookingStatus
 }
 
 const listBookingsPaged = `-- name: ListBookingsPaged :many
-SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source FROM bookings
+SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source, locale FROM bookings
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
 `
@@ -380,6 +387,7 @@ func (q *Queries) ListBookingsPaged(ctx context.Context, arg ListBookingsPagedPa
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Source,
+			&i.Locale,
 		); err != nil {
 			return nil, err
 		}
@@ -392,7 +400,7 @@ func (q *Queries) ListBookingsPaged(ctx context.Context, arg ListBookingsPagedPa
 }
 
 const listBookingsPagedByStatus = `-- name: ListBookingsPagedByStatus :many
-SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source FROM bookings
+SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source, locale FROM bookings
 WHERE status = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
@@ -428,6 +436,7 @@ func (q *Queries) ListBookingsPagedByStatus(ctx context.Context, arg ListBooking
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Source,
+			&i.Locale,
 		); err != nil {
 			return nil, err
 		}
@@ -440,7 +449,7 @@ func (q *Queries) ListBookingsPagedByStatus(ctx context.Context, arg ListBooking
 }
 
 const listBookingsPagedByVilla = `-- name: ListBookingsPagedByVilla :many
-SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source FROM bookings
+SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source, locale FROM bookings
 WHERE villa_slug = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
@@ -476,6 +485,7 @@ func (q *Queries) ListBookingsPagedByVilla(ctx context.Context, arg ListBookings
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Source,
+			&i.Locale,
 		); err != nil {
 			return nil, err
 		}
@@ -488,7 +498,7 @@ func (q *Queries) ListBookingsPagedByVilla(ctx context.Context, arg ListBookings
 }
 
 const listBookingsPagedByVillaAndStatus = `-- name: ListBookingsPagedByVillaAndStatus :many
-SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source FROM bookings
+SELECT id, villa_slug, guest_name, guest_email, guest_phone, check_in, check_out, adults, children, message, status, created_at, updated_at, source, locale FROM bookings
 WHERE villa_slug = $1 AND status = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4
@@ -530,6 +540,7 @@ func (q *Queries) ListBookingsPagedByVillaAndStatus(ctx context.Context, arg Lis
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Source,
+			&i.Locale,
 		); err != nil {
 			return nil, err
 		}

@@ -1,10 +1,10 @@
 -- name: InsertBooking :one
 INSERT INTO bookings (
     id, villa_slug, guest_name, guest_email, guest_phone,
-    check_in, check_out, adults, children, message, status, source
+    check_in, check_out, adults, children, message, status, source, locale
 ) VALUES (
     $1, $2, $3, $4, $5,
-    $6, $7, $8, $9, $10, $11, $12
+    $6, $7, $8, $9, $10, $11, $12, $13
 )
 RETURNING *;
 

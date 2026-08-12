@@ -22,9 +22,23 @@ type Repository interface {
 	Delete(ctx context.Context, id string) error
 }
 
+// Mailer sends the transactional mail a booking's lifecycle produces. Every
+// method is best-effort at the call site: a mail failure never rolls back the
+// state change that triggered it.
 type Mailer interface {
-	SendBookingConfirmation(ctx context.Context, b *Booking) error
-	SendAdminNotification(ctx context.Context, b *Booking) error
+	// SendRequestReceived acknowledges a new request to the guest. Deliberately
+	// not called a confirmation: at this point nothing is confirmed, which is
+	// exactly what that email has to say.
+	SendRequestReceived(ctx context.Context, b *Booking) error
+	// SendOwnerNewRequest tells the owners a request is waiting for them.
+	SendOwnerNewRequest(ctx context.Context, b *Booking) error
+	// SendApproved tells the guest the stay is confirmed.
+	SendApproved(ctx context.Context, b *Booking) error
+	// SendRejected tells the guest the request was not accepted, so nobody is
+	// left waiting on an answer that never comes.
+	SendRejected(ctx context.Context, b *Booking) error
+	// SendCancelled confirms a cancellation to the guest.
+	SendCancelled(ctx context.Context, b *Booking) error
 }
 
 type Clock interface {

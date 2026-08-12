@@ -9,6 +9,7 @@ in the frontend and not exposed by this API.
  * OpenAPI spec version: 0.1.0
  */
 import type { BookingSource } from './bookingSource';
+import type { CreateBookingRequestLocale } from './createBookingRequestLocale';
 
 export interface CreateBookingRequest {
   /**
@@ -45,4 +46,6 @@ export interface CreateBookingRequest {
   /** @maxLength 2000 */
   message?: string;
   source?: BookingSource;
+  /** Language the guest is browsing in. Every email about this booking is written in it, including the ones sent later (approval, refusal, cancellation). Omitted or unsupported falls back to fr. */
+  locale?: CreateBookingRequestLocale;
 }

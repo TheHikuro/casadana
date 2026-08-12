@@ -39,6 +39,7 @@ func (r *pgRepo) Save(ctx context.Context, b *Booking) error {
 		Children:   int16(b.Children),
 		Message:    b.Message,
 		Source:     b.Source,
+		Locale:     b.Locale,
 		Status:     db.BookingStatus(b.Status),
 	})
 	return err
@@ -176,6 +177,7 @@ func rowToBooking(row db.Booking) Booking {
 		CreatedAt:  row.CreatedAt.Time,
 		UpdatedAt:  row.UpdatedAt.Time,
 		Source:     row.Source,
+		Locale:     row.Locale,
 	}
 }
 

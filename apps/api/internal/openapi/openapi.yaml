@@ -1068,6 +1068,14 @@ components:
         children: { type: integer, minimum: 0, maximum: 20, default: 0, example: 0 }
         message: { type: string, maxLength: 2000, default: "", example: "" }
         source: { $ref: "#/components/schemas/BookingSource" }
+        locale:
+          type: string
+          enum: [fr, en, es]
+          description: >-
+            Language the guest is browsing in. Every email about this booking is
+            written in it, including the ones sent later (approval, refusal,
+            cancellation). Omitted or unsupported falls back to fr.
+          example: fr
 
     BookingResponse:
       type: object

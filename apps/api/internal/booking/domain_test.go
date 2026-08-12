@@ -86,3 +86,32 @@ func TestNewBooking_KeepsExplicitSource(t *testing.T) {
 		t.Errorf("Source = %q, want airbnb", b.Source)
 	}
 }
+
+// The locale decides which language every email about this booking is written
+// in, so an unusable value must degrade to the site's source language rather
+// than reject the booking or persist something the DB CHECK would refuse.
+func TestNewBooking_NormalizesLocale(t *testing.T) {
+	tests := map[string]string{
+		"":        "fr",
+		"fr":      "fr",
+		"en":      "en",
+		"es":      "es",
+		"ES":      "es",
+		"en-GB":   "en",
+		"es-419":  "es",
+		"  fr  ":  "fr",
+		"de":      "fr",
+		"klingon": "fr",
+	}
+	for in, want := range tests {
+		c := validCmd()
+		c.Locale = in
+		b, err := NewBooking(c)
+		if err != nil {
+			t.Fatalf("NewBooking(locale=%q): %v", in, err)
+		}
+		if b.Locale != want {
+			t.Errorf("locale %q became %q, want %q", in, b.Locale, want)
+		}
+	}
+}

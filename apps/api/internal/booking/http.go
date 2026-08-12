@@ -48,6 +48,10 @@ type createBookingRequest struct {
 	Children   int    `json:"children"    validate:"min=0,max=20"`
 	Message    string `json:"message"     validate:"max=2000"`
 	Source     string `json:"source"      validate:"omitempty,oneof=direct airbnb booking_com"`
+	// Locale the guest is browsing in, so the emails about this booking are
+	// written in their language. Optional: an older client that doesn't send it
+	// gets the site's source language rather than a validation error.
+	Locale string `json:"locale"      validate:"omitempty,oneof=fr en es"`
 }
 
 type bookingResponse struct {
@@ -113,6 +117,7 @@ func createHandler(svc *Service) http.HandlerFunc {
 			Children:   req.Children,
 			Message:    req.Message,
 			Source:     req.Source,
+			Locale:     req.Locale,
 		})
 		if err != nil {
 			httpserver.WriteError(w, r, err)
