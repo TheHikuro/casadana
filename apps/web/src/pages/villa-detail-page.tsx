@@ -66,7 +66,7 @@ export default function VillaDetailPage() {
       <VillaGalleryBento data={villa.gallery} onTileClick={openLb} onOpenAll={openAll} />
       <VillaLocalArea data={villa.localArea} />
       <VillaExperiences data={villa.experiences} />
-      <VillaReviews data={villa.reviews} />
+      <VillaReviews villaSlug={villaId} data={villa.reviews} />
       <VillaFaq data={villa.faq} />
       <VillaCtaStrip data={villa.ctaStrip} />
       <VillaSister data={villa.sister} />
