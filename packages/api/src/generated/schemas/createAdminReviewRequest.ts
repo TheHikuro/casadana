@@ -10,27 +10,28 @@ in the frontend and not exposed by this API.
  */
 import type { ReviewStatus } from './reviewStatus';
 
-export interface Review {
-  id: string;
+export interface CreateAdminReviewRequest {
   /**
-   * Null for admin-authored reviews, which have no booking behind them.
-   * @nullable
+   * @minLength 1
+   * @maxLength 64
    */
-  booking_id: string | null;
   villa_slug: string;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
   author_name: string;
   /**
    * @minimum 1
    * @maximum 5
    */
   rating: number;
-  body: string;
-  status: ReviewStatus;
-  /** Free-text context line shown under the author name. */
-  meta: string;
-  /** Where the review came from. */
-  source: string;
-  /** Pinned to the top of the public reviews section. */
-  featured: boolean;
-  created_at: string;
+  /** @maxLength 2000 */
+  body?: string;
+  status?: ReviewStatus;
+  /** @maxLength 2000 */
+  meta?: string;
+  /** @maxLength 64 */
+  source?: string;
+  featured?: boolean;
 }

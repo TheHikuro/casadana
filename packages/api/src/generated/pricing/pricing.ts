@@ -28,9 +28,15 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CreateSeasonRuleRequest,
   ErrorResponse,
   GetVillaPricingParams,
+  ListSeasonRulesResponse,
+  PatchSeasonRuleRequest,
   PricingResponse,
+  PricingSettings,
+  PutPricingSettingsRequest,
+  SeasonRule,
   UpsertPricingRequest,
   UpsertPricingResponse
 } from '.././schemas';
@@ -213,3 +219,443 @@ export function useGetVillaPricing<TData = Awaited<ReturnType<typeof getVillaPri
 
 
 
+/**
+ * @summary Base rate and fees for a villa
+ */
+export const getVillaPricingSettings = (
+    slug: string,
+ signal?: AbortSignal
+) => {
+      
+      
+      return customAxios<PricingSettings>(
+      {url: `/api/villas/${slug}/pricing/settings`, method: 'GET', signal
+    },
+      );
+    }
+  
+
+
+
+export const getGetVillaPricingSettingsQueryKey = (slug?: string,) => {
+    return [
+    `/api/villas/${slug}/pricing/settings`
+    ] as const;
+    }
+
+    
+export const getGetVillaPricingSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getVillaPricingSettings>>, TError = ErrorResponse>(slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVillaPricingSettings>>, TError, TData>>, }
+) => {
+
+const {query: queryOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVillaPricingSettingsQueryKey(slug);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVillaPricingSettings>>> = ({ signal }) => getVillaPricingSettings(slug, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(slug), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVillaPricingSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetVillaPricingSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getVillaPricingSettings>>>
+export type GetVillaPricingSettingsQueryError = ErrorResponse
+
+
+export function useGetVillaPricingSettings<TData = Awaited<ReturnType<typeof getVillaPricingSettings>>, TError = ErrorResponse>(
+ slug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVillaPricingSettings>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getVillaPricingSettings>>,
+          TError,
+          Awaited<ReturnType<typeof getVillaPricingSettings>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetVillaPricingSettings<TData = Awaited<ReturnType<typeof getVillaPricingSettings>>, TError = ErrorResponse>(
+ slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVillaPricingSettings>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getVillaPricingSettings>>,
+          TError,
+          Awaited<ReturnType<typeof getVillaPricingSettings>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetVillaPricingSettings<TData = Awaited<ReturnType<typeof getVillaPricingSettings>>, TError = ErrorResponse>(
+ slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVillaPricingSettings>>, TError, TData>>, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Base rate and fees for a villa
+ */
+
+export function useGetVillaPricingSettings<TData = Awaited<ReturnType<typeof getVillaPricingSettings>>, TError = ErrorResponse>(
+ slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVillaPricingSettings>>, TError, TData>>, }
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getGetVillaPricingSettingsQueryOptions(slug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+/**
+ * @summary Replace base rate and fees
+ */
+export const putVillaPricingSettings = (
+    slug: string,
+    putPricingSettingsRequest: PutPricingSettingsRequest,
+ ) => {
+      
+      
+      return customAxios<PricingSettings>(
+      {url: `/api/villas/${slug}/pricing/settings`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: putPricingSettingsRequest
+    },
+      );
+    }
+  
+
+
+export const getPutVillaPricingSettingsMutationOptions = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putVillaPricingSettings>>, TError,{slug: string;data: PutPricingSettingsRequest}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof putVillaPricingSettings>>, TError,{slug: string;data: PutPricingSettingsRequest}, TContext> => {
+
+const mutationKey = ['putVillaPricingSettings'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putVillaPricingSettings>>, {slug: string;data: PutPricingSettingsRequest}> = (props) => {
+          const {slug,data} = props ?? {};
+
+          return  putVillaPricingSettings(slug,data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutVillaPricingSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof putVillaPricingSettings>>>
+    export type PutVillaPricingSettingsMutationBody = PutPricingSettingsRequest
+    export type PutVillaPricingSettingsMutationError = ErrorResponse
+
+    /**
+ * @summary Replace base rate and fees
+ */
+export const usePutVillaPricingSettings = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putVillaPricingSettings>>, TError,{slug: string;data: PutPricingSettingsRequest}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof putVillaPricingSettings>>,
+        TError,
+        {slug: string;data: PutPricingSettingsRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutVillaPricingSettingsMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * @summary List season rules for a villa
+ */
+export const listVillaSeasonRules = (
+    slug: string,
+ signal?: AbortSignal
+) => {
+      
+      
+      return customAxios<ListSeasonRulesResponse>(
+      {url: `/api/villas/${slug}/pricing/season-rules`, method: 'GET', signal
+    },
+      );
+    }
+  
+
+
+
+export const getListVillaSeasonRulesQueryKey = (slug?: string,) => {
+    return [
+    `/api/villas/${slug}/pricing/season-rules`
+    ] as const;
+    }
+
+    
+export const getListVillaSeasonRulesQueryOptions = <TData = Awaited<ReturnType<typeof listVillaSeasonRules>>, TError = ErrorResponse>(slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listVillaSeasonRules>>, TError, TData>>, }
+) => {
+
+const {query: queryOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListVillaSeasonRulesQueryKey(slug);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listVillaSeasonRules>>> = ({ signal }) => listVillaSeasonRules(slug, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(slug), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listVillaSeasonRules>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type ListVillaSeasonRulesQueryResult = NonNullable<Awaited<ReturnType<typeof listVillaSeasonRules>>>
+export type ListVillaSeasonRulesQueryError = ErrorResponse
+
+
+export function useListVillaSeasonRules<TData = Awaited<ReturnType<typeof listVillaSeasonRules>>, TError = ErrorResponse>(
+ slug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listVillaSeasonRules>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listVillaSeasonRules>>,
+          TError,
+          Awaited<ReturnType<typeof listVillaSeasonRules>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useListVillaSeasonRules<TData = Awaited<ReturnType<typeof listVillaSeasonRules>>, TError = ErrorResponse>(
+ slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listVillaSeasonRules>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listVillaSeasonRules>>,
+          TError,
+          Awaited<ReturnType<typeof listVillaSeasonRules>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useListVillaSeasonRules<TData = Awaited<ReturnType<typeof listVillaSeasonRules>>, TError = ErrorResponse>(
+ slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listVillaSeasonRules>>, TError, TData>>, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary List season rules for a villa
+ */
+
+export function useListVillaSeasonRules<TData = Awaited<ReturnType<typeof listVillaSeasonRules>>, TError = ErrorResponse>(
+ slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listVillaSeasonRules>>, TError, TData>>, }
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getListVillaSeasonRulesQueryOptions(slug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+/**
+ * @summary Add a season rule
+ */
+export const createVillaSeasonRule = (
+    slug: string,
+    createSeasonRuleRequest: CreateSeasonRuleRequest,
+ signal?: AbortSignal
+) => {
+      
+      
+      return customAxios<SeasonRule>(
+      {url: `/api/villas/${slug}/pricing/season-rules`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createSeasonRuleRequest, signal
+    },
+      );
+    }
+  
+
+
+export const getCreateVillaSeasonRuleMutationOptions = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createVillaSeasonRule>>, TError,{slug: string;data: CreateSeasonRuleRequest}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof createVillaSeasonRule>>, TError,{slug: string;data: CreateSeasonRuleRequest}, TContext> => {
+
+const mutationKey = ['createVillaSeasonRule'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createVillaSeasonRule>>, {slug: string;data: CreateSeasonRuleRequest}> = (props) => {
+          const {slug,data} = props ?? {};
+
+          return  createVillaSeasonRule(slug,data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateVillaSeasonRuleMutationResult = NonNullable<Awaited<ReturnType<typeof createVillaSeasonRule>>>
+    export type CreateVillaSeasonRuleMutationBody = CreateSeasonRuleRequest
+    export type CreateVillaSeasonRuleMutationError = ErrorResponse
+
+    /**
+ * @summary Add a season rule
+ */
+export const useCreateVillaSeasonRule = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createVillaSeasonRule>>, TError,{slug: string;data: CreateSeasonRuleRequest}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createVillaSeasonRule>>,
+        TError,
+        {slug: string;data: CreateSeasonRuleRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getCreateVillaSeasonRuleMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * Partial update; omitted fields are left unchanged.
+ * @summary Update a season rule
+ */
+export const patchSeasonRule = (
+    id: string,
+    patchSeasonRuleRequest: PatchSeasonRuleRequest,
+ ) => {
+      
+      
+      return customAxios<SeasonRule>(
+      {url: `/api/pricing/season-rules/${id}`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: patchSeasonRuleRequest
+    },
+      );
+    }
+  
+
+
+export const getPatchSeasonRuleMutationOptions = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchSeasonRule>>, TError,{id: string;data: PatchSeasonRuleRequest}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof patchSeasonRule>>, TError,{id: string;data: PatchSeasonRuleRequest}, TContext> => {
+
+const mutationKey = ['patchSeasonRule'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchSeasonRule>>, {id: string;data: PatchSeasonRuleRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  patchSeasonRule(id,data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PatchSeasonRuleMutationResult = NonNullable<Awaited<ReturnType<typeof patchSeasonRule>>>
+    export type PatchSeasonRuleMutationBody = PatchSeasonRuleRequest
+    export type PatchSeasonRuleMutationError = ErrorResponse
+
+    /**
+ * @summary Update a season rule
+ */
+export const usePatchSeasonRule = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchSeasonRule>>, TError,{id: string;data: PatchSeasonRuleRequest}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof patchSeasonRule>>,
+        TError,
+        {id: string;data: PatchSeasonRuleRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPatchSeasonRuleMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * @summary Remove a season rule
+ */
+export const deleteSeasonRule = (
+    id: string,
+ ) => {
+      
+      
+      return customAxios<void>(
+      {url: `/api/pricing/season-rules/${id}`, method: 'DELETE'
+    },
+      );
+    }
+  
+
+
+export const getDeleteSeasonRuleMutationOptions = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteSeasonRule>>, TError,{id: string}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof deleteSeasonRule>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteSeasonRule'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteSeasonRule>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteSeasonRule(id,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteSeasonRuleMutationResult = NonNullable<Awaited<ReturnType<typeof deleteSeasonRule>>>
+    
+    export type DeleteSeasonRuleMutationError = ErrorResponse
+
+    /**
+ * @summary Remove a season rule
+ */
+export const useDeleteSeasonRule = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteSeasonRule>>, TError,{id: string}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteSeasonRule>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteSeasonRuleMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    

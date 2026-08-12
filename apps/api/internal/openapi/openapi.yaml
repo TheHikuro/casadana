@@ -24,6 +24,8 @@ tags:
     description: Guest testimonials linked to bookings
   - name: admin
     description: Admin authentication and user management
+  - name: history
+    description: Admin activity log
 
 paths:
   /api/health:
@@ -264,6 +266,8 @@ paths:
         Sets `price_cents` for each date in the body. Existing overrides on
         the same date are replaced. All dates in one request share the same
         price; submit multiple requests to vary prices across dates.
+      security:
+        - adminSession: []
       parameters:
         - name: slug
           in: path
@@ -350,6 +354,225 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/villas/{slug}/pricing/settings:
+    get:
+      operationId: getVillaPricingSettings
+      tags: [pricing]
+      summary: Base rate and fees for a villa
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          example: casadana
+      responses:
+        "200":
+          description: Pricing settings (all-zero when never configured)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PricingSettings" }
+        "404":
+          description: Villa slug not in allowlist
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    put:
+      operationId: putVillaPricingSettings
+      tags: [pricing]
+      summary: Replace base rate and fees
+      security:
+        - adminSession: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          example: casadana
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PutPricingSettingsRequest"
+      responses:
+        "200":
+          description: Saved pricing settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PricingSettings" }
+        "401":
+          description: Missing or invalid admin session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Villa slug not in allowlist
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "422":
+          description: Invalid payload
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /api/villas/{slug}/pricing/season-rules:
+    get:
+      operationId: listVillaSeasonRules
+      tags: [pricing]
+      summary: List season rules for a villa
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          example: casadana
+      responses:
+        "200":
+          description: Season rules, earliest start first
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListSeasonRulesResponse" }
+        "404":
+          description: Villa slug not in allowlist
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    post:
+      operationId: createVillaSeasonRule
+      tags: [pricing]
+      summary: Add a season rule
+      security:
+        - adminSession: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          example: casadana
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSeasonRuleRequest"
+      responses:
+        "201":
+          description: Created season rule
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeasonRule" }
+        "401":
+          description: Missing or invalid admin session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Villa slug not in allowlist
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "422":
+          description: Invalid payload or end_date before start_date
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /api/pricing/season-rules/{id}:
+    patch:
+      operationId: patchSeasonRule
+      tags: [pricing]
+      summary: Update a season rule
+      description: Partial update; omitted fields are left unchanged.
+      security:
+        - adminSession: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchSeasonRuleRequest"
+      responses:
+        "200":
+          description: Updated season rule
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeasonRule" }
+        "401":
+          description: Missing or invalid admin session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Season rule not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "422":
+          description: Invalid payload or end_date before start_date
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    delete:
+      operationId: deleteSeasonRule
+      tags: [pricing]
+      summary: Remove a season rule
+      security:
+        - adminSession: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Missing or invalid admin session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Season rule not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
   /api/reviews:
     post:
       operationId: submitReview
@@ -394,6 +617,8 @@ paths:
       operationId: deleteReview
       tags: [reviews]
       summary: Hard delete a review
+      security:
+        - adminSession: []
       parameters:
         - name: id
           in: path
@@ -402,8 +627,135 @@ paths:
       responses:
         "204":
           description: Deleted
+        "401":
+          description: Missing or invalid admin session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
         "404":
           description: Review not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    patch:
+      operationId: patchReview
+      tags: [reviews]
+      summary: Moderate a review
+      description: |
+        Partial update of status, featured flag, or editorial fields. Omitted
+        fields are left unchanged.
+      security:
+        - adminSession: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchReviewRequest"
+      responses:
+        "200":
+          description: Updated review
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Review" }
+        "401":
+          description: Missing or invalid admin session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Review not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "422":
+          description: Invalid payload
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /api/admin/reviews:
+    get:
+      operationId: listAdminReviews
+      tags: [reviews]
+      summary: List reviews for moderation
+      description: Unlike the public list, this returns every status.
+      security:
+        - adminSession: []
+      parameters:
+        - name: villa_slug
+          in: query
+          required: true
+          schema: { type: string }
+          example: casadana
+        - name: status
+          in: query
+          description: Omit to return all statuses.
+          schema: { $ref: "#/components/schemas/ReviewStatus" }
+      responses:
+        "200":
+          description: Reviews
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListReviewsResponse" }
+        "401":
+          description: Missing or invalid admin session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "422":
+          description: Missing or unknown villa_slug
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    post:
+      operationId: createAdminReview
+      tags: [reviews]
+      summary: Create a review without a booking
+      description: |
+        For testimonials collected outside the booking flow. Guest-submitted
+        reviews still go through `POST /api/reviews`.
+      security:
+        - adminSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAdminReviewRequest"
+      responses:
+        "201":
+          description: Created review
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Review" }
+        "401":
+          description: Missing or invalid admin session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "422":
+          description: Invalid payload
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
@@ -417,8 +769,10 @@ paths:
     get:
       operationId: listVillaReviews
       tags: [reviews]
-      summary: List all reviews for a villa
-      description: Returns all statuses for now; auth-gated filtering arrives in Plan 2.
+      summary: List published reviews for a villa
+      description: |
+        Public endpoint — returns only `approved` reviews. Use
+        `GET /api/admin/reviews` to see pending and rejected ones.
       parameters:
         - name: slug
           in: path
@@ -431,6 +785,76 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ListReviewsResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /api/villas/{slug}/reviews/meta:
+    get:
+      operationId: getVillaReviewMeta
+      tags: [reviews]
+      summary: Curated rating figures for a villa
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Review meta
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReviewMeta" }
+        "404":
+          description: Villa slug not in allowlist
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    put:
+      operationId: putVillaReviewMeta
+      tags: [reviews]
+      summary: Replace the curated rating figures
+      security:
+        - adminSession: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewMeta"
+      responses:
+        "200":
+          description: Saved review meta
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReviewMeta" }
+        "401":
+          description: Missing or invalid admin session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Villa slug not in allowlist
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "422":
+          description: Invalid payload
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
         "500":
           description: Internal server error
           content:
@@ -555,6 +979,51 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
 
+  /api/admin/history:
+    get:
+      operationId: listAdminHistory
+      tags: [history]
+      summary: Paginated activity log for a villa
+      description: |
+        Append-only record of every change made through the admin dashboard,
+        most recent first. Admin-only — there is no public history route.
+      security:
+        - adminSession: []
+      parameters:
+        - name: villa_slug
+          in: query
+          required: true
+          schema: { type: string }
+          example: casadana
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        "200":
+          description: Activity log page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListHistoryResponse"
+        "401":
+          description: Missing or invalid admin session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "422":
+          description: Missing or unknown villa_slug
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
 components:
   schemas:
     HealthResponse:
@@ -569,6 +1038,37 @@ components:
     BookingStatus:
       type: string
       enum: [pending, approved, rejected, cancelled, paid]
+
+    HistoryEventType:
+      type: string
+      enum: [reservation, pricing, review, owner, system]
+
+    HistoryEvent:
+      type: object
+      required: [id, villa_slug, type, message, actor_email, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        villa_slug: { type: string, example: casadana }
+        type: { $ref: "#/components/schemas/HistoryEventType" }
+        message:
+          type: string
+          example: Base price set to €185
+        actor_email:
+          type: string
+          description: Email of the admin who made the change; empty when unattributed.
+          example: owner@casadana.example
+        created_at: { type: string, format: date-time }
+
+    ListHistoryResponse:
+      type: object
+      required: [events, total, page, limit]
+      properties:
+        events:
+          type: array
+          items: { $ref: "#/components/schemas/HistoryEvent" }
+        total: { type: integer, example: 42 }
+        page: { type: integer, example: 1 }
+        limit: { type: integer, example: 20 }
 
     PatchBookingRequest:
       type: object
@@ -701,6 +1201,68 @@ components:
       properties:
         count: { type: integer }
 
+    PricingSettings:
+      type: object
+      required: [base_price_cents, min_nights, cleaning_fee_cents, concierge_fee_cents]
+      description: |
+        Base rate and fees, applied whenever no season rule or per-date
+        override matches. A villa that has never been configured reads back
+        as all-zero rather than 404.
+      properties:
+        base_price_cents:    { type: integer, minimum: 0, example: 18500 }
+        min_nights:          { type: integer, minimum: 1, maximum: 365, example: 3 }
+        cleaning_fee_cents:  { type: integer, minimum: 0, example: 8000 }
+        concierge_fee_cents: { type: integer, minimum: 0, example: 4500 }
+
+    PutPricingSettingsRequest:
+      type: object
+      required: [base_price_cents, min_nights, cleaning_fee_cents, concierge_fee_cents]
+      properties:
+        base_price_cents:    { type: integer, minimum: 0, maximum: 100000000 }
+        min_nights:          { type: integer, minimum: 1, maximum: 365 }
+        cleaning_fee_cents:  { type: integer, minimum: 0, maximum: 100000000 }
+        concierge_fee_cents: { type: integer, minimum: 0, maximum: 100000000 }
+
+    SeasonRule:
+      type: object
+      required: [id, villa_slug, label, start_date, end_date, price_cents]
+      description: |
+        A named, inclusive date range with its own nightly price. When several
+        rules cover the same night the highest-priced one wins.
+      properties:
+        id:          { type: string, format: uuid }
+        villa_slug:  { type: string, example: casadana }
+        label:       { type: string, minLength: 1, maxLength: 120, example: Summer peak }
+        start_date:  { type: string, format: date }
+        end_date:    { type: string, format: date }
+        price_cents: { type: integer, minimum: 0, example: 25000 }
+
+    ListSeasonRulesResponse:
+      type: object
+      required: [rules]
+      properties:
+        rules:
+          type: array
+          items: { $ref: "#/components/schemas/SeasonRule" }
+
+    CreateSeasonRuleRequest:
+      type: object
+      required: [label, start_date, end_date, price_cents]
+      properties:
+        label:       { type: string, minLength: 1, maxLength: 120 }
+        start_date:  { type: string, format: date }
+        end_date:    { type: string, format: date }
+        price_cents: { type: integer, minimum: 0, maximum: 100000000 }
+
+    PatchSeasonRuleRequest:
+      type: object
+      description: Every field is optional; an omitted field is left unchanged.
+      properties:
+        label:       { type: string, minLength: 1, maxLength: 120 }
+        start_date:  { type: string, format: date }
+        end_date:    { type: string, format: date }
+        price_cents: { type: integer, minimum: 0, maximum: 100000000 }
+
     ReviewStatus:
       type: string
       enum: [pending, approved, rejected]
@@ -715,16 +1277,79 @@ components:
         - rating
         - body
         - status
+        - meta
+        - source
+        - featured
         - created_at
       properties:
         id:          { type: string, format: uuid }
-        booking_id:  { type: string, format: uuid }
+        booking_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Null for admin-authored reviews, which have no booking behind them.
         villa_slug:  { type: string }
         author_name: { type: string }
         rating:      { type: integer, minimum: 1, maximum: 5 }
         body:        { type: string }
         status:      { $ref: "#/components/schemas/ReviewStatus" }
+        meta:
+          type: string
+          description: Free-text context line shown under the author name.
+          example: Paris, France · Stayed June 2026
+        source:
+          type: string
+          description: Where the review came from.
+          example: via Airbnb · Couple
+        featured:
+          type: boolean
+          description: Pinned to the top of the public reviews section.
         created_at:  { type: string, format: date-time }
+
+    CreateAdminReviewRequest:
+      type: object
+      required: [villa_slug, author_name, rating]
+      properties:
+        villa_slug:  { type: string, minLength: 1, maxLength: 64 }
+        author_name: { type: string, minLength: 1, maxLength: 120 }
+        rating:      { type: integer, minimum: 1, maximum: 5 }
+        body:        { type: string, maxLength: 2000, default: "" }
+        status:      { $ref: "#/components/schemas/ReviewStatus" }
+        meta:        { type: string, maxLength: 2000, default: "" }
+        source:      { type: string, maxLength: 64, default: "" }
+        featured:    { type: boolean, default: false }
+
+    PatchReviewRequest:
+      type: object
+      description: Every field is optional; an omitted field is left unchanged.
+      properties:
+        status:   { $ref: "#/components/schemas/ReviewStatus" }
+        featured: { type: boolean }
+        meta:     { type: string, maxLength: 2000 }
+        source:   { type: string, maxLength: 64 }
+        body:     { type: string, maxLength: 2000 }
+        rating:   { type: integer, minimum: 1, maximum: 5 }
+
+    ReviewBreakdown:
+      type: object
+      required: [cleanliness, comfort, location, host, value]
+      properties:
+        cleanliness: { type: number, format: double, minimum: 0, maximum: 5 }
+        comfort:     { type: number, format: double, minimum: 0, maximum: 5 }
+        location:    { type: number, format: double, minimum: 0, maximum: 5 }
+        host:        { type: number, format: double, minimum: 0, maximum: 5 }
+        value:       { type: number, format: double, minimum: 0, maximum: 5 }
+
+    ReviewMeta:
+      type: object
+      required: [display_avg, display_count, breakdown]
+      description: |
+        Editorial figures shown on the public villa page, curated independently
+        of what is actually stored in `reviews`.
+      properties:
+        display_avg:   { type: number, format: double, minimum: 0, maximum: 5, example: 4.92 }
+        display_count: { type: integer, minimum: 0, example: 128 }
+        breakdown:     { $ref: "#/components/schemas/ReviewBreakdown" }
 
     ListReviewsResponse:
       type: object

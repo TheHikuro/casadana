@@ -28,9 +28,13 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CreateAdminReviewRequest,
   ErrorResponse,
+  ListAdminReviewsParams,
   ListReviewsResponse,
+  PatchReviewRequest,
   Review,
+  ReviewMeta,
   SubmitReviewRequest
 } from '.././schemas';
 
@@ -165,8 +169,238 @@ export const useDeleteReview = <TError = ErrorResponse,
       return useMutation(mutationOptions, queryClient);
     }
     /**
- * Returns all statuses for now; auth-gated filtering arrives in Plan 2.
- * @summary List all reviews for a villa
+ * Partial update of status, featured flag, or editorial fields. Omitted
+fields are left unchanged.
+
+ * @summary Moderate a review
+ */
+export const patchReview = (
+    id: string,
+    patchReviewRequest: PatchReviewRequest,
+ ) => {
+      
+      
+      return customAxios<Review>(
+      {url: `/api/reviews/${id}`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: patchReviewRequest
+    },
+      );
+    }
+  
+
+
+export const getPatchReviewMutationOptions = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchReview>>, TError,{id: string;data: PatchReviewRequest}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof patchReview>>, TError,{id: string;data: PatchReviewRequest}, TContext> => {
+
+const mutationKey = ['patchReview'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchReview>>, {id: string;data: PatchReviewRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  patchReview(id,data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PatchReviewMutationResult = NonNullable<Awaited<ReturnType<typeof patchReview>>>
+    export type PatchReviewMutationBody = PatchReviewRequest
+    export type PatchReviewMutationError = ErrorResponse
+
+    /**
+ * @summary Moderate a review
+ */
+export const usePatchReview = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchReview>>, TError,{id: string;data: PatchReviewRequest}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof patchReview>>,
+        TError,
+        {id: string;data: PatchReviewRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPatchReviewMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * Unlike the public list, this returns every status.
+ * @summary List reviews for moderation
+ */
+export const listAdminReviews = (
+    params: ListAdminReviewsParams,
+ signal?: AbortSignal
+) => {
+      
+      
+      return customAxios<ListReviewsResponse>(
+      {url: `/api/admin/reviews`, method: 'GET',
+        params, signal
+    },
+      );
+    }
+  
+
+
+
+export const getListAdminReviewsQueryKey = (params?: ListAdminReviewsParams,) => {
+    return [
+    `/api/admin/reviews`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getListAdminReviewsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminReviews>>, TError = ErrorResponse>(params: ListAdminReviewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminReviews>>, TError, TData>>, }
+) => {
+
+const {query: queryOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminReviewsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminReviews>>> = ({ signal }) => listAdminReviews(params, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminReviews>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type ListAdminReviewsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminReviews>>>
+export type ListAdminReviewsQueryError = ErrorResponse
+
+
+export function useListAdminReviews<TData = Awaited<ReturnType<typeof listAdminReviews>>, TError = ErrorResponse>(
+ params: ListAdminReviewsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminReviews>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAdminReviews>>,
+          TError,
+          Awaited<ReturnType<typeof listAdminReviews>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useListAdminReviews<TData = Awaited<ReturnType<typeof listAdminReviews>>, TError = ErrorResponse>(
+ params: ListAdminReviewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminReviews>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAdminReviews>>,
+          TError,
+          Awaited<ReturnType<typeof listAdminReviews>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useListAdminReviews<TData = Awaited<ReturnType<typeof listAdminReviews>>, TError = ErrorResponse>(
+ params: ListAdminReviewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminReviews>>, TError, TData>>, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary List reviews for moderation
+ */
+
+export function useListAdminReviews<TData = Awaited<ReturnType<typeof listAdminReviews>>, TError = ErrorResponse>(
+ params: ListAdminReviewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminReviews>>, TError, TData>>, }
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getListAdminReviewsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+/**
+ * For testimonials collected outside the booking flow. Guest-submitted
+reviews still go through `POST /api/reviews`.
+
+ * @summary Create a review without a booking
+ */
+export const createAdminReview = (
+    createAdminReviewRequest: CreateAdminReviewRequest,
+ signal?: AbortSignal
+) => {
+      
+      
+      return customAxios<Review>(
+      {url: `/api/admin/reviews`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createAdminReviewRequest, signal
+    },
+      );
+    }
+  
+
+
+export const getCreateAdminReviewMutationOptions = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminReview>>, TError,{data: CreateAdminReviewRequest}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminReview>>, TError,{data: CreateAdminReviewRequest}, TContext> => {
+
+const mutationKey = ['createAdminReview'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminReview>>, {data: CreateAdminReviewRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminReview(data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminReviewMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminReview>>>
+    export type CreateAdminReviewMutationBody = CreateAdminReviewRequest
+    export type CreateAdminReviewMutationError = ErrorResponse
+
+    /**
+ * @summary Create a review without a booking
+ */
+export const useCreateAdminReview = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminReview>>, TError,{data: CreateAdminReviewRequest}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminReview>>,
+        TError,
+        {data: CreateAdminReviewRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getCreateAdminReviewMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * Public endpoint — returns only `approved` reviews. Use
+`GET /api/admin/reviews` to see pending and rejected ones.
+
+ * @summary List published reviews for a villa
  */
 export const listVillaReviews = (
     slug: string,
@@ -237,7 +471,7 @@ export function useListVillaReviews<TData = Awaited<ReturnType<typeof listVillaR
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary List all reviews for a villa
+ * @summary List published reviews for a villa
  */
 
 export function useListVillaReviews<TData = Awaited<ReturnType<typeof listVillaReviews>>, TError = ErrorResponse>(
@@ -257,3 +491,160 @@ export function useListVillaReviews<TData = Awaited<ReturnType<typeof listVillaR
 
 
 
+/**
+ * @summary Curated rating figures for a villa
+ */
+export const getVillaReviewMeta = (
+    slug: string,
+ signal?: AbortSignal
+) => {
+      
+      
+      return customAxios<ReviewMeta>(
+      {url: `/api/villas/${slug}/reviews/meta`, method: 'GET', signal
+    },
+      );
+    }
+  
+
+
+
+export const getGetVillaReviewMetaQueryKey = (slug?: string,) => {
+    return [
+    `/api/villas/${slug}/reviews/meta`
+    ] as const;
+    }
+
+    
+export const getGetVillaReviewMetaQueryOptions = <TData = Awaited<ReturnType<typeof getVillaReviewMeta>>, TError = ErrorResponse>(slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVillaReviewMeta>>, TError, TData>>, }
+) => {
+
+const {query: queryOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVillaReviewMetaQueryKey(slug);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVillaReviewMeta>>> = ({ signal }) => getVillaReviewMeta(slug, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(slug), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVillaReviewMeta>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetVillaReviewMetaQueryResult = NonNullable<Awaited<ReturnType<typeof getVillaReviewMeta>>>
+export type GetVillaReviewMetaQueryError = ErrorResponse
+
+
+export function useGetVillaReviewMeta<TData = Awaited<ReturnType<typeof getVillaReviewMeta>>, TError = ErrorResponse>(
+ slug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVillaReviewMeta>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getVillaReviewMeta>>,
+          TError,
+          Awaited<ReturnType<typeof getVillaReviewMeta>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetVillaReviewMeta<TData = Awaited<ReturnType<typeof getVillaReviewMeta>>, TError = ErrorResponse>(
+ slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVillaReviewMeta>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getVillaReviewMeta>>,
+          TError,
+          Awaited<ReturnType<typeof getVillaReviewMeta>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetVillaReviewMeta<TData = Awaited<ReturnType<typeof getVillaReviewMeta>>, TError = ErrorResponse>(
+ slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVillaReviewMeta>>, TError, TData>>, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Curated rating figures for a villa
+ */
+
+export function useGetVillaReviewMeta<TData = Awaited<ReturnType<typeof getVillaReviewMeta>>, TError = ErrorResponse>(
+ slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVillaReviewMeta>>, TError, TData>>, }
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+
+  const queryOptions = getGetVillaReviewMetaQueryOptions(slug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+/**
+ * @summary Replace the curated rating figures
+ */
+export const putVillaReviewMeta = (
+    slug: string,
+    reviewMeta: ReviewMeta,
+ ) => {
+      
+      
+      return customAxios<ReviewMeta>(
+      {url: `/api/villas/${slug}/reviews/meta`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: reviewMeta
+    },
+      );
+    }
+  
+
+
+export const getPutVillaReviewMetaMutationOptions = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putVillaReviewMeta>>, TError,{slug: string;data: ReviewMeta}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof putVillaReviewMeta>>, TError,{slug: string;data: ReviewMeta}, TContext> => {
+
+const mutationKey = ['putVillaReviewMeta'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putVillaReviewMeta>>, {slug: string;data: ReviewMeta}> = (props) => {
+          const {slug,data} = props ?? {};
+
+          return  putVillaReviewMeta(slug,data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutVillaReviewMetaMutationResult = NonNullable<Awaited<ReturnType<typeof putVillaReviewMeta>>>
+    export type PutVillaReviewMetaMutationBody = ReviewMeta
+    export type PutVillaReviewMetaMutationError = ErrorResponse
+
+    /**
+ * @summary Replace the curated rating figures
+ */
+export const usePutVillaReviewMeta = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putVillaReviewMeta>>, TError,{slug: string;data: ReviewMeta}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof putVillaReviewMeta>>,
+        TError,
+        {slug: string;data: ReviewMeta},
+        TContext
+      > => {
+
+      const mutationOptions = getPutVillaReviewMetaMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    

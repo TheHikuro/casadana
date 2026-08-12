@@ -1,6 +1,7 @@
 export * from "./generated/admin/admin"
 export * from "./generated/bookings/bookings"
 export * from "./generated/health/health"
+export * from "./generated/history/history"
 export * from "./generated/pricing/pricing"
 export * from "./generated/reviews/reviews"
 export * from "./generated/schemas"
