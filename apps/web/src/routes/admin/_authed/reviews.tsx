@@ -62,12 +62,14 @@ function ReviewsPage() {
   const visible = reviews.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
   // Deleting the last row of the last page would otherwise strand the URL on a
-  // page that no longer exists.
+  // page that no longer exists. Waiting for the fetch is the point: until it
+  // lands there are no rows, so maxPage reads as 1 and a link straight to
+  // ?page=3 would be rewritten to page 1 before the data ever arrived.
   useEffect(() => {
-    if (page > maxPage) {
+    if (data && page > maxPage) {
       navigate({ replace: true, search: (prev) => ({ ...prev, page: maxPage }) })
     }
-  }, [page, maxPage, navigate])
+  }, [data, page, maxPage, navigate])
 
   const goToPage = (nextPage: number) => {
     navigate({ search: (prev) => ({ ...prev, page: nextPage }) })
