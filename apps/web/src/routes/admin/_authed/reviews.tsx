@@ -1,4 +1,4 @@
-import { useListAdminReviews } from "@casa-dana/api"
+import { useGetVillaReviewMeta, useListAdminReviews } from "@casa-dana/api"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useEffect } from "react"
 
@@ -43,14 +43,19 @@ function ReviewsPage() {
   const navigate = useNavigate({ from: Route.fullPath })
 
   // The admin endpoint returns every review for the villa in one go, so the
-  // stats and the pagination below are both derived client-side.
+  // counts and the pagination below are both derived client-side.
   const { data } = useListAdminReviews({ villa_slug: property })
   const reviews = data?.reviews ?? []
+
+  // Read from the meta rather than averaging the rows: the published figure
+  // counts approved reviews only, and a tile disagreeing with it would read as
+  // a bug.
+  const { data: meta } = useGetVillaReviewMeta(property)
+  const average = meta && meta.display_count > 0 ? meta.display_avg.toFixed(2) : "—"
 
   const total = reviews.length
   const published = reviews.filter((r) => r.status === "approved").length
   const featured = reviews.filter((r) => r.featured).length
-  const average = total === 0 ? 0 : reviews.reduce((sum, r) => sum + r.rating, 0) / total
 
   const maxPage = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const currentPage = Math.min(page, maxPage)
@@ -103,15 +108,14 @@ function ReviewsPage() {
       </div>
 
       <StatRow>
-        <StatTile label="Average rating" value={average.toFixed(2)} />
+        <StatTile label="Average rating" value={average} />
         <StatTile label="Total reviews" value={total} />
         <StatTile label="Published" value={published} />
         <StatTile label="Featured" value={featured} />
       </StatRow>
 
       <div className="flex flex-col gap-5">
-        {/* Remounted on a property switch so the form re-seeds from that villa's meta. */}
-        <RatingBreakdownCard key={property} property={property} />
+        <RatingBreakdownCard property={property} />
 
         <AdminCard title="Individual reviews" flush>
           <ReviewTable reviews={visible} property={property} />

@@ -1,6 +1,7 @@
 import {
   type Review,
   type ReviewStatus,
+  getGetVillaReviewMetaQueryKey,
   getListAdminReviewsQueryKey,
   getListVillaReviewsQueryKey,
   useDeleteReview,
@@ -25,10 +26,12 @@ export default function ReviewTable({ reviews, property }: ReviewTableProps) {
 
   // Invalidate at the admin endpoint prefix (the list is fetched unpaginated,
   // but the prefix also covers the per-status variants), plus the public list
-  // this villa's site page reads from.
+  // this villa's site page reads from. Moderating a review also recomputes the
+  // published rating, so the meta has to go with them.
   const invalidateReviews = () => {
     queryClient.invalidateQueries({ queryKey: getListAdminReviewsQueryKey() })
     queryClient.invalidateQueries({ queryKey: getListVillaReviewsQueryKey(property) })
+    queryClient.invalidateQueries({ queryKey: getGetVillaReviewMetaQueryKey(property) })
   }
 
   const { mutate: patchReview } = usePatchReview({
