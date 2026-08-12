@@ -26,16 +26,6 @@ interface Bar {
   value: string
 }
 
-interface Card {
-  key: string
-  initial: string
-  name: string
-  meta: string
-  quote: string
-  source: string
-  stars: number
-}
-
 function Stars({ count }: { count: number }) {
   return (
     <span className="text-secondary text-[13px] tracking-[2px]">
@@ -49,44 +39,40 @@ export default function VillaReviews({ villaSlug, data }: VillaReviewsProps) {
   const { data: meta } = useGetVillaReviewMeta(villaSlug)
   const { data: list } = useListVillaReviews(villaSlug)
 
-  // Real, admin-approved guest reviews — the only branch that shows actual
-  // guest words. Everything under `data` is STATIC MARKETING SHOWCASE COPY from
-  // villas.const.ts: invented sample reviews, NOT real guests. It renders while
-  // the queries are in flight and for villas that have no approved review yet,
-  // so the marketing page never shows an empty section. Real data wins as soon
-  // as it exists.
+  // Only real, admin-approved guest reviews are ever shown. With none to show
+  // — while the queries are in flight, or for a villa whose first review has
+  // yet to be approved — the whole section drops out of the page. There is no
+  // sample copy standing in: an invented review reads as a real guest's words.
   const published =
     meta && list && meta.display_count > 0 && list.reviews.length > 0
       ? { meta, reviews: list.reviews }
       : null
 
-  const bars: Array<Bar> = published
-    ? BAR_CATEGORIES.flatMap((category, i) => {
-        const score = published.meta.breakdown[category]
-        const label = data.bars[i]?.label
-        // A null score means no approved review rated that category — drop the
-        // bar rather than drawing it at zero.
-        if (score === null || label === undefined) return []
-        return [{ label, pct: (score / 5) * 100, value: score.toFixed(1) }]
-      })
-    : data.bars
+  if (!published) return null
 
-  const cards: Array<Card> = published
-    ? published.reviews.map((review) => ({
-        key: review.id,
-        initial: review.author_name.slice(0, 1).toUpperCase(),
-        name: review.author_name,
-        meta: review.meta,
-        quote: review.body,
-        source: review.source,
-        stars: review.rating,
-      }))
-    : data.entries.map((entry) => ({ ...entry, key: entry.name }))
+  const bars: Array<Bar> = BAR_CATEGORIES.flatMap((category, i) => {
+    const score = published.meta.breakdown[category]
+    const label = data.barLabels[i]
+    // A null score means no approved review rated that category — drop the
+    // bar rather than drawing it at zero.
+    if (score === null || label === undefined) return []
+    return [{ label, pct: (score / 5) * 100, value: score.toFixed(1) }]
+  })
 
-  const score = published ? published.meta.display_avg : data.score
-  const count = published ? published.meta.display_count : data.count
+  const cards = published.reviews.map((review) => ({
+    key: review.id,
+    initial: review.author_name.slice(0, 1).toUpperCase(),
+    name: review.author_name,
+    meta: review.meta,
+    quote: review.body,
+    source: review.source,
+    stars: review.rating,
+  }))
+
+  const score = published.meta.display_avg
+  const count = published.meta.display_count
   // The headline star row used to be five hardcoded glyphs; keep it truthful
-  // once it stands for a computed average.
+  // now that it stands for a computed average.
   const filledStars = Math.min(5, Math.max(0, Math.round(score)))
 
   return (

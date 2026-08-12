@@ -29,7 +29,6 @@ export interface PropertyCardProps {
   description: Array<string>
   exploreLabel: string
   price: { amount: number; currency: string }
-  rating: { score: number; count: number }
   imageUrl: string
   imageAlt: string
   layout: "left" | "right"
@@ -79,11 +78,7 @@ function PropertyFeatures({ features }: { features: PropertyCardProps["features"
   )
 }
 
-function PropertyMeta({
-  villaId,
-  price,
-  rating,
-}: Pick<PropertyCardProps, "price" | "rating"> & { villaId: string }) {
+function PropertyMeta({ villaId, price }: Pick<PropertyCardProps, "price"> & { villaId: string }) {
   // The nightly rate is edited per villa in the back-office (same source as the
   // villa page's booking panel). `price.amount` is only a fallback: settings
   // read back all-zero for a villa that has never been configured.
@@ -93,8 +88,9 @@ function PropertyMeta({
     : price.amount
 
   // Computed from the villa's approved reviews, so this card agrees with the
-  // reviews section on the villa page it links to.
-  const { score, count, filledStars } = usePublishedRating(villaId, rating)
+  // reviews section on the villa page it links to. Null until a review is
+  // approved — the card then shows no rating at all rather than an invented one.
+  const rating = usePublishedRating(villaId)
 
   return (
     <div className="flex flex-col items-start justify-between gap-3 md:flex-row md:items-baseline">
@@ -105,13 +101,15 @@ function PropertyMeta({
           {m.prop_price_per_night()}
         </small>
       </div>
-      <div className="text-on-surface-variant font-mono text-[11px] tracking-[0.15em]">
-        <span className="text-secondary mr-1 tracking-[2px]">
-          {"★".repeat(filledStars)}
-          {"☆".repeat(5 - filledStars)}
-        </span>
-        {score.toFixed(2)} · {m.prop_rating_reviews({ count })}
-      </div>
+      {rating && (
+        <div className="text-on-surface-variant font-mono text-[11px] tracking-[0.15em]">
+          <span className="text-secondary mr-1 tracking-[2px]">
+            {"★".repeat(rating.filledStars)}
+            {"☆".repeat(5 - rating.filledStars)}
+          </span>
+          {rating.score.toFixed(2)} · {m.prop_rating_reviews({ count: rating.count })}
+        </div>
+      )}
     </div>
   )
 }
@@ -127,7 +125,6 @@ export default function PropertyCard({
   description,
   exploreLabel,
   price,
-  rating,
   imageUrl,
   imageAlt,
   features,
@@ -171,7 +168,7 @@ export default function PropertyCard({
 
             <PropertyFeatures features={features} />
 
-            <PropertyMeta villaId={id} price={price} rating={rating} />
+            <PropertyMeta villaId={id} price={price} />
 
             <Link
               to="/villa/$villaId"

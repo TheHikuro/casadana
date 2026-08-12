@@ -193,11 +193,9 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
   const cleaningFeeCents = settings?.cleaning_fee_cents ?? 0
 
   // Computed from approved reviews — the same figures the reviews section
-  // further down the page shows.
-  const publishedRating = usePublishedRating(villaSlug, {
-    score: booking.rating,
-    count: booking.reviewCount,
-  })
+  // further down the page shows. Null until a review is approved, in which case
+  // the panel shows the rate alone rather than a rating no guest ever gave.
+  const publishedRating = usePublishedRating(villaSlug)
 
   function datesToSet(ranges: Array<{ check_in: string; check_out: string }>): Set<string> {
     const set = new Set<string>()
@@ -373,16 +371,18 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
             {m.villa_booking_per_night()}
           </small>
         </div>
-        <div className="flex flex-col items-end gap-1 font-mono text-[11px] tracking-[0.1em]">
-          <span className="text-secondary text-[13px] tracking-[2px]">
-            {"★".repeat(publishedRating.filledStars)}
-            {"☆".repeat(5 - publishedRating.filledStars)}
-          </span>
-          <span className="text-on-surface-variant">
-            {publishedRating.score.toFixed(2)} ·{" "}
-            {m.villa_booking_review_count({ count: publishedRating.count })}
-          </span>
-        </div>
+        {publishedRating && (
+          <div className="flex flex-col items-end gap-1 font-mono text-[11px] tracking-[0.1em]">
+            <span className="text-secondary text-[13px] tracking-[2px]">
+              {"★".repeat(publishedRating.filledStars)}
+              {"☆".repeat(5 - publishedRating.filledStars)}
+            </span>
+            <span className="text-on-surface-variant">
+              {publishedRating.score.toFixed(2)} ·{" "}
+              {m.villa_booking_review_count({ count: publishedRating.count })}
+            </span>
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate>

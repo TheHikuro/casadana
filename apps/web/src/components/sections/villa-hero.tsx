@@ -1,10 +1,32 @@
 import { useGetVillaPricingSettings } from "@casa-dana/api"
 
+import { usePublishedRating } from "@/lib/use-published-rating"
 import { m } from "@/paraglide/messages"
+import { getLocale } from "@/paraglide/runtime"
 
 interface Stat {
   label: string
   value: string
+}
+
+/**
+ * The last stat of the band: this villa's rating, read from its own approved
+ * reviews so the hero, the booking panel and the reviews section below can only
+ * ever quote the same figure.
+ *
+ * With no approved review — and while the query is in flight — the score is a
+ * plain 0 rather than an invented average.
+ */
+function useRatingStat(villaSlug: string): Stat {
+  const rating = usePublishedRating(villaSlug)
+  const score = rating?.score ?? 0
+
+  return {
+    label: m.villa_hero_stat_rating_label(),
+    value: m.villa_hero_stat_rating_value({
+      score: new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 2 }).format(score),
+    }),
+  }
 }
 
 interface VillaHeroProps {
@@ -35,6 +57,11 @@ export default function VillaHero({
   // has never been configured (settings read back all-zero then).
   const { data: settings } = useGetVillaPricingSettings(villaSlug)
   const amount = settings?.base_price_cents ? Math.round(settings.base_price_cents / 100) : price
+
+  // The villa's own stats are static facts (sleeps, bedrooms, surface…); the
+  // rating is the one figure that has to be read from the approved reviews.
+  const ratingStat = useRatingStat(villaSlug)
+  const allStats = [...stats, ratingStat]
 
   return (
     <section className="relative h-screen min-h-[600px] overflow-hidden text-white md:min-h-[720px]">
@@ -81,11 +108,11 @@ export default function VillaHero({
         </div>
 
         <div className="grid grid-cols-2 border-y border-white/25 py-5 md:grid-cols-5 md:py-6">
-          {stats.map((stat, i) => (
+          {allStats.map((stat, i) => (
             <div
               key={stat.label}
               className={`px-4 md:px-7 ${i !== 0 ? "md:border-l md:border-white/20" : ""} ${
-                i < stats.length - (stats.length % 2 === 0 ? 2 : 1)
+                i < allStats.length - (allStats.length % 2 === 0 ? 2 : 1)
                   ? "border-b border-white/20 pb-3 md:border-b-0 md:pb-0"
                   : ""
               }`}

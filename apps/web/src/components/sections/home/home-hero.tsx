@@ -1,9 +1,34 @@
 import bgHome from "@/assets/shared/bg-home.jpeg"
+import { type PublishedRating, usePublishedRating } from "@/lib/use-published-rating"
 import { m } from "@/paraglide/messages"
+import { getLocale } from "@/paraglide/runtime"
 
 interface VitalStat {
   label: string
   value: string
+}
+
+/**
+ * The rating for the collection as a whole: each villa's published score,
+ * weighted by how many approved reviews stand behind it, so the home page can
+ * never quote a figure the two villa pages don't add up to.
+ *
+ * A villa with no approved review contributes nothing; with none approved
+ * anywhere the hero shows a plain 0 rather than an invented score.
+ */
+function useCollectionRatingValue(): string {
+  const rated = [usePublishedRating("casadana"), usePublishedRating("casacasay")].filter(
+    (rating): rating is PublishedRating => rating !== null,
+  )
+  const reviewCount = rated.reduce((total, rating) => total + rating.count, 0)
+  const score =
+    reviewCount === 0
+      ? 0
+      : rated.reduce((total, rating) => total + rating.score * rating.count, 0) / reviewCount
+
+  return m.home_hero_stat_rating_value({
+    score: new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 1 }).format(score),
+  })
 }
 
 function HeroStats({ stats }: { stats: VitalStat[] }) {
@@ -27,11 +52,13 @@ function HeroStats({ stats }: { stats: VitalStat[] }) {
 }
 
 export default function HomeHero() {
+  const ratingValue = useCollectionRatingValue()
+
   const stats: VitalStat[] = [
     { label: m.home_hero_stat_properties_label(), value: m.home_hero_stat_properties_value() },
     { label: m.home_hero_stat_sleeps_label(), value: m.home_hero_stat_sleeps_value() },
     { label: m.home_hero_stat_region_label(), value: m.home_hero_stat_region_value() },
-    { label: m.home_hero_stat_rating_label(), value: m.home_hero_stat_rating_value() },
+    { label: m.home_hero_stat_rating_label(), value: ratingValue },
   ]
 
   return (
@@ -83,8 +110,15 @@ export default function HomeHero() {
         <HeroStats stats={stats} />
 
         <div className="flex flex-col items-start justify-between gap-4 py-8 md:flex-row md:items-center md:py-9">
-          <p className="max-w-[36ch] text-sm leading-relaxed text-white/85 md:text-[14.5px]">
-            {m.home_hero_paragraph()}
+          <p className="max-w-[46ch] text-sm leading-relaxed text-white/85 md:text-[14.5px]">
+            {m
+              .home_hero_paragraph()
+              .split("\n")
+              .map((line) => (
+                <span key={line} className="block">
+                  {line}
+                </span>
+              ))}
           </p>
           <a
             href="#collection"
