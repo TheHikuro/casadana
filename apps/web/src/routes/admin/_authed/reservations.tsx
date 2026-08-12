@@ -4,6 +4,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 
 import AddReservationDialog from "@/components/admin/add-reservation-dialog"
 import ReservationTable from "@/components/admin/reservation-table"
+import { StatTile } from "@/components/admin/ui/stat-tile"
 import { Button } from "@/components/ui/button"
 
 const PROPERTIES = ["casadana", "casacasay"] as const
@@ -147,15 +148,4 @@ function useStatusTotals(property: Property): Partial<Record<BookingStatus, numb
     cancelled: cancelledQuery.data?.total,
     paid: paidQuery.data?.total,
   }
-}
-
-function StatTile({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="border-outline-variant bg-surface rounded-lg border px-4 py-3.5">
-      <p className="text-on-surface-variant text-[11px] font-semibold tracking-[0.06em] uppercase">
-        {label}
-      </p>
-      <p className="text-on-surface mt-1.5 font-mono text-2xl font-bold">{value}</p>
-    </div>
-  )
 }
