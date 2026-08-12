@@ -58,6 +58,27 @@
   --color-outline: oklch(55.5% 0.03 60);
   --color-outline-variant: oklch(79.5% 0.02 60);
 
+  /* shadcn/base-ui token aliases.
+     components/ui/* is written against shadcn naming; the palette above is
+     Material 3. Without these the classes resolve to nothing and text falls
+     back to the body colour (e.g. black labels on bg-primary buttons). */
+  --color-foreground: var(--color-on-surface);
+  --color-primary-foreground: var(--color-on-primary);
+  --color-secondary-foreground: var(--color-on-secondary);
+  --color-muted: var(--color-surface-container);
+  --color-muted-foreground: var(--color-on-surface-variant);
+  --color-accent: var(--color-surface-container-high);
+  --color-accent-foreground: var(--color-on-surface);
+  --color-card: var(--color-surface);
+  --color-card-foreground: var(--color-on-surface);
+  --color-popover: var(--color-surface);
+  --color-popover-foreground: var(--color-on-surface);
+  --color-border: var(--color-outline-variant);
+  --color-input: var(--color-outline-variant);
+  --color-ring: var(--color-primary);
+  --color-destructive: var(--color-error);
+  --color-destructive-foreground: var(--color-on-error);
+
   --font-display: "Fraunces", "Noto Serif", Georgia, serif;
   --font-body: "Inter", system-ui, sans-serif;
   --font-headline: "Fraunces", "Noto Serif", Georgia, serif;
