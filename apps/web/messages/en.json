@@ -1,8 +1,7 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "nav_brand": "Casa DaNa & CasAy",
-  "nav_brand_main": "Casa DaNa",
-  "nav_brand_sub": "& CasAy · Los Alcázares",
+  "nav_brand_main": "Casa DaNa & CasAy",
+  "nav_brand_sub": "Los Alcázares",
   "nav_bookNow": "Book now",
   "nav_link_collection": "The Collection",
   "nav_link_dana": "Casa DaNa",
