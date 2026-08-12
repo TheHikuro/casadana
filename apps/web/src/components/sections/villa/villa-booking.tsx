@@ -3,6 +3,7 @@ import {
   useCreateBooking,
   useGetVillaAvailability,
   useGetVillaPricing,
+  useGetVillaPricingSettings,
 } from "@casa-dana/api"
 import { keepPreviousData, useQueryClient } from "@tanstack/react-query"
 import { addDays, addMonths, endOfMonth, format, parseISO, startOfMonth } from "date-fns"
@@ -182,6 +183,14 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
     },
   )
 
+  // Base rate and the cleaning fee both live in the back-office, per villa.
+  // `GET .../pricing/settings` is public and reads back all-zero for a villa
+  // that has never been configured, so anything unset falls back to the
+  // hardcoded content values rather than showing €0.
+  const { data: settings } = useGetVillaPricingSettings(villaSlug)
+  const baseNightlyCents = settings?.base_price_cents || booking.nightly * 100
+  const cleaningFeeCents = settings?.cleaning_fee_cents ?? 0
+
   function datesToSet(ranges: Array<{ check_in: string; check_out: string }>): Set<string> {
     const set = new Set<string>()
     for (const r of ranges) {
@@ -219,21 +228,23 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
   const priceCentsFor = (date: Date): number => {
     const key = format(date, "yyyy-MM-dd")
     const override = priceOverridesByDate.get(key)
-    return override ?? booking.nightly * 100
+    return override ?? baseNightlyCents
   }
 
   const nights = nightsBetween(checkIn, checkOut)
   // Inline the override lookup to keep the dep array honest (priceCentsFor is a
   // plain function reference that React can't track).
-  const totalCents = useMemo(() => {
+  const nightsCents = useMemo(() => {
     let sum = 0
     for (let day = new Date(checkIn); day < checkOut; day = addDays(day, 1)) {
       const key = format(day, "yyyy-MM-dd")
-      sum += priceOverridesByDate.get(key) ?? booking.nightly * 100
+      sum += priceOverridesByDate.get(key) ?? baseNightlyCents
     }
     return sum
-  }, [checkIn, checkOut, priceOverridesByDate, booking.nightly])
-  const total = totalCents / 100
+  }, [checkIn, checkOut, priceOverridesByDate, baseNightlyCents])
+  const nightsSubtotal = nightsCents / 100
+  const cleaningFee = cleaningFeeCents / 100
+  const total = (nightsCents + cleaningFeeCents) / 100
 
   // Groups selected nights by their per-night price so the summary can show
   // "5 nights at €95" / "2 nights at €120" instead of a single blended total
@@ -242,13 +253,13 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
     const counts = new Map<number, number>()
     for (let day = new Date(checkIn); day < checkOut; day = addDays(day, 1)) {
       const key = format(day, "yyyy-MM-dd")
-      const priceCents = priceOverridesByDate.get(key) ?? booking.nightly * 100
+      const priceCents = priceOverridesByDate.get(key) ?? baseNightlyCents
       counts.set(priceCents, (counts.get(priceCents) ?? 0) + 1)
     }
     return Array.from(counts.entries())
       .map(([priceCents, count]) => ({ priceCents, count }))
       .sort((a, b) => a.priceCents - b.priceCents)
-  }, [checkIn, checkOut, priceOverridesByDate, booking.nightly])
+  }, [checkIn, checkOut, priceOverridesByDate, baseNightlyCents])
 
   useEffect(() => {
     if (!activeField) return
@@ -349,7 +360,7 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
     >
       <div className="border-outline-variant mb-6 flex items-baseline justify-between gap-4 border-b pb-6">
         <div className="font-display text-primary text-[34px] leading-none font-light italic md:text-[38px]">
-          €{booking.nightly}
+          €{Math.round(baseNightlyCents / 100)}
           <small className="text-on-surface-variant ml-1 font-sans text-[13px] not-italic">
             {m.villa_booking_per_night()}
           </small>
@@ -634,7 +645,13 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
               {nights}{" "}
               {nights === 1 ? m.villa_booking_night_singular() : m.villa_booking_night_plural()}
             </span>
-            <span>€{total.toLocaleString()}</span>
+            <span>€{nightsSubtotal.toLocaleString()}</span>
+          </div>
+        )}
+        {cleaningFee > 0 && (
+          <div className="text-on-surface-variant flex justify-between">
+            <span>{m.villa_booking_cleaning_fee()}</span>
+            <span>€{cleaningFee.toLocaleString()}</span>
           </div>
         )}
         <div className="font-display text-primary border-outline-variant mt-1 flex justify-between border-t pt-3.5 text-[22px] italic">
