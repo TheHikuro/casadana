@@ -41,13 +41,6 @@ export default function VillaDetailPage() {
     )
   }
 
-  const openLb = (c: GalleryCategory) => {
-    const hasImages = villa.gallery.images[c]?.length > 0
-    if (!hasImages) return
-    setLbCategory(c)
-    setLbOpen(true)
-  }
-
   const openAll = () => {
     const firstCat = (Object.keys(villa.gallery.images) as GalleryCategory[]).find(
       (c) => villa.gallery.images[c].length > 0,
@@ -63,7 +56,7 @@ export default function VillaDetailPage() {
       <VillaHero villaSlug={villaId} {...villa.hero} />
       <VillaRibbon phrases={villa.ribbon} />
       <VillaAbout villaSlug={villaId} about={villa.about} booking={villa.booking} />
-      <VillaGalleryBento data={villa.gallery} onTileClick={openLb} onOpenAll={openAll} />
+      <VillaGalleryBento data={villa.gallery} onOpenAll={openAll} />
       <VillaLocalArea data={villa.localArea} />
       <VillaExperiences data={villa.experiences} />
       <VillaReviews villaSlug={villaId} data={villa.reviews} />

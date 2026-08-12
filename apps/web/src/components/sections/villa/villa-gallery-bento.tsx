@@ -1,13 +1,15 @@
 import { ArrowRight, ArrowUpRight } from "lucide-react"
+import { useMemo, useState } from "react"
 
 import { GalleryCategory } from "@/constants/gallery-categories.const"
 import type { BentoTile, VillaData } from "@/constants/villas.const"
 import { cn } from "@/lib/utils"
 import { m } from "@/paraglide/messages"
 
+import VillaPhotoViewer from "./villa-photo-viewer"
+
 interface VillaGalleryBentoProps {
   data: VillaData["gallery"]
-  onTileClick: (category: GalleryCategory) => void
   onOpenAll: () => void
 }
 
@@ -45,11 +47,26 @@ function PlaceholderArt({ label }: { label: string }) {
   )
 }
 
-export default function VillaGalleryBento({
-  data,
-  onTileClick,
-  onOpenAll,
-}: VillaGalleryBentoProps) {
+export default function VillaGalleryBento({ data, onOpenAll }: VillaGalleryBentoProps) {
+  // The open photo is identified by its category + position, so the viewer keeps
+  // working whatever the number of photos in each category is.
+  const [viewer, setViewer] = useState<{ category: GalleryCategory; index: number } | null>(null)
+  const viewerCategory = viewer?.category
+
+  const viewerPhotos = useMemo(
+    () => (viewerCategory ? (data.images[viewerCategory] ?? []) : []),
+    [viewerCategory, data.images],
+  )
+
+  const photosFor = (category: GalleryCategory) => data.images[category] ?? []
+
+  const openTile = (tile: BentoTile) => {
+    const photos = photosFor(tile.category)
+    if (photos.length === 0) return
+    const startIndex = photos.findIndex((photo) => photo.src === tile.src)
+    setViewer({ category: tile.category, index: startIndex === -1 ? 0 : startIndex })
+  }
+
   return (
     <section id="gallery" className="bg-surface-container-low py-20 md:py-[140px]">
       <div className="mx-auto max-w-[1440px] px-6 md:px-10">
@@ -69,38 +86,29 @@ export default function VillaGalleryBento({
         </div>
 
         <div className="grid auto-rows-[220px] grid-cols-1 gap-3 md:grid-cols-12">
-          {data.tiles.map((tile, i) => (
-            <button
-              key={`${tile.label}-${i}`}
-              type="button"
-              onClick={() => onTileClick(tile.category)}
-              className={cn("group relative overflow-hidden text-left", SPAN_CLASSES[tile.span])}
-            >
-              {tile.placeholder ? (
-                <PlaceholderArt label={tile.placeholderLabel ?? tile.caption} />
-              ) : (
-                <>
-                  <img
-                    src={tile.src}
-                    alt={tile.caption}
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700"
-                    style={{ willChange: "transform" }}
-                    onMouseEnter={(e) => {
-                      ;(e.currentTarget as HTMLImageElement).style.transform = "scale(1.06)"
-                    }}
-                    onMouseLeave={(e) => {
-                      ;(e.currentTarget as HTMLImageElement).style.transform = "scale(1)"
-                    }}
-                  />
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      background:
-                        "linear-gradient(180deg, transparent 45%, oklch(23.6% 0.108 253 / 0.7) 100%)",
-                    }}
-                  />
-                </>
-              )}
+          {data.tiles.map((tile, i) => {
+            const canOpen = photosFor(tile.category).length > 0
+            const visual = tile.placeholder ? (
+              <PlaceholderArt label={tile.placeholderLabel ?? tile.caption} />
+            ) : (
+              <>
+                <img
+                  src={tile.src}
+                  alt={tile.caption}
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.06] group-focus-visible:scale-[1.06]"
+                  style={{ willChange: "transform" }}
+                />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background:
+                      "linear-gradient(180deg, transparent 45%, oklch(23.6% 0.108 253 / 0.7) 100%)",
+                  }}
+                />
+              </>
+            )
+
+            const caption = (
               <div className="relative z-10 flex h-full flex-col justify-end p-5 text-white">
                 <div className="flex items-end justify-between gap-4">
                   <div>
@@ -111,13 +119,46 @@ export default function VillaGalleryBento({
                       {tile.caption}
                     </div>
                   </div>
-                  <span className="group-hover:text-primary inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-white/50 text-white transition-colors group-hover:bg-white">
-                    <ArrowUpRight size={14} />
-                  </span>
+                  {canOpen && (
+                    <span className="group-hover:text-primary group-focus-visible:text-primary inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-white/50 text-white transition-colors group-hover:bg-white group-focus-visible:bg-white">
+                      <ArrowUpRight size={14} />
+                    </span>
+                  )}
                 </div>
               </div>
-            </button>
-          ))}
+            )
+
+            const spanClass = SPAN_CLASSES[tile.span]
+
+            // Tiles without any photo behind them stay non-interactive rather than
+            // becoming a focusable control that does nothing.
+            if (!canOpen) {
+              return (
+                <div
+                  key={`${tile.label}-${i}`}
+                  className={cn("group relative overflow-hidden text-left", spanClass)}
+                >
+                  {visual}
+                  {caption}
+                </div>
+              )
+            }
+
+            return (
+              <button
+                key={`${tile.label}-${i}`}
+                type="button"
+                onClick={() => openTile(tile)}
+                className={cn(
+                  "group focus-visible:outline-primary relative cursor-zoom-in overflow-hidden text-left focus-visible:outline-2 focus-visible:outline-offset-2",
+                  spanClass,
+                )}
+              >
+                {visual}
+                {caption}
+              </button>
+            )
+          })}
         </div>
 
         <div className="mt-8 flex justify-end">
@@ -131,6 +172,15 @@ export default function VillaGalleryBento({
           </button>
         </div>
       </div>
+
+      <VillaPhotoViewer
+        photos={viewerPhotos}
+        index={viewer?.index ?? null}
+        onIndexChange={(index) =>
+          setViewer((current) => (current ? { ...current, index } : current))
+        }
+        onClose={() => setViewer(null)}
+      />
     </section>
   )
 }

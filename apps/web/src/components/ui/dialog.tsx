@@ -23,6 +23,14 @@ function DialogBackdrop({ className, ...props }: DialogPrimitive.Backdrop.Props)
   )
 }
 
+/**
+ * Unstyled popup part, for dialogs that need to own their own layout (e.g. a
+ * full-screen media viewer). Prefer `DialogContent` for regular dialogs.
+ */
+function DialogPopup({ className, ...props }: DialogPrimitive.Popup.Props) {
+  return <DialogPrimitive.Popup data-slot="dialog-popup" className={cn(className)} {...props} />
+}
+
 function DialogContent({ className, children, ...props }: DialogPrimitive.Popup.Props) {
   return (
     <DialogPortal>
@@ -57,6 +65,7 @@ export {
   DialogClose,
   DialogPortal,
   DialogBackdrop,
+  DialogPopup,
   DialogContent,
   DialogTitle,
 }
