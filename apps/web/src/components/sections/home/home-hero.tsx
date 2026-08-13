@@ -83,9 +83,6 @@ export default function HomeHero() {
         <div>
           <div className="mb-7 flex flex-wrap gap-x-4 gap-y-2">
             <span className="font-mono text-[11px] tracking-[0.22em] text-white/85 uppercase">
-              {m.home_hero_meta_collection()}
-            </span>
-            <span className="font-mono text-[11px] tracking-[0.22em] text-white/85 uppercase">
               {m.home_hero_meta_region()}
             </span>
             <span className="font-mono text-[11px] tracking-[0.22em] text-white/85 uppercase">

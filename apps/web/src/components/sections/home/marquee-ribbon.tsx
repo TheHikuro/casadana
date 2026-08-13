@@ -6,7 +6,6 @@ export default function MarqueeRibbon() {
     m.home_marquee_direct_booking(),
     m.home_marquee_two_casas(),
     m.home_marquee_region(),
-    m.home_marquee_slow_travel(),
   ]
 
   return (

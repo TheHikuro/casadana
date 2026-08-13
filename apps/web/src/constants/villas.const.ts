@@ -238,8 +238,6 @@ function buildCasadana(): VillaData {
       m.villa_casadana_ribbon_2(),
       m.villa_casadana_ribbon_3(),
       m.villa_casadana_ribbon_4(),
-      m.villa_casadana_ribbon_5(),
-      m.villa_casadana_ribbon_6(),
     ],
     about: {
       chapter: m.villa_casadana_about_chapter(),
@@ -519,8 +517,6 @@ function buildCasadana(): VillaData {
         { question: m.villa_casadana_faq_2_question(), answer: m.villa_casadana_faq_2_answer() },
         { question: m.villa_casadana_faq_3_question(), answer: m.villa_casadana_faq_3_answer() },
         { question: m.villa_casadana_faq_4_question(), answer: m.villa_casadana_faq_4_answer() },
-        { question: m.villa_casadana_faq_5_question(), answer: m.villa_casadana_faq_5_answer() },
-        { question: m.villa_casadana_faq_6_question(), answer: m.villa_casadana_faq_6_answer() },
       ],
     },
     ctaStrip: {
