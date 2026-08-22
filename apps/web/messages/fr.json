@@ -225,6 +225,7 @@
   "villa_booking_nights_at_price": "{count} {nightsWord} à €{price}",
   "villa_booking_total": "Total",
   "villa_booking_cleaning_fee": "Frais de nettoyage",
+  "villa_booking_concierge_fee": "Frais de conciergerie",
   "villa_booking_no_charge_note": "Aucun débit pour le moment · confirmation sous 48 heures",
   "villa_booking_night_booked": "Déjà réservée",
   "villa_booking_night_pending": "En attente de confirmation",

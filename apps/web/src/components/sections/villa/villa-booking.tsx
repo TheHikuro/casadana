@@ -6,7 +6,15 @@ import {
   useGetVillaPricingSettings,
 } from "@casa-dana/api"
 import { keepPreviousData, useQueryClient } from "@tanstack/react-query"
-import { addDays, addMonths, endOfMonth, format, parseISO, startOfMonth } from "date-fns"
+import {
+  addDays,
+  addMonths,
+  differenceInCalendarDays,
+  endOfMonth,
+  format,
+  parseISO,
+  startOfMonth,
+} from "date-fns"
 import { ArrowRight, ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
@@ -44,6 +52,11 @@ const getDaysOfWeek = () => [
   m.villa_booking_day_sa(),
   m.villa_booking_day_su(),
 ]
+
+// Mirrors the API's own cap on a pricing window (maxCalendarDays in the
+// pricing service). Kept in sync by hand — the API answers a wider window
+// with a 422.
+const MAX_WINDOW_DAYS = 400
 
 function fmt(date: Date) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
@@ -156,9 +169,19 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
   // currently-viewed month).
   const queryWindow = useMemo(() => {
     const calFrom = startOfMonth(viewMonth)
-    const calTo = endOfMonth(addMonths(viewMonth, 1))
-    const from = checkIn < calFrom ? checkIn : calFrom
-    const to = checkOut > calTo ? checkOut : calTo
+    // The API window is [from, to) — exclusive — so pricing the last visible
+    // day takes one extra day.
+    const calTo = addDays(endOfMonth(addMonths(viewMonth, 1)), 1)
+    let from = checkIn < calFrom ? checkIn : calFrom
+    let to = checkOut > calTo ? checkOut : calTo
+    // The API rejects a window wider than MAX_WINDOW_DAYS, which a guest can
+    // reach by browsing a year away from their own dates. The stay wins that
+    // budget — the sidebar total is the number that has to be right — and the
+    // calendar keeps whatever is left.
+    if (differenceInCalendarDays(to, from) > MAX_WINDOW_DAYS) {
+      if (calFrom < checkIn) from = addDays(to, -MAX_WINDOW_DAYS)
+      else to = addDays(from, MAX_WINDOW_DAYS)
+    }
     return { from: format(from, "yyyy-MM-dd"), to: format(to, "yyyy-MM-dd") }
   }, [viewMonth, checkIn, checkOut])
 
@@ -174,7 +197,8 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
   )
 
   // Pricing is always enabled (not gated on calendar visibility) so the sidebar
-  // total reflects real overrides on first paint, before the user opens the calendar.
+  // total reflects the real back-office rates on first paint, before the user
+  // opens the calendar.
   const { data: pricing } = useGetVillaPricing(
     villaSlug,
     { from: queryWindow.from, to: queryWindow.to },
@@ -185,13 +209,15 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
     },
   )
 
-  // Base rate and the cleaning fee both live in the back-office, per villa.
+  // Base rate and both fees live in the back-office, per villa.
   // `GET .../pricing/settings` is public and reads back all-zero for a villa
-  // that has never been configured, so anything unset falls back to the
-  // hardcoded content values rather than showing €0.
+  // that has never been configured, so an unset base rate falls back to the
+  // hardcoded content value rather than showing €0, and an unset fee is simply
+  // not charged.
   const { data: settings } = useGetVillaPricingSettings(villaSlug)
   const baseNightlyCents = settings?.base_price_cents || booking.nightly * 100
   const cleaningFeeCents = settings?.cleaning_fee_cents ?? 0
+  const conciergeFeeCents = settings?.concierge_fee_cents ?? 0
 
   // Computed from approved reviews — the same figures the reviews section
   // further down the page shows. Null until a review is approved, in which case
@@ -224,49 +250,56 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
   const isPendingDate = (date: Date) => pendingNights.has(format(date, "yyyy-MM-dd"))
   const isUnavailable = (date: Date) => isBlocked(date) || isPendingDate(date)
 
-  const priceOverridesByDate = useMemo(() => {
+  // `nights` is the API's own answer for every day in the window: a per-date
+  // override wins, then the highest matching season rule, then the villa's base
+  // rate. Resolving it server-side is what keeps the panel in step with the
+  // back-office — reading the raw `overrides` list alone missed every seasonal
+  // rule the admin had configured.
+  const nightPricesByDate = useMemo(() => {
     const map = new Map<string, number>()
-    for (const o of pricing?.overrides ?? []) {
-      map.set(o.date, o.price_cents)
+    for (const night of pricing?.nights ?? []) {
+      // A villa with no base rate configured resolves to 0; leaving it out
+      // falls the night back to the editorial figure rather than advertising
+      // a free night.
+      if (night.price_cents > 0) map.set(night.date, night.price_cents)
     }
     return map
   }, [pricing])
 
-  const priceCentsFor = (date: Date): number => {
-    const key = format(date, "yyyy-MM-dd")
-    const override = priceOverridesByDate.get(key)
-    return override ?? baseNightlyCents
-  }
+  const priceCentsFor = (date: Date): number =>
+    nightPricesByDate.get(format(date, "yyyy-MM-dd")) ?? baseNightlyCents
 
   const nights = nightsBetween(checkIn, checkOut)
-  // Inline the override lookup to keep the dep array honest (priceCentsFor is a
-  // plain function reference that React can't track).
+  // Inline the per-night lookup to keep the dep array honest (priceCentsFor is
+  // a plain function reference that React can't track).
   const nightsCents = useMemo(() => {
     let sum = 0
     for (let day = new Date(checkIn); day < checkOut; day = addDays(day, 1)) {
       const key = format(day, "yyyy-MM-dd")
-      sum += priceOverridesByDate.get(key) ?? baseNightlyCents
+      sum += nightPricesByDate.get(key) ?? baseNightlyCents
     }
     return sum
-  }, [checkIn, checkOut, priceOverridesByDate, baseNightlyCents])
+  }, [checkIn, checkOut, nightPricesByDate, baseNightlyCents])
   const nightsSubtotal = nightsCents / 100
   const cleaningFee = cleaningFeeCents / 100
-  const total = (nightsCents + cleaningFeeCents) / 100
+  const conciergeFee = conciergeFeeCents / 100
+  // Both back-office fees are charged once per stay, on top of the nights.
+  const total = (nightsCents + cleaningFeeCents + conciergeFeeCents) / 100
 
   // Groups selected nights by their per-night price so the summary can show
   // "5 nights at €95" / "2 nights at €120" instead of a single blended total
-  // whenever price overrides make the stay span more than one price tier.
+  // whenever seasonal rates or overrides make the stay span more than one tier.
   const priceBreakdown = useMemo(() => {
     const counts = new Map<number, number>()
     for (let day = new Date(checkIn); day < checkOut; day = addDays(day, 1)) {
       const key = format(day, "yyyy-MM-dd")
-      const priceCents = priceOverridesByDate.get(key) ?? baseNightlyCents
+      const priceCents = nightPricesByDate.get(key) ?? baseNightlyCents
       counts.set(priceCents, (counts.get(priceCents) ?? 0) + 1)
     }
     return Array.from(counts.entries())
       .map(([priceCents, count]) => ({ priceCents, count }))
       .sort((a, b) => a.priceCents - b.priceCents)
-  }, [checkIn, checkOut, priceOverridesByDate, baseNightlyCents])
+  }, [checkIn, checkOut, nightPricesByDate, baseNightlyCents])
 
   useEffect(() => {
     if (!activeField) return
@@ -668,6 +701,12 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
           <div className="text-on-surface-variant flex justify-between">
             <span>{m.villa_booking_cleaning_fee()}</span>
             <span>€{cleaningFee.toLocaleString()}</span>
+          </div>
+        )}
+        {conciergeFee > 0 && (
+          <div className="text-on-surface-variant flex justify-between">
+            <span>{m.villa_booking_concierge_fee()}</span>
+            <span>€{conciergeFee.toLocaleString()}</span>
           </div>
         )}
         <div className="font-display text-primary border-outline-variant mt-1 flex justify-between border-t pt-3.5 text-[22px] italic">
