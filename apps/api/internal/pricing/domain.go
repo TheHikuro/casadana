@@ -46,6 +46,7 @@ type NewSeasonRuleInput struct {
 var (
 	ErrUnknownVilla   = errors.New("unknown villa")
 	ErrInvalidRange   = errors.New("from must be before to")
+	ErrRangeTooLarge  = errors.New("date window too large")
 	ErrInvalidPayload = errors.New("invalid payload")
 	ErrRuleNotFound   = errors.New("season rule not found")
 )

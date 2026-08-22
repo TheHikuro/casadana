@@ -14,6 +14,7 @@ import (
 func init() {
 	httpserver.Register(ErrUnknownVilla, http.StatusNotFound, "UNKNOWN_VILLA")
 	httpserver.Register(ErrInvalidRange, http.StatusUnprocessableEntity, "INVALID_RANGE")
+	httpserver.Register(ErrRangeTooLarge, http.StatusUnprocessableEntity, "RANGE_TOO_LARGE")
 	httpserver.Register(ErrInvalidPayload, http.StatusUnprocessableEntity, "INVALID_PAYLOAD")
 	httpserver.Register(ErrRuleNotFound, http.StatusNotFound, "SEASON_RULE_NOT_FOUND")
 }
@@ -40,8 +41,15 @@ type priceOverrideDTO struct {
 	PriceCents int    `json:"price_cents"`
 }
 
+type nightlyPriceDTO struct {
+	Date       string `json:"date"`
+	PriceCents int    `json:"price_cents"`
+	Label      string `json:"label"`
+}
+
 type pricingResponse struct {
 	Overrides []priceOverrideDTO `json:"overrides"`
+	Nights    []nightlyPriceDTO  `json:"nights"`
 }
 
 func listHandler(svc *Service) http.HandlerFunc {
@@ -56,17 +64,27 @@ func listHandler(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		overrides, err := svc.ListOverrides(r.Context(), slug, from, to)
+		calendar, err := svc.ResolveCalendar(r.Context(), slug, from, to)
 		if err != nil {
 			httpserver.WriteError(w, r, err)
 			return
 		}
 
-		resp := pricingResponse{Overrides: make([]priceOverrideDTO, 0, len(overrides))}
-		for _, o := range overrides {
+		resp := pricingResponse{
+			Overrides: make([]priceOverrideDTO, 0, len(calendar.Overrides)),
+			Nights:    make([]nightlyPriceDTO, 0, len(calendar.Nights)),
+		}
+		for _, o := range calendar.Overrides {
 			resp.Overrides = append(resp.Overrides, priceOverrideDTO{
 				Date:       o.Date.Format("2006-01-02"),
 				PriceCents: o.PriceCents,
+			})
+		}
+		for _, n := range calendar.Nights {
+			resp.Nights = append(resp.Nights, nightlyPriceDTO{
+				Date:       n.Date.Format("2006-01-02"),
+				PriceCents: n.PriceCents,
+				Label:      n.Label,
 			})
 		}
 		w.Header().Set("Content-Type", "application/json")

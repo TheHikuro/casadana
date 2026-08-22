@@ -72,6 +72,67 @@ func TestGetPricing_WithOverrides(t *testing.T) {
 	}
 }
 
+// The public booking panel prices a stay off `nights`, so the serialized
+// contract is asserted here and not only at the service boundary.
+func TestGetPricing_ServesResolvedNights(t *testing.T) {
+	repo := &fakeRepo{
+		overrides: []PriceOverride{
+			{VillaSlug: "casadana", Date: d("2026-07-02"), PriceCents: 25000},
+		},
+		rules: []SeasonRule{
+			{ID: "r1", VillaSlug: "casadana", Label: "Summer", Start: d("2026-07-01"), End: d("2026-07-02"), PriceCents: 12000},
+		},
+		settings: map[string]Settings{
+			"casadana": {VillaSlug: "casadana", BasePriceCents: 8500, MinNights: 2},
+		},
+	}
+	svc := newSvc(repo, fakeAllowlist{allowed: map[string]bool{"casadana": true}})
+	srv := httptest.NewServer(newRouter(svc, noopAuth))
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/api/villas/casadana/pricing?from=2026-07-01&to=2026-07-04")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", resp.StatusCode)
+	}
+
+	var out pricingResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		t.Fatal(err)
+	}
+	want := []nightlyPriceDTO{
+		{Date: "2026-07-01", PriceCents: 12000, Label: "Summer"},
+		{Date: "2026-07-02", PriceCents: 25000, Label: OverrideLabel},
+		{Date: "2026-07-03", PriceCents: 8500, Label: StandardLabel},
+	}
+	if len(out.Nights) != len(want) {
+		t.Fatalf("nights = %+v, want %d entries", out.Nights, len(want))
+	}
+	for i, w := range want {
+		if out.Nights[i] != w {
+			t.Errorf("nights[%d] = %+v, want %+v", i, out.Nights[i], w)
+		}
+	}
+}
+
+func TestGetPricing_WindowTooLarge(t *testing.T) {
+	svc := newSvc(&fakeRepo{}, fakeAllowlist{allowed: map[string]bool{"casadana": true}})
+	srv := httptest.NewServer(newRouter(svc, noopAuth))
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/api/villas/casadana/pricing?from=2026-01-01&to=2030-01-01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusUnprocessableEntity {
+		t.Fatalf("status = %d, want 422", resp.StatusCode)
+	}
+}
+
 func TestGetPricing_UnknownVilla(t *testing.T) {
 	svc := newSvc(&fakeRepo{}, fakeAllowlist{allowed: map[string]bool{}})
 	srv := httptest.NewServer(newRouter(svc, noopAuth))

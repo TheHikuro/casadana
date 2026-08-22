@@ -19,7 +19,7 @@ tags:
   - name: bookings
     description: Booking submission and availability
   - name: pricing
-    description: Per-date price overrides
+    description: Base rate, fees, season rules and per-date price overrides
   - name: reviews
     description: Guest testimonials linked to bookings
   - name: admin
@@ -305,11 +305,16 @@ paths:
     get:
       operationId: getVillaPricing
       tags: [pricing]
-      summary: Get price overrides for a villa within a date window
+      summary: Get the resolved nightly prices for a villa within a date window
       description: |
-        Returns the sparse list of per-date price overrides for a villa within
-        the [from, to) window. Dates without an override fall back to the villa's
-        frontend-defined default (`booking.nightly` in villas.const.ts).
+        Returns one entry in `nights` for every day in the [from, to) window,
+        priced the way the back-office promises: a per-date override wins over
+        any season rule, the most expensive rule wins when several overlap, and
+        anything left over falls back to the villa's base rate. `overrides` is
+        the sparse list of per-date overrides the window contains, kept for
+        callers that need the raw rows rather than the resolved price.
+
+        The window is capped at 400 days; a wider one is rejected with 422.
       parameters:
         - name: slug
           in: path
@@ -1130,13 +1135,34 @@ components:
           description: Price in EUR cents (e.g. 9500 = 95.00€).
           example: 9500
 
+    NightlyPrice:
+      type: object
+      required: [date, price_cents, label]
+      properties:
+        date: { type: string, format: date }
+        price_cents:
+          type: integer
+          minimum: 0
+          description: Effective price in EUR cents for that night.
+          example: 9500
+        label:
+          type: string
+          description: >-
+            Where the price came from: a season rule's own name, `Custom` for a
+            per-date override, or `Standard` for the villa's base rate.
+          example: Summer peak
+
     PricingResponse:
       type: object
-      required: [overrides]
+      required: [overrides, nights]
       properties:
         overrides:
           type: array
           items: { $ref: "#/components/schemas/PriceOverride" }
+        nights:
+          type: array
+          description: One entry per day in the requested window, in date order.
+          items: { $ref: "#/components/schemas/NightlyPrice" }
 
     ListBookingsResponse:
       type: object

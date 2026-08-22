@@ -8,11 +8,14 @@ in the frontend and not exposed by this API.
 
  * OpenAPI spec version: 0.1.0
  */
-import type { PriceOverride } from './priceOverride';
-import type { NightlyPrice } from './nightlyPrice';
 
-export interface PricingResponse {
-  overrides: PriceOverride[];
-  /** One entry per day in the requested window, in date order. */
-  nights: NightlyPrice[];
+export interface NightlyPrice {
+  date: string;
+  /**
+   * Effective price in EUR cents for that night.
+   * @minimum 0
+   */
+  price_cents: number;
+  /** Where the price came from: a season rule's own name, `Custom` for a per-date override, or `Standard` for the villa's base rate. */
+  label: string;
 }

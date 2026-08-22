@@ -37,6 +37,7 @@ export * from './listBookingsResponse';
 export * from './listHistoryResponse';
 export * from './listReviewsResponse';
 export * from './listSeasonRulesResponse';
+export * from './nightlyPrice';
 export * from './patchBookingRequest';
 export * from './patchBookingRequestStatus';
 export * from './patchReviewRequest';

@@ -46,6 +46,51 @@ func (s *Service) UpsertOverrides(ctx context.Context, villaSlug string, priceCe
 	return len(dates), nil
 }
 
+// Calendar is what the public booking panel needs to price a stay: the
+// effective price of every night in the window, plus the raw per-date
+// overrides that window contains.
+type Calendar struct {
+	Overrides []PriceOverride
+	Nights    []NightlyPrice
+}
+
+// maxCalendarDays bounds how many nights one request can expand into. The
+// endpoint is public and unauthenticated, and the booking panel never asks for
+// more than a few months, so a wider window is a mistake or an abuse.
+const maxCalendarDays = 400
+
+// ResolveCalendar prices every day in [from, to). Season rules and the base
+// rate are resolved here rather than in the client so the public site, the
+// back-office and any future consumer all agree on what a night costs.
+func (s *Service) ResolveCalendar(ctx context.Context, villaSlug string, from, to time.Time) (Calendar, error) {
+	// Reuses ListOverrides for the allowlist and range checks.
+	overrides, err := s.ListOverrides(ctx, villaSlug, from, to)
+	if err != nil {
+		return Calendar{}, err
+	}
+
+	start, end := Day(from), Day(to)
+	days := int(end.Sub(start).Hours() / 24)
+	if days > maxCalendarDays {
+		return Calendar{}, ErrRangeTooLarge
+	}
+
+	rules, err := s.repo.ListSeasonRules(ctx, villaSlug)
+	if err != nil {
+		return Calendar{}, err
+	}
+	settings, err := s.repo.GetSettings(ctx, villaSlug)
+	if err != nil {
+		return Calendar{}, err
+	}
+
+	nights := make([]NightlyPrice, 0, days)
+	for day := start; day.Before(end); day = day.AddDate(0, 0, 1) {
+		nights = append(nights, ResolveNightly(day, overrides, rules, settings))
+	}
+	return Calendar{Overrides: overrides, Nights: nights}, nil
+}
+
 func (s *Service) GetSettings(ctx context.Context, villaSlug string) (Settings, error) {
 	if !s.allow.IsKnown(villaSlug) {
 		return Settings{}, ErrUnknownVilla

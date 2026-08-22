@@ -116,11 +116,16 @@ export const useUpsertVillaPricing = <TError = ErrorResponse,
       return useMutation(mutationOptions, queryClient);
     }
     /**
- * Returns the sparse list of per-date price overrides for a villa within
-the [from, to) window. Dates without an override fall back to the villa's
-frontend-defined default (`booking.nightly` in villas.const.ts).
+ * Returns one entry in `nights` for every day in the [from, to) window,
+priced the way the back-office promises: a per-date override wins over
+any season rule, the most expensive rule wins when several overlap, and
+anything left over falls back to the villa's base rate. `overrides` is
+the sparse list of per-date overrides the window contains, kept for
+callers that need the raw rows rather than the resolved price.
 
- * @summary Get price overrides for a villa within a date window
+The window is capped at 400 days; a wider one is rejected with 422.
+
+ * @summary Get the resolved nightly prices for a villa within a date window
  */
 export const getVillaPricing = (
     slug: string,
@@ -198,7 +203,7 @@ export function useGetVillaPricing<TData = Awaited<ReturnType<typeof getVillaPri
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
- * @summary Get price overrides for a villa within a date window
+ * @summary Get the resolved nightly prices for a villa within a date window
  */
 
 export function useGetVillaPricing<TData = Awaited<ReturnType<typeof getVillaPricing>>, TError = ErrorResponse>(

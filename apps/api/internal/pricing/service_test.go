@@ -72,6 +72,84 @@ func TestListOverrides_InvalidRange(t *testing.T) {
 	}
 }
 
+// The whole point of ResolveCalendar: a season rule configured in the
+// back-office has to reach the public quote, and a per-date override has to
+// beat it. Everything else falls back to the base rate.
+func TestResolveCalendar_AppliesOverridesRulesAndBase(t *testing.T) {
+	repo := &fakeRepo{
+		overrides: []PriceOverride{
+			{VillaSlug: "casadana", Date: d("2026-07-03"), PriceCents: 40000},
+		},
+		rules: []SeasonRule{
+			{ID: "r1", VillaSlug: "casadana", Label: "Summer", Start: d("2026-07-02"), End: d("2026-07-04"), PriceCents: 20000},
+		},
+		settings: map[string]Settings{
+			"casadana": {VillaSlug: "casadana", BasePriceCents: 8500, MinNights: 3},
+		},
+	}
+	svc := newSvc(repo, casadanaOnly())
+
+	cal, err := svc.ResolveCalendar(context.Background(), "casadana", d("2026-07-01"), d("2026-07-05"))
+	if err != nil {
+		t.Fatalf("ResolveCalendar: %v", err)
+	}
+	if len(cal.Nights) != 4 {
+		t.Fatalf("len(nights) = %d, want 4 (one per day in the window)", len(cal.Nights))
+	}
+	want := []NightlyPrice{
+		{Date: d("2026-07-01"), PriceCents: 8500, Label: StandardLabel},
+		{Date: d("2026-07-02"), PriceCents: 20000, Label: "Summer"},
+		{Date: d("2026-07-03"), PriceCents: 40000, Label: OverrideLabel},
+		{Date: d("2026-07-04"), PriceCents: 20000, Label: "Summer"},
+	}
+	for i, w := range want {
+		got := cal.Nights[i]
+		if !got.Date.Equal(w.Date) || got.PriceCents != w.PriceCents || got.Label != w.Label {
+			t.Errorf("night %d = %v, want %v", i, got, w)
+		}
+	}
+	if len(cal.Overrides) != 1 {
+		t.Errorf("len(overrides) = %d, want 1", len(cal.Overrides))
+	}
+}
+
+func TestResolveCalendar_RejectsBadWindow(t *testing.T) {
+	svc := newSvc(&fakeRepo{}, casadanaOnly())
+
+	cases := []struct {
+		name     string
+		slug     string
+		from, to string
+		want     error
+	}{
+		{"unknown villa", "ghost", "2026-07-01", "2026-08-01", ErrUnknownVilla},
+		{"inverted range", "casadana", "2026-08-01", "2026-07-01", ErrInvalidRange},
+		{"wider than the cap", "casadana", "2026-01-01", "2028-01-01", ErrRangeTooLarge},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := svc.ResolveCalendar(context.Background(), c.slug, d(c.from), d(c.to))
+			if !errors.Is(err, c.want) {
+				t.Fatalf("err = %v, want %v", err, c.want)
+			}
+		})
+	}
+}
+
+// A window exactly at the cap is still served — the guard is on wider ones.
+func TestResolveCalendar_AllowsWindowAtCap(t *testing.T) {
+	svc := newSvc(&fakeRepo{}, casadanaOnly())
+
+	from := d("2026-01-01")
+	cal, err := svc.ResolveCalendar(context.Background(), "casadana", from, from.AddDate(0, 0, maxCalendarDays))
+	if err != nil {
+		t.Fatalf("ResolveCalendar: %v", err)
+	}
+	if len(cal.Nights) != maxCalendarDays {
+		t.Errorf("len(nights) = %d, want %d", len(cal.Nights), maxCalendarDays)
+	}
+}
+
 func TestUpsertOverrides_Happy(t *testing.T) {
 	repo := &fakeRepo{}
 	svc := newSvc(repo, fakeAllowlist{allowed: map[string]bool{"casadana": true}})
