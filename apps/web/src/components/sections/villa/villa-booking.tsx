@@ -402,26 +402,23 @@ export default function VillaBooking({ villaSlug, booking }: VillaBookingProps) 
       id="book"
       className="bg-background border-outline-variant editorial-shadow border p-6 md:sticky md:top-28 md:p-8"
     >
-      <div className="border-outline-variant mb-6 flex items-baseline justify-between gap-4 border-b pb-6">
-        <div className="font-display text-primary text-[34px] leading-none font-light italic md:text-[38px]">
-          €{Math.round(baseNightlyCents / 100)}
-          <small className="text-on-surface-variant ml-1 font-sans text-[13px] not-italic">
-            {m.villa_booking_per_night()}
-          </small>
+      {/* No headline nightly rate here: a single "from" figure misread the
+          stay whenever a season rule or an override applied, and the real
+          per-night prices are on the calendar and in the summary below. The
+          rating carries the header on its own, and the whole strip drops when
+          no review is approved rather than leaving an empty rule. */}
+      {publishedRating && (
+        <div className="border-outline-variant mb-6 flex flex-col gap-1 border-b pb-6 font-mono text-[11px] tracking-[0.1em]">
+          <span className="text-secondary text-[13px] tracking-[2px]">
+            {"★".repeat(publishedRating.filledStars)}
+            {"☆".repeat(5 - publishedRating.filledStars)}
+          </span>
+          <span className="text-on-surface-variant">
+            {publishedRating.score.toFixed(2)} ·{" "}
+            {m.villa_booking_review_count({ count: publishedRating.count })}
+          </span>
         </div>
-        {publishedRating && (
-          <div className="flex flex-col items-end gap-1 font-mono text-[11px] tracking-[0.1em]">
-            <span className="text-secondary text-[13px] tracking-[2px]">
-              {"★".repeat(publishedRating.filledStars)}
-              {"☆".repeat(5 - publishedRating.filledStars)}
-            </span>
-            <span className="text-on-surface-variant">
-              {publishedRating.score.toFixed(2)} ·{" "}
-              {m.villa_booking_review_count({ count: publishedRating.count })}
-            </span>
-          </div>
-        )}
-      </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <div className="border-outline-variant relative grid grid-cols-2 border">
