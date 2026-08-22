@@ -71,7 +71,7 @@ export default function Footer() {
       external: true,
     },
     {
-      href: "https://www.facebook.com/groups/607622748355117/",
+      href: "https://www.facebook.com/profile.php?id=61564121996650",
       label: "Facebook",
       external: true,
     },
