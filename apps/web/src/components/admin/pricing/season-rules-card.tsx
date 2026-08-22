@@ -16,10 +16,11 @@ import { EmptyState } from "@/components/admin/ui/empty-state"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/toast"
 
+import { type Property, defaultBasePriceCents } from "./defaults"
 import { RuleRow } from "./rule-row"
 
 interface SeasonRulesCardProps {
-  property: "casadana" | "casacasay"
+  property: Property
 }
 
 export default function SeasonRulesCard({ property }: SeasonRulesCardProps) {
@@ -72,7 +73,9 @@ export default function SeasonRulesCard({ property }: SeasonRulesCardProps) {
         label: "New rule",
         start_date: today,
         end_date: today,
-        price_cents: settings?.base_price_cents ?? 0,
+        // Same default as the base-rate card, so a villa nobody has configured
+        // yet still starts its first rule on a real price instead of €0.
+        price_cents: settings?.base_price_cents || defaultBasePriceCents(property),
       },
     })
   }

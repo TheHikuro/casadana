@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/toast"
 
+import { DEFAULT_MIN_NIGHTS, type Property, defaultBasePriceCents } from "./defaults"
 import { centsToEuroInput, euroInputToCents } from "./money"
 
 interface BasePricingForm {
@@ -30,17 +31,21 @@ const EMPTY_FORM: BasePricingForm = {
   conciergeFee: "",
 }
 
-function toForm(settings: PricingSettings): BasePricingForm {
+// An unset base rate or minimum stay opens on its default rather than on the
+// zero the API reports for a villa nobody has configured yet. The two fees are
+// left at zero on purpose: a villa that charges neither is a real answer, and
+// the public panel already hides a zero fee.
+function toForm(settings: PricingSettings, property: Property): BasePricingForm {
   return {
-    basePrice: centsToEuroInput(settings.base_price_cents),
-    minNights: String(settings.min_nights),
+    basePrice: centsToEuroInput(settings.base_price_cents || defaultBasePriceCents(property)),
+    minNights: String(settings.min_nights || DEFAULT_MIN_NIGHTS),
     cleaningFee: centsToEuroInput(settings.cleaning_fee_cents),
     conciergeFee: centsToEuroInput(settings.concierge_fee_cents),
   }
 }
 
 interface BasePricingCardProps {
-  property: "casadana" | "casacasay"
+  property: Property
 }
 
 export default function BasePricingCard({ property }: BasePricingCardProps) {
@@ -52,8 +57,8 @@ export default function BasePricingCard({ property }: BasePricingCardProps) {
   // Re-seed from the server copy whenever it changes — the first load, and the
   // refetch that follows a save. Switching villa remounts the card entirely.
   useEffect(() => {
-    if (settings) setForm(toForm(settings))
-  }, [settings])
+    if (settings) setForm(toForm(settings, property))
+  }, [settings, property])
 
   const { mutate: saveSettings, isPending: isSaving } = usePutVillaPricingSettings({
     mutation: {
@@ -73,9 +78,11 @@ export default function BasePricingCard({ property }: BasePricingCardProps) {
       slug: property,
       data: {
         base_price_cents: euroInputToCents(form.basePrice),
-        // A villa that was never configured reads back min_nights: 0, which the
-        // PUT schema rejects — floor it at the schema's own minimum.
-        min_nights: Number.isFinite(minNights) ? Math.max(1, minNights) : 1,
+        // The field opens pre-filled, but it can still be cleared by hand and
+        // the PUT schema rejects anything below 1 — floor it here.
+        min_nights: Number.isFinite(minNights)
+          ? Math.max(DEFAULT_MIN_NIGHTS, minNights)
+          : DEFAULT_MIN_NIGHTS,
         cleaning_fee_cents: euroInputToCents(form.cleaningFee),
         concierge_fee_cents: euroInputToCents(form.conciergeFee),
       },
