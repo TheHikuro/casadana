@@ -66,7 +66,7 @@ export default function Footer() {
 
   const follow: FooterLink[] = [
     {
-      href: "https://www.instagram.com/casa_dana_los_alcazares/",
+      href: "https://www.instagram.com/casadana_casacasay/",
       label: "Instagram",
       external: true,
     },
