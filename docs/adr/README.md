@@ -26,6 +26,8 @@ ADRs record *why*. Step-by-step *how* lives in [`docs/runbooks/`](../runbooks/):
   UI on `dokploy.casa-dana.com`, and the exposure that buys.
 - [`v1-data-import.md`](../runbooks/v1-data-import.md) — move v1's booking history into v2,
   before Phase 5 destroys the source.
+- [`apex-cutover.md`](../runbooks/apex-cutover.md) — Phase 4: point `casa-dana.com` at v2, and
+  the HSTS constraint that shapes the window.
 
 ## Why these exist
 
