@@ -41,10 +41,14 @@ It was run twice. The first run landed in `casadana_v2` — the database the sta
 demo — which turned out to hold demo bookings, demo audit history and a second admin alongside
 three weeks of real pricing configuration. Production was to contain v1's data and nothing else,
 so the stack was repointed at a fresh `casadana_prod` and the import re-run there. `casadana_v2`
-was abandoned rather than dropped, so it is still in the same volume and the pricing settings can
-be recovered from it directly; a readable copy is at
-`/root/backups/v2/demo-config-for-reentry-2026-09-01.txt`. **The pricing configuration has to be
-re-entered through the admin UI before the site quotes correctly.**
+was abandoned rather than dropped, so it is still in the same volume.
+
+**The pricing configuration was then copied across** — `villa_pricing_settings`, `season_rules`
+and `price_overrides` only, by a `pg_dump --data-only -t` of those three tables. It was three
+weeks of deliberate work and it exists nowhere else, so keeping it was worth the one exception to
+"v1 data only"; bookings, audit history and admin users were not copied. Verified afterwards that
+the precedence chain resolves: base €85 → season rule €130 → per-date override €250.
+A readable copy also sits at `/root/backups/v2/demo-config-for-reentry-2026-09-01.txt`.
 
 ### What is imported, and what is deliberately not
 

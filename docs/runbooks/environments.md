@@ -33,10 +33,11 @@ it, not the one created this afternoon.
 **Its database, however, is new.** The stack was promoted but pointed at a fresh `casadana_prod`,
 because the old `casadana_v2` was the demo's: alongside real pricing work it held demo bookings,
 demo audit history and a second admin, and production was to contain v1's data and nothing else.
-`casadana_v2` still exists inside the same volume — it was abandoned, not dropped — so the
-pricing configuration remains recoverable without restoring a dump. A readable copy is at
-`/root/backups/v2/demo-config-for-reentry-2026-09-01.txt`, and it still has to be re-entered
-through the admin UI.
+`casadana_v2` still exists inside the same volume — it was abandoned, not dropped. The pricing
+configuration (`villa_pricing_settings`, `season_rules`, `price_overrides`) was copied out of it
+into `casadana_prod`, since it was real work that exists nowhere else; bookings, audit history and
+admin users were not. A readable copy is also at
+`/root/backups/v2/demo-config-for-reentry-2026-09-01.txt`.
 
 Because `casadana_prod` started empty and the API has no bootstrap route for the first admin
 (`POST /api/admin/users` requires an existing session), that row was inserted directly with a
