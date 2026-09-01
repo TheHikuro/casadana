@@ -9,25 +9,32 @@ Workflow: `.github/workflows/deploy.yml`. Host script: `scripts/casadana-deploy.
 ## The chain
 
 ```
-PR merged to main
+push to main (prod) or develop (demo)
   └─ job: build  (matrix: api, web)
        ├─ buildx → push ghcr.io/lcleris/casadana-{api,web}:latest
        │                                              :sha-<40-hex>
        └─ web only: assert the bundle embeds no absolute localhost URL   ← gate
   └─ job: deploy  (needs: build — so a failed assertion blocks the deploy)
-       └─ ssh root@VPS "deploy <sha>"
+       └─ ssh root@VPS "deploy <prod|demo> <sha>"
             └─ forced command → /usr/local/bin/casadana-deploy
-                 ├─ validate the request against ^deploy [0-9a-f]{40}$
+                 ├─ validate against ^deploy (prod|demo) [0-9a-f]{40}$
+                 ├─ pick the env file, checkout, ports and state file for that environment
                  ├─ refuse if the host checkout is dirty
+                 ├─ refuse if <sha> is not an ancestor of that environment's branch
                  ├─ git fetch && git reset --hard <sha>      (compose file must match images)
                  ├─ IMAGE_TAG=sha-<sha> docker compose pull api web && up -d
-                 ├─ poll 127.0.0.1:8080/api/health and 127.0.0.1:3001/ for 60s
-                 └─ on failure: redeploy the previous tag from /root/.casadana-deployed-tag
+                 ├─ poll 127.0.0.1:$API_PORT/api/health and :$WEB_PORT/ for 60s
+                 └─ on failure: redeploy the previous tag from the state file
 ```
 
 Images are tagged with the commit sha as well as `latest`, so **a deploy is reproducible and
 a rollback is a tag change** rather than a rebuild. The tag actually running is recorded in
-`/root/.casadana-deployed-tag`.
+`/root/.casadana-deployed-tag-<env>`.
+
+**Two environments share this pipeline** — `main` → prod, `develop` → demo. Which paths, ports
+and database each uses is in [`environments.md`](environments.md); everything below applies to
+both, substituting the environment name. One image pair serves both, because the web bundle
+embeds no hostname ([ADR 0003](../adr/0003-same-origin-api-routing.md)).
 
 `.docker/docker-compose.dokploy.yml` reads `${IMAGE_TAG:-latest}`, so an interactive
 `docker compose up -d` on the host still behaves as before.
@@ -68,8 +75,10 @@ Already in place unless noted:
 | | |
 |---|---|
 | `/usr/local/bin/casadana-deploy` | mode 700, installed from `scripts/casadana-deploy.sh` |
-| `/root/src/casadana` | git checkout on `main`, clean tree |
-| `/root/casadana-demo.env` | mode 600, holds the runtime secrets |
+| `/root/src/casadana` | prod git checkout on `main`, clean tree |
+| `/root/src/casadana-demo` | demo git checkout on `develop`, clean tree |
+| `/root/casadana-prod.env` | mode 600, prod runtime secrets |
+| `/root/casadana-demo.env` | mode 600, demo runtime secrets — independent of prod's |
 | `/var/log/casadana-deploy.log` | mode 600, appended by every run |
 | GHCR packages | **public** — the host needs no registry credential |
 | `authorized_keys` entry | **must be added by hand** (see below) |
@@ -104,20 +113,22 @@ Until this is added, the build succeeds and the deploy step fails with
 
 ```bash
 # from the host, imitating what the runner sends
-SSH_ORIGINAL_COMMAND="deploy $(git -C /root/src/casadana rev-parse HEAD)" /usr/local/bin/casadana-deploy
+SSH_ORIGINAL_COMMAND="deploy prod $(git -C /root/src/casadana rev-parse HEAD)" /usr/local/bin/casadana-deploy
 
 # the forced command must refuse anything else
-SSH_ORIGINAL_COMMAND="whoami"    /usr/local/bin/casadana-deploy   # exit 64
-SSH_ORIGINAL_COMMAND="deploy .." /usr/local/bin/casadana-deploy   # exit 64
+SSH_ORIGINAL_COMMAND="whoami"              /usr/local/bin/casadana-deploy   # exit 64
+SSH_ORIGINAL_COMMAND="deploy .."           /usr/local/bin/casadana-deploy   # exit 64
+SSH_ORIGINAL_COMMAND="deploy staging $SHA" /usr/local/bin/casadana-deploy   # exit 64 — closed list
+SSH_ORIGINAL_COMMAND="deploy ../../etc $SHA" /usr/local/bin/casadana-deploy # exit 64 — no path escape
 
 tail -20 /var/log/casadana-deploy.log
-cat /root/.casadana-deployed-tag
+cat /root/.casadana-deployed-tag-prod
 ```
 
 After a real run, confirm the containers moved to the sha tag:
 
 ```bash
-docker compose -f .docker/docker-compose.dokploy.yml --env-file /root/casadana-demo.env \
+docker compose -f .docker/docker-compose.dokploy.yml --env-file /root/casadana-prod.env \
   ps --format '{{.Name}}\t{{.Image}}\t{{.Status}}'
 ```
 

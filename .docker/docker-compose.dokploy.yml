@@ -6,7 +6,7 @@
 #   - `image:` not `build:`     -> images come from GHCR, built in CI (docs/adr/0001)
 #   - ports bound to 127.0.0.1  -> Docker BYPASSES ufw; a bare "8080:8080" would
 #                                  publish the API to the internet (docs/adr/0002)
-#   - web on 3001, not 3000     -> Dokploy's own UI owns 3000
+#   - web not on 3000           -> Dokploy's own UI owns 3000
 #   - postgres has NO host port -> reachable only on the compose network
 #
 # nginx terminates TLS and splits traffic by path; the frontend calls the API on a
@@ -17,15 +17,26 @@
 # and a rollback is just re-running with the previous tag:
 #   IMAGE_TAG=sha-<sha> docker compose -f ... up -d
 # It defaults to `latest` so an interactive `docker compose up -d` still works.
-name: casadana
+#
+# ONE FILE, TWO STACKS. `main` deploys prod (casa-dana.com) and `develop` deploys demo
+# (demo.casa-dana.com) from this same file; everything that must differ between them comes
+# from the --env-file, so the two can never drift apart in structure. The env files are host
+# state, not repo state (they hold secrets): /root/casadana-prod.env and
+# /root/casadana-demo.env. See docs/runbooks/environments.md.
+#
+# STACK_NAME is load-bearing beyond cosmetics: it is the compose PROJECT name, which is what
+# namespaces the `postgres_data` volume. Two stacks with the same STACK_NAME share one
+# database volume -- demo would write into production. It has NO default for that reason;
+# compose errors on the unset variable rather than silently picking one.
+name: ${STACK_NAME:?STACK_NAME must be set - it namespaces the postgres volume}
 
 services:
   web:
     image: ghcr.io/lcleris/casadana-web:${IMAGE_TAG:-latest}
-    container_name: casadana-web
+    container_name: ${STACK_NAME}-web
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3001:80"
+      - "127.0.0.1:${WEB_PORT:?}:80"
     depends_on:
       api:
         condition: service_started
@@ -44,7 +55,7 @@ services:
 
   api:
     image: ghcr.io/lcleris/casadana-api:${IMAGE_TAG:-latest}
-    container_name: casadana-api
+    container_name: ${STACK_NAME}-api
     restart: unless-stopped
     environment:
       # POSTGRES_HOST must be the service name, not localhost: the API runs in its
@@ -63,13 +74,14 @@ services:
       # Comma-separated CORS allow-list (internal/platform/httpserver/router.go).
       # Same-origin serving means the browser never needs it, but the API requires
       # it to be set. Must match the public origin exactly, scheme included:
-      #   demo -> https://demo.casa-dana.com    prod -> https://casa-dana.com
+      #   demo -> https://demo.casa-dana.com    prod -> https://www.casa-dana.com
+      # (www is canonical: the apex 308-redirects to it, as Vercel did before the cutover)
       WEB_ORIGIN: ${WEB_ORIGIN}
       # Applies the embedded migrations at startup (cmd/server/casadana.go).
       # Explicit here because it silently defaults to true.
       MIGRATE_ON_BOOT: "true"
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:${API_PORT:?}:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -90,7 +102,7 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    container_name: casadana-postgres
+    container_name: ${STACK_NAME}-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}

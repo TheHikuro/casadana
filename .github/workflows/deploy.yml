@@ -3,9 +3,15 @@ name: Build and publish images
 # Images are built here rather than on the VPS on purpose: that box has 3.8 GB of
 # RAM and also runs the live v1 .NET API. A Bun/Vite build on the host could get
 # the API OOM-killed. See docs/adr/0001.
+#
+# Branch -> environment:
+#   main    -> prod  (www.casa-dana.com)
+#   develop -> demo  (demo.casa-dana.com)
+# The mapping lives here and nowhere else; the deploy script re-checks that the sha is
+# actually an ancestor of the branch it was told, so a mis-edit here fails closed.
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   workflow_dispatch:
 
 env:
@@ -115,20 +121,27 @@ jobs:
   # Deploys to the VPS over SSH. Runs only after BOTH images are built and the web-bundle
   # assertion has passed, so a bundle with a leaked API URL can never reach production.
   #
+  # One image pair serves both environments -- the web bundle embeds no hostname by
+  # construction (docs/adr/0003), so the same digest is correct on demo and on prod.
+  #
   # The deploy key's authorized_keys entry pins command="/usr/local/bin/casadana-deploy",
   # so this key cannot open a shell or run any other command. The only thing the runner can
   # influence is the argument, which that script regex-validates. See
   # docs/runbooks/continuous-deployment.md.
   deploy:
     needs: build
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
-    # Never let two deploys interleave; unlike the build, do not cancel one midway.
+    env:
+      TARGET_ENV: ${{ github.ref == 'refs/heads/main' && 'prod' || 'demo' }}
+    # Never let two deploys to the SAME environment interleave; unlike the build, do not
+    # cancel one midway. prod and demo are separate groups -- they touch different
+    # checkouts, containers and databases, so a demo deploy must not queue behind prod.
     concurrency:
-      group: deploy-vps
+      group: deploy-${{ github.ref == 'refs/heads/main' && 'prod' || 'demo' }}
       cancel-in-progress: false
     steps:
-      - name: Deploy ${{ github.sha }} to the VPS
+      - name: Deploy ${{ github.sha }} to ${{ github.ref == 'refs/heads/main' && 'prod' || 'demo' }}
         env:
           SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
@@ -150,4 +163,4 @@ jobs:
               -o ConnectTimeout=15 \
               -o BatchMode=yes \
               -o PreferredAuthentications=publickey \
-              "root@${VPS_HOST}" "deploy ${{ github.sha }}"
+              "root@${VPS_HOST}" "deploy ${TARGET_ENV} ${{ github.sha }}"
