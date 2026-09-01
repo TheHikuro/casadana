@@ -1,5 +1,20 @@
 # Runbook — Phase 4, point casa-dana.com at v2
 
+## Status: done 2026-09-01 19:58 UTC
+
+`www.casa-dana.com` and `casa-dana.com` both serve v2; apex 308s to www; certificate covers
+both names and `certbot renew --dry-run` passes for all four lineages. v1 untouched
+(`active`, `NRestarts=0`). Option A (DNS-01) was abandoned after the TXT records never reached
+the zone; the cutover used **Option B** — move DNS, then issue over webroot.
+
+**What went wrong, so it is not repeated.** The apex A record was repointed while `www`'s CNAME
+was deleted *without* an A record replacing it. For a few minutes the apex reached this host with
+no matching certificate — presenting v1's `api.casa-dana.com` cert, which HSTS turns into a hard
+failure — and `www` did not resolve at all. Recovery was to issue an apex-only certificate
+immediately and serve the site directly on the apex from a temporary vhost, rather than redirect
+to a hostname that did not exist. **Change both records together, and verify both resolve before
+issuing.**
+
 Moves the public site from Vercel (v1 frontend) to the v2 stack on this host. This is the only
 step in the whole migration that touches live traffic.
 
@@ -119,8 +134,10 @@ certbot certonly --webroot -w /var/www/letsencrypt \
 
 ```nginx
 server {
-    listen 443 ssl;
-    http2 on;
+    # nginx 1.24 on this host. `http2 on;` is 1.25+ syntax and fails with
+    # `unknown directive "http2"` -- which nginx rejects at reload, so it would
+    # also have blocked v1's next config change.
+    listen 443 ssl http2;
     server_name casa-dana.com;
 
     ssl_certificate     /etc/letsencrypt/live/www.casa-dana.com/fullchain.pem;
@@ -132,8 +149,10 @@ server {
 }
 
 server {
-    listen 443 ssl;
-    http2 on;
+    # nginx 1.24 on this host. `http2 on;` is 1.25+ syntax and fails with
+    # `unknown directive "http2"` -- which nginx rejects at reload, so it would
+    # also have blocked v1's next config change.
+    listen 443 ssl http2;
     server_name www.casa-dana.com;
 
     ssl_certificate     /etc/letsencrypt/live/www.casa-dana.com/fullchain.pem;
