@@ -65,6 +65,19 @@ type NewReviewInput struct {
 	Now        time.Time
 }
 
+// NewPublicReviewInput builds a review a site visitor left on a villa page.
+// There is no booking behind it and no moderation field on it: status, source
+// and the featured flag are ours to set, never the caller's, so an anonymous
+// visitor cannot self-publish or dress a review up as coming from Airbnb.
+type NewPublicReviewInput struct {
+	VillaSlug  string
+	AuthorName string
+	Rating     int
+	Body       string
+	Categories CategoryRatings
+	Now        time.Time
+}
+
 // NewAdminReviewInput builds a review with no booking behind it. Status
 // defaults to approved (an admin transcribing a review has already vetted it).
 type NewAdminReviewInput struct {
@@ -114,11 +127,17 @@ type ReviewMeta struct {
 	Breakdown    Breakdown
 }
 
+// SourceWebsite marks a review a visitor left through the villa page form,
+// as against "direct" for one submitted from a booking of ours. It is stored
+// as provenance for whoever moderates the review, not chosen by the visitor.
+const SourceWebsite = "website"
+
 var (
 	ErrBookingNotFound = errors.New("booking not found")
 	ErrAlreadyReviewed = errors.New("review already exists for this booking")
 	ErrNotFound        = errors.New("review not found")
 	ErrInvalidPayload  = errors.New("invalid review payload")
+	ErrUnknownVilla    = errors.New("unknown villa")
 )
 
 func NewReview(in NewReviewInput) (*Review, error) {
@@ -145,6 +164,43 @@ func NewReview(in NewReviewInput) (*Review, error) {
 		Body:       in.Body,
 		Status:     StatusPending,
 		Source:     "direct",
+		CreatedAt:  now,
+		UpdatedAt:  now,
+	}, nil
+}
+
+// NewPublicReview builds a visitor-submitted review. It is always pending:
+// nothing a stranger types reaches the villa page, or the published average,
+// before an admin has moderated it.
+func NewPublicReview(in NewPublicReviewInput) (*Review, error) {
+	in.AuthorName = strings.TrimSpace(in.AuthorName)
+	in.Body = strings.TrimSpace(in.Body)
+
+	if in.VillaSlug == "" {
+		return nil, ErrInvalidPayload
+	}
+	if err := validateContent(in.AuthorName, in.Rating, in.Body); err != nil {
+		return nil, err
+	}
+	// A visitor writing nothing at all leaves a bare star with no words behind
+	// it, which is not a review worth moderating.
+	if in.Body == "" {
+		return nil, ErrInvalidPayload
+	}
+	if err := in.Categories.Validate(); err != nil {
+		return nil, err
+	}
+
+	now := in.Now
+	return &Review{
+		ID:         uuid.NewString(),
+		VillaSlug:  in.VillaSlug,
+		AuthorName: in.AuthorName,
+		Rating:     in.Rating,
+		Body:       in.Body,
+		Status:     StatusPending,
+		Source:     SourceWebsite,
+		Categories: in.Categories,
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}, nil

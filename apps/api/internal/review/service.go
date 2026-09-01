@@ -9,12 +9,19 @@ import (
 type Service struct {
 	repo     Repository
 	bookings BookingReader
+	allow    VillaAllowlist
 	clock    Clock
 	events   EventRecorder
 }
 
-func NewService(repo Repository, bookings BookingReader, clock Clock, events EventRecorder) *Service {
-	return &Service{repo: repo, bookings: bookings, clock: clock, events: events}
+func NewService(
+	repo Repository,
+	bookings BookingReader,
+	allow VillaAllowlist,
+	clock Clock,
+	events EventRecorder,
+) *Service {
+	return &Service{repo: repo, bookings: bookings, allow: allow, clock: clock, events: events}
 }
 
 type SubmitCommand struct {
@@ -48,6 +55,44 @@ func (s *Service) Submit(ctx context.Context, cmd SubmitCommand) (*Review, error
 		return nil, err
 	}
 	s.record(ctx, r.VillaSlug, fmt.Sprintf("Review by %s submitted", r.AuthorName))
+	return r, nil
+}
+
+type SubmitPublicCommand struct {
+	VillaSlug  string
+	AuthorName string
+	Rating     int
+	Body       string
+	Categories CategoryRatings
+}
+
+// SubmitPublic is the open path: anyone reading a villa page can leave a
+// review on it, with no booking of ours to point at. The villa comes from the
+// URL, so it is checked against the allowlist before anything is written, and
+// the review lands pending — the published average is computed from approved
+// reviews only, so an unmoderated submission cannot move the figures a guest
+// reads.
+func (s *Service) SubmitPublic(ctx context.Context, cmd SubmitPublicCommand) (*Review, error) {
+	if s.allow == nil || !s.allow.IsKnown(cmd.VillaSlug) {
+		return nil, ErrUnknownVilla
+	}
+
+	r, err := NewPublicReview(NewPublicReviewInput{
+		VillaSlug:  cmd.VillaSlug,
+		AuthorName: cmd.AuthorName,
+		Rating:     cmd.Rating,
+		Body:       cmd.Body,
+		Categories: cmd.Categories,
+		Now:        s.clock.Now(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.repo.Save(ctx, r); err != nil {
+		return nil, err
+	}
+	s.record(ctx, r.VillaSlug, fmt.Sprintf("Review by %s submitted from the website", r.AuthorName))
 	return r, nil
 }
 

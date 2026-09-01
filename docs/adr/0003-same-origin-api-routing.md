@@ -27,7 +27,11 @@ So the web container cannot reach the API by itself, and the browser will send A
 Current implementation ([0002](0002-nginx-fronts-dokploy-traefik-disabled.md)), in `demo-casadana.conf`:
 
 ```nginx
-location /api/ { proxy_pass http://127.0.0.1:8080; }   # NO trailing slash
+location /api/ {
+    proxy_pass http://127.0.0.1:8080;                              # NO trailing slash
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;    # see "Forwarding the client IP"
+    proxy_set_header X-Real-IP       $remote_addr;
+}
 location /     { proxy_pass http://127.0.0.1:3001; }
 ```
 
@@ -39,6 +43,26 @@ casa-dana.com {
     reverse_proxy /* web:80
 }
 ```
+
+### Forwarding the client IP
+
+The two `proxy_set_header` lines above are **required, not optional**, and they were
+added after the fact — a bare `proxy_pass` does not send either header.
+
+The API binds to loopback and is only ever called by nginx, so `RemoteAddr` is
+always `127.0.0.1`: without a forwarded address the API cannot tell two callers
+apart. `POST /api/villas/{slug}/reviews` is rate-limited per caller
+(`internal/platform/httpserver/ratelimit.go`), and with neither header set that
+limiter counts **every visitor as one caller** — the sixth review of the hour is
+refused no matter who wrote it.
+
+`$proxy_add_x_forwarded_for` appends the peer nginx accepted to whatever the
+caller sent, so the **rightmost** entry is the only one nginx wrote. That is the
+entry the limiter reads, and it is why a caller cannot forge their way into a
+fresh budget by sending their own `X-Forwarded-For`.
+
+The dev `Caddyfile` needs no equivalent: with `trusted_proxies` unset, Caddy
+ignores an incoming `X-Forwarded-For` and sets it to the real client address.
 
 ### Two traps
 

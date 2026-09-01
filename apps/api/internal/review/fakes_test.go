@@ -194,6 +194,18 @@ func (f fakeBookingReader) GetVillaSlug(_ context.Context, bookingID string) (st
 	return slug, nil
 }
 
+// fakeAllowlist mirrors internal/villaslug without importing it, so the review
+// tests stay independent of the real catalog. A zero value knows nothing.
+type fakeAllowlist struct{ allowed map[string]bool }
+
+func (f fakeAllowlist) IsKnown(slug string) bool { return f.allowed[slug] }
+
+// knownVillas is the allowlist the service tests run with unless a case is
+// specifically about an unknown slug.
+func knownVillas() fakeAllowlist {
+	return fakeAllowlist{allowed: map[string]bool{"casadana": true, "casacasay": true}}
+}
+
 type fixedClock struct{ t time.Time }
 
 func (f fixedClock) Now() time.Time { return f.t }

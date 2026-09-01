@@ -16,16 +16,34 @@ func init() {
 	httpserver.Register(ErrAlreadyReviewed, http.StatusConflict, "ALREADY_REVIEWED")
 	httpserver.Register(ErrNotFound, http.StatusNotFound, "REVIEW_NOT_FOUND")
 	httpserver.Register(ErrInvalidPayload, http.StatusUnprocessableEntity, "INVALID_PAYLOAD")
+	httpserver.Register(ErrUnknownVilla, http.StatusNotFound, "UNKNOWN_VILLA")
 }
 
-// Mount wires review routes. requireAuth guards the moderation routes; guest
-// submission and the two public reads stay open. The public villa listing
+// Mount wires review routes. requireAuth guards the moderation routes and
+// rateLimit guards the public submission; the two public reads stay open. The public villa listing
 // returns approved reviews only — the admin listing is the one that sees
 // pending and rejected rows. The meta route is read-only on purpose: the
 // figures it serves are computed from those approved reviews, so there is
 // nothing for an admin to write.
-func Mount(r chi.Router, svc *Service, requireAuth func(http.Handler) http.Handler) {
+//
+// Two submission routes, on purpose. POST /api/reviews is the booking-backed
+// one: it needs a booking of ours to attach to. POST /api/villas/{slug}/reviews
+// is the open form on the villa page, where the visitor has no booking id to
+// give — it takes the villa from the URL and lands pending either way.
+func Mount(
+	r chi.Router,
+	svc *Service,
+	requireAuth func(http.Handler) http.Handler,
+	rateLimit func(http.Handler) http.Handler,
+) {
 	r.Post("/api/reviews", submitHandler(svc))
+	// The only unauthenticated write in the API. Nothing it accepts reaches the
+	// site without moderation, so the limit is there to keep the back-office
+	// queue usable rather than to protect what visitors can see.
+	r.Group(func(r chi.Router) {
+		r.Use(rateLimit)
+		r.Post("/api/villas/{slug}/reviews", submitPublicHandler(svc))
+	})
 	r.Get("/api/villas/{slug}/reviews", listByVillaHandler(svc))
 	r.Get("/api/villas/{slug}/reviews/meta", metaHandler(svc))
 	r.Group(func(r chi.Router) {
@@ -63,6 +81,17 @@ func (d categoryRatingsDTO) toDomain() CategoryRatings {
 		Host:        d.Host,
 		Value:       d.Value,
 	}
+}
+
+// submitPublicReviewRequest is what the villa-page form may set, and nothing
+// else. Deliberately absent: status, featured and source. They decide whether
+// a review is published and how it is attributed, so they stay with the admin
+// — a visitor posting `{"status":"approved"}` here changes nothing.
+type submitPublicReviewRequest struct {
+	AuthorName string             `json:"author_name" validate:"required,min=1,max=120"`
+	Rating     int                `json:"rating"      validate:"required,min=1,max=5"`
+	Body       string             `json:"body"        validate:"required,min=1,max=2000"`
+	Categories categoryRatingsDTO `json:"categories"`
 }
 
 type createAdminReviewRequest struct {
@@ -140,8 +169,8 @@ func toDTO(r *Review) reviewDTO {
 		Body:       r.Body,
 		Status:     string(r.Status),
 		Meta:       r.Meta,
-		Source:   r.Source,
-		Featured: r.Featured,
+		Source:     r.Source,
+		Featured:   r.Featured,
 		Categories: categoryRatingsDTO{
 			Cleanliness: r.Categories.Cleanliness,
 			Comfort:     r.Categories.Comfort,
@@ -199,6 +228,29 @@ func submitHandler(svc *Service) http.HandlerFunc {
 			AuthorName: req.AuthorName,
 			Rating:     req.Rating,
 			Body:       req.Body,
+		})
+		if err != nil {
+			httpserver.WriteError(w, r, err)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(toDTO(rv))
+	}
+}
+
+func submitPublicHandler(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req submitPublicReviewRequest
+		if !decodeAndValidate(w, r, &req) {
+			return
+		}
+		rv, err := svc.SubmitPublic(r.Context(), SubmitPublicCommand{
+			VillaSlug:  chi.URLParam(r, "slug"),
+			AuthorName: req.AuthorName,
+			Rating:     req.Rating,
+			Body:       req.Body,
+			Categories: req.Categories.toDomain(),
 		})
 		if err != nil {
 			httpserver.WriteError(w, r, err)
@@ -325,4 +377,3 @@ func metaHandler(svc *Service) http.HandlerFunc {
 		_ = json.NewEncoder(w).Encode(toMetaDTO(meta))
 	}
 }
-

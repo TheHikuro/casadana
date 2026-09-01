@@ -795,6 +795,61 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
+    post:
+      operationId: submitVillaReview
+      tags: [reviews]
+      summary: Leave a review on a villa from its public page
+      description: |
+        Public endpoint — the form on the villa page, for a visitor with no
+        booking of ours to point at. Guests coming out of our own booking flow
+        use `POST /api/reviews` instead, which ties the review to a booking.
+
+        The review is always created with status `pending`: it appears neither
+        in `GET /api/villas/{slug}/reviews` nor in the figures served by
+        `GET /api/villas/{slug}/reviews/meta` until an admin approves it.
+        `status`, `featured` and `source` are not accepted here — they decide
+        whether and how a review is published, and belong to the admin routes.
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+          example: casadana
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitVillaReviewRequest"
+      responses:
+        "201":
+          description: Review accepted, awaiting moderation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Review" }
+        "404":
+          description: Villa slug not in allowlist
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "429":
+          description: |
+            Too many submissions from this caller. The only rate-limited route in
+            the API: it is the one unauthenticated write, and the budget keeps the
+            moderation queue usable. Carries the standard rate-limit headers.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
 
   /api/villas/{slug}/reviews/meta:
     get:
@@ -1386,6 +1441,19 @@ components:
         author_name: { type: string, minLength: 1, maxLength: 120 }
         rating:      { type: integer, minimum: 1, maximum: 5 }
         body:        { type: string, maxLength: 2000, default: "" }
+
+    SubmitVillaReviewRequest:
+      type: object
+      description: |
+        What the villa-page form may set, and nothing else. `status`,
+        `featured` and `source` are deliberately absent: the review is always
+        stored as `pending` for an admin to moderate.
+      required: [author_name, rating, body]
+      properties:
+        author_name: { type: string, minLength: 1, maxLength: 120 }
+        rating:      { type: integer, minimum: 1, maximum: 5 }
+        body:        { type: string, minLength: 1, maxLength: 2000 }
+        categories:  { $ref: "#/components/schemas/ReviewCategoryRatings" }
 
     ErrorResponse:
       type: object

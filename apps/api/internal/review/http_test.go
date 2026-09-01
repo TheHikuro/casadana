@@ -21,13 +21,25 @@ func closedAuth(http.Handler) http.Handler {
 	})
 }
 
+// noLimit stands in for the rate limiter so the route table is under test
+// rather than the limiter, which has its own tests in platform/httpserver.
+func noLimit(next http.Handler) http.Handler { return next }
+
 func newRouter(svc *Service) http.Handler {
 	return newRouterWithAuth(svc, openAuth)
 }
 
 func newRouterWithAuth(svc *Service, requireAuth func(http.Handler) http.Handler) http.Handler {
+	return newRouterWith(svc, requireAuth, noLimit)
+}
+
+func newRouterWith(
+	svc *Service,
+	requireAuth func(http.Handler) http.Handler,
+	rateLimit func(http.Handler) http.Handler,
+) http.Handler {
 	r := chi.NewRouter()
-	Mount(r, svc, requireAuth)
+	Mount(r, svc, requireAuth, rateLimit)
 	return r
 }
 
@@ -464,5 +476,233 @@ func TestPublicRoutesStayOpen(t *testing.T) {
 				t.Errorf("status = %d, want 200", resp.StatusCode)
 			}
 		})
+	}
+}
+
+// The villa-page form: no booking id anywhere in the payload, villa from the
+// URL, and the review lands pending.
+func TestSubmitPublicReview_Created(t *testing.T) {
+	repo := &fakeRepo{}
+	svc := newSvc(repo, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
+	srv := httptest.NewServer(newRouter(svc))
+	defer srv.Close()
+
+	body := `{"author_name":"Ana Ruiz","rating":5,"body":"Une semaine parfaite.","categories":{"cleanliness":5,"host":4}}`
+	resp := do(t, http.MethodPost, srv.URL+"/api/villas/casadana/reviews", body)
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("status = %d, want 201", resp.StatusCode)
+	}
+	var out reviewDTO
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		t.Fatal(err)
+	}
+	if out.Status != "pending" {
+		t.Errorf("status = %q, want pending", out.Status)
+	}
+	if out.VillaSlug != "casadana" {
+		t.Errorf("villa_slug = %q, want casadana", out.VillaSlug)
+	}
+	if out.BookingID != nil {
+		t.Errorf("booking_id = %v, want null", *out.BookingID)
+	}
+	if out.Featured {
+		t.Error("featured = true, want false")
+	}
+	if out.Categories.Cleanliness == nil || *out.Categories.Cleanliness != 5 {
+		t.Errorf("cleanliness = %v, want 5", out.Categories.Cleanliness)
+	}
+}
+
+// Both houses, through the same route.
+func TestSubmitPublicReview_BothVillas(t *testing.T) {
+	for _, slug := range []string{"casadana", "casacasay"} {
+		t.Run(slug, func(t *testing.T) {
+			svc := newSvc(&fakeRepo{}, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
+			srv := httptest.NewServer(newRouter(svc))
+			defer srv.Close()
+
+			resp := do(t, http.MethodPost, srv.URL+"/api/villas/"+slug+"/reviews",
+				`{"author_name":"Ana","rating":4,"body":"Lovely"}`)
+			defer resp.Body.Close()
+			if resp.StatusCode != http.StatusCreated {
+				t.Fatalf("status = %d, want 201", resp.StatusCode)
+			}
+			var out reviewDTO
+			_ = json.NewDecoder(resp.Body).Decode(&out)
+			if out.VillaSlug != slug {
+				t.Errorf("villa_slug = %q, want %q", out.VillaSlug, slug)
+			}
+		})
+	}
+}
+
+// status, featured and source belong to the admin. A visitor sending them must
+// not be able to self-publish or fake an Airbnb attribution.
+func TestSubmitPublicReview_IgnoresModerationFields(t *testing.T) {
+	repo := &fakeRepo{}
+	svc := newSvc(repo, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
+	srv := httptest.NewServer(newRouter(svc))
+	defer srv.Close()
+
+	body := `{"author_name":"Sneaky","rating":5,"body":"Trust me","status":"approved",` +
+		`"featured":true,"source":"via Airbnb · Couple","meta":"Paris, France","booking_id":"11111111-1111-1111-1111-111111111111"}`
+	resp := do(t, http.MethodPost, srv.URL+"/api/villas/casadana/reviews", body)
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("status = %d, want 201", resp.StatusCode)
+	}
+	var out reviewDTO
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		t.Fatal(err)
+	}
+	if out.Status != "pending" {
+		t.Errorf("status = %q, want pending — a visitor cannot approve their own review", out.Status)
+	}
+	if out.Featured {
+		t.Error("featured = true, want false")
+	}
+	if out.Source != SourceWebsite {
+		t.Errorf("source = %q, want %q", out.Source, SourceWebsite)
+	}
+	if out.Meta != "" {
+		t.Errorf("meta = %q, want empty", out.Meta)
+	}
+	if out.BookingID != nil {
+		t.Errorf("booking_id = %v, want null", *out.BookingID)
+	}
+}
+
+func TestSubmitPublicReview_UnknownVilla(t *testing.T) {
+	repo := &fakeRepo{}
+	svc := newSvc(repo, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
+	srv := httptest.NewServer(newRouter(svc))
+	defer srv.Close()
+
+	resp := do(t, http.MethodPost, srv.URL+"/api/villas/casa-ghost/reviews",
+		`{"author_name":"Ana","rating":5,"body":"Nice"}`)
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", resp.StatusCode)
+	}
+	if len(repo.saved) != 0 {
+		t.Errorf("saved count = %d, want 0", len(repo.saved))
+	}
+}
+
+func TestSubmitPublicReview_BadPayload(t *testing.T) {
+	svc := newSvc(&fakeRepo{}, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
+	srv := httptest.NewServer(newRouter(svc))
+	defer srv.Close()
+
+	for _, tc := range []struct {
+		name string
+		body string
+	}{
+		{name: "no rating", body: `{"author_name":"Ana","body":"Nice"}`},
+		{name: "rating too high", body: `{"author_name":"Ana","rating":9,"body":"Nice"}`},
+		{name: "no author", body: `{"rating":5,"body":"Nice"}`},
+		{name: "no body", body: `{"author_name":"Ana","rating":5}`},
+		{name: "category out of range", body: `{"author_name":"Ana","rating":5,"body":"Nice","categories":{"value":9}}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			resp := do(t, http.MethodPost, srv.URL+"/api/villas/casadana/reviews", tc.body)
+			defer resp.Body.Close()
+			if resp.StatusCode != http.StatusUnprocessableEntity {
+				t.Errorf("status = %d, want 422", resp.StatusCode)
+			}
+		})
+	}
+}
+
+// The form is on a public page: it has to work with no admin session at all.
+func TestSubmitPublicReview_NeedsNoAdminSession(t *testing.T) {
+	svc := newSvc(&fakeRepo{}, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
+	srv := httptest.NewServer(newRouterWithAuth(svc, closedAuth))
+	defer srv.Close()
+
+	resp := do(t, http.MethodPost, srv.URL+"/api/villas/casadana/reviews",
+		`{"author_name":"Ana","rating":5,"body":"Nice"}`)
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("status = %d, want 201", resp.StatusCode)
+	}
+}
+
+// End to end over HTTP: submitting does not touch the published figures, and
+// approving is what does.
+func TestSubmitPublicReview_LeavesPublicFiguresUntouched(t *testing.T) {
+	repo := &fakeRepo{saved: []Review{
+		{ID: "r1", VillaSlug: "casadana", Status: StatusApproved, Rating: 5},
+	}}
+	svc := newSvc(repo, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
+	srv := httptest.NewServer(newRouter(svc))
+	defer srv.Close()
+
+	resp := do(t, http.MethodPost, srv.URL+"/api/villas/casadana/reviews",
+		`{"author_name":"Troll","rating":1,"body":"Awful"}`)
+	var created reviewDTO
+	_ = json.NewDecoder(resp.Body).Decode(&created)
+	resp.Body.Close()
+
+	if out := getMeta(t, srv.URL); out.DisplayAvg != 5 || out.DisplayCount != 1 {
+		t.Errorf("meta = %+v, want avg 5 over 1 review", out)
+	}
+
+	listResp := do(t, http.MethodGet, srv.URL+"/api/villas/casadana/reviews", "")
+	var list listReviewsResponse
+	_ = json.NewDecoder(listResp.Body).Decode(&list)
+	listResp.Body.Close()
+	if len(list.Reviews) != 1 || list.Reviews[0].ID != "r1" {
+		t.Errorf("public list = %+v, want only the approved review", list.Reviews)
+	}
+
+	patchResp := do(t, http.MethodPatch, srv.URL+"/api/reviews/"+created.ID, `{"status":"approved"}`)
+	patchResp.Body.Close()
+
+	if out := getMeta(t, srv.URL); out.DisplayAvg != 3 || out.DisplayCount != 2 {
+		t.Errorf("meta after approval = %+v, want avg 3 over 2 reviews", out)
+	}
+}
+
+// countingLimit records which routes the injected rate limiter actually sits in
+// front of, so the wiring is under test rather than the limiter's own counting
+// (that lives in platform/httpserver).
+func countingLimit(seen *[]string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			*seen = append(*seen, r.Method+" "+r.URL.Path)
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func TestMount_RateLimitsOnlyThePublicSubmission(t *testing.T) {
+	var seen []string
+	repo := &fakeRepo{}
+	svc := newSvc(repo, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
+	srv := httptest.NewServer(newRouterWith(svc, openAuth, countingLimit(&seen)))
+	defer srv.Close()
+
+	post := do(t, http.MethodPost, srv.URL+"/api/villas/casadana/reviews",
+		`{"author_name":"Ana","rating":5,"body":"Parfait."}`)
+	post.Body.Close()
+	if len(seen) != 1 || seen[0] != "POST /api/villas/casadana/reviews" {
+		t.Fatalf("public submission not rate limited, limiter saw %v", seen)
+	}
+
+	// The public reads and the admin writes must stay off the limiter: a
+	// visitor browsing reviews, or an admin moderating a backlog, is not what
+	// the budget is for.
+	read := do(t, http.MethodGet, srv.URL+"/api/villas/casadana/reviews", "")
+	read.Body.Close()
+	meta := do(t, http.MethodGet, srv.URL+"/api/villas/casadana/reviews/meta", "")
+	meta.Body.Close()
+	admin := do(t, http.MethodPost, srv.URL+"/api/admin/reviews",
+		`{"villa_slug":"casadana","author_name":"Ana","rating":5,"body":"Parfait."}`)
+	admin.Body.Close()
+
+	if len(seen) != 1 {
+		t.Errorf("limiter also saw %v, want only the public submission", seen[1:])
 	}
 }

@@ -35,7 +35,8 @@ import type {
   PatchReviewRequest,
   Review,
   ReviewMeta,
-  SubmitReviewRequest
+  SubmitReviewRequest,
+  SubmitVillaReviewRequest
 } from '.././schemas';
 
 import { customAxios } from '../../client';
@@ -492,6 +493,81 @@ export function useListVillaReviews<TData = Awaited<ReturnType<typeof listVillaR
 
 
 /**
+ * Public endpoint — the form on the villa page, for a visitor with no
+booking of ours to point at. Guests coming out of our own booking flow
+use `POST /api/reviews` instead, which ties the review to a booking.
+
+The review is always created with status `pending`: it appears neither
+in `GET /api/villas/{slug}/reviews` nor in the figures served by
+`GET /api/villas/{slug}/reviews/meta` until an admin approves it.
+`status`, `featured` and `source` are not accepted here — they decide
+whether and how a review is published, and belong to the admin routes.
+
+ * @summary Leave a review on a villa from its public page
+ */
+export const submitVillaReview = (
+    slug: string,
+    submitVillaReviewRequest: SubmitVillaReviewRequest,
+ signal?: AbortSignal
+) => {
+      
+      
+      return customAxios<Review>(
+      {url: `/api/villas/${slug}/reviews`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: submitVillaReviewRequest, signal
+    },
+      );
+    }
+  
+
+
+export const getSubmitVillaReviewMutationOptions = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitVillaReview>>, TError,{slug: string;data: SubmitVillaReviewRequest}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof submitVillaReview>>, TError,{slug: string;data: SubmitVillaReviewRequest}, TContext> => {
+
+const mutationKey = ['submitVillaReview'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitVillaReview>>, {slug: string;data: SubmitVillaReviewRequest}> = (props) => {
+          const {slug,data} = props ?? {};
+
+          return  submitVillaReview(slug,data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitVillaReviewMutationResult = NonNullable<Awaited<ReturnType<typeof submitVillaReview>>>
+    export type SubmitVillaReviewMutationBody = SubmitVillaReviewRequest
+    export type SubmitVillaReviewMutationError = ErrorResponse
+
+    /**
+ * @summary Leave a review on a villa from its public page
+ */
+export const useSubmitVillaReview = <TError = ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitVillaReview>>, TError,{slug: string;data: SubmitVillaReviewRequest}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof submitVillaReview>>,
+        TError,
+        {slug: string;data: SubmitVillaReviewRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getSubmitVillaReviewMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
  * Computed from the villa's approved reviews. Read-only: the figures move
 when a review is added, moderated or removed, never by being set.
 

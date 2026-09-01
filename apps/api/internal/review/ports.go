@@ -22,6 +22,14 @@ type BookingReader interface {
 	GetVillaSlug(ctx context.Context, bookingID string) (string, error)
 }
 
+// VillaAllowlist guards the villa a slug-addressed review is filed against.
+// The booking-backed path gets its slug from a booking row of ours and so
+// needs no check; the public path takes the slug straight off the URL, where
+// anything at all could be typed.
+type VillaAllowlist interface {
+	IsKnown(slug string) bool
+}
+
 type Clock interface {
 	Now() time.Time
 }

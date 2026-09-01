@@ -53,5 +53,6 @@ export * from './reviewMeta';
 export * from './reviewStatus';
 export * from './seasonRule';
 export * from './submitReviewRequest';
+export * from './submitVillaReviewRequest';
 export * from './upsertPricingRequest';
 export * from './upsertPricingResponse';

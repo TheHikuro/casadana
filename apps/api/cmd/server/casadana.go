@@ -22,6 +22,18 @@ import (
 	"github.com/TheHikuro/casadana/internal/villaslug"
 )
 
+// Budget for the villa-page review form, per caller IP.
+//
+// A visitor writes one review per stay, so anything above a handful in an hour
+// is a script or a mistake. The ceiling is deliberately generous: the cost of
+// being too tight is a real guest silently unable to post, while the cost of
+// being too loose is only a longer moderation queue — nothing a visitor submits
+// reaches the site before an admin approves it.
+const (
+	publicReviewLimit  = 5
+	publicReviewWindow = time.Hour
+)
+
 type realClock struct{}
 
 func (realClock) Now() time.Time { return time.Now().UTC() }
@@ -92,6 +104,7 @@ func main() {
 	reviewSvc := review.NewService(
 		review.NewPgRepo(pool),
 		bookingReaderAdapter{svc: bookingSvc},
+		slugAllowlist{},
 		realClock{},
 		audit.RecorderFor(auditSvc, audit.TypeReview).WithActorResolver(auditActor),
 	)
@@ -103,7 +116,7 @@ func main() {
 	adminauth.Mount(r, adminAuthSvc, cfg.CookieSecure)
 	booking.Mount(r, bookingSvc, requireAdmin)
 	pricing.Mount(r, pricingSvc, requireAdmin)
-	review.Mount(r, reviewSvc, requireAdmin)
+	review.Mount(r, reviewSvc, requireAdmin, httpserver.RateLimit(publicReviewLimit, publicReviewWindow))
 	audit.Mount(r, auditSvc, requireAdmin)
 
 	if err := httpserver.Run(r, cfg.Port, log); err != nil {

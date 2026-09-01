@@ -7,11 +7,15 @@ import (
 )
 
 func newSvc(repo Repository, bookings BookingReader, clock Clock) *Service {
-	return NewService(repo, bookings, clock, nil)
+	return NewService(repo, bookings, knownVillas(), clock, nil)
+}
+
+func newSvcWithAllowlist(repo Repository, allow VillaAllowlist, clock Clock) *Service {
+	return NewService(repo, fakeBookingReader{}, allow, clock, nil)
 }
 
 func newSvcWithEvents(repo Repository, bookings BookingReader, clock Clock, events EventRecorder) *Service {
-	return NewService(repo, bookings, clock, events)
+	return NewService(repo, bookings, knownVillas(), clock, events)
 }
 
 func TestSubmit_Happy(t *testing.T) {
@@ -452,5 +456,166 @@ func TestCreateByAdmin_RejectsOutOfRangeCategory(t *testing.T) {
 				t.Fatalf("err = %v, want ErrInvalidPayload", err)
 			}
 		})
+	}
+}
+
+// A visitor leaving a review on a villa page has no booking to point at, so
+// the villa comes from the URL and the review carries none.
+func TestSubmitPublic_LandsPendingWithNoBooking(t *testing.T) {
+	repo := &fakeRepo{}
+	svc := newSvc(repo, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
+
+	r, err := svc.SubmitPublic(context.Background(), SubmitPublicCommand{
+		VillaSlug:  "casadana",
+		AuthorName: "  Ana Ruiz  ",
+		Rating:     5,
+		Body:       "  Une semaine parfaite.  ",
+		Categories: CategoryRatings{Cleanliness: ptr(5.0), Host: ptr(4.0)},
+	})
+	if err != nil {
+		t.Fatalf("SubmitPublic: %v", err)
+	}
+	if r.Status != StatusPending {
+		t.Errorf("Status = %s, want pending — nothing a stranger types is published unmoderated", r.Status)
+	}
+	if r.BookingID != "" {
+		t.Errorf("BookingID = %q, want empty", r.BookingID)
+	}
+	if r.Source != SourceWebsite {
+		t.Errorf("Source = %q, want %q", r.Source, SourceWebsite)
+	}
+	if r.Featured {
+		t.Error("Featured = true, want false")
+	}
+	if r.AuthorName != "Ana Ruiz" || r.Body != "Une semaine parfaite." {
+		t.Errorf("name/body not trimmed: %q / %q", r.AuthorName, r.Body)
+	}
+	if r.Categories.Cleanliness == nil || *r.Categories.Cleanliness != 5 {
+		t.Errorf("cleanliness = %v, want 5", r.Categories.Cleanliness)
+	}
+	if len(repo.saved) != 1 {
+		t.Errorf("saved count = %d, want 1", len(repo.saved))
+	}
+}
+
+// Both houses take reviews, not just the one.
+func TestSubmitPublic_WorksForEveryKnownVilla(t *testing.T) {
+	for _, slug := range []string{"casadana", "casacasay"} {
+		t.Run(slug, func(t *testing.T) {
+			repo := &fakeRepo{}
+			svc := newSvc(repo, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
+
+			r, err := svc.SubmitPublic(context.Background(), SubmitPublicCommand{
+				VillaSlug: slug, AuthorName: "Ana", Rating: 4, Body: "Lovely",
+			})
+			if err != nil {
+				t.Fatalf("SubmitPublic: %v", err)
+			}
+			if r.VillaSlug != slug {
+				t.Errorf("VillaSlug = %q, want %q", r.VillaSlug, slug)
+			}
+		})
+	}
+}
+
+// The slug is whatever sat in the URL, so an unknown one must not create a row
+// under a villa that does not exist.
+func TestSubmitPublic_UnknownVilla(t *testing.T) {
+	repo := &fakeRepo{}
+	svc := newSvcWithAllowlist(repo, knownVillas(), fixedClock{t: d("2026-08-01")})
+
+	_, err := svc.SubmitPublic(context.Background(), SubmitPublicCommand{
+		VillaSlug: "casa-ghost", AuthorName: "Ana", Rating: 5, Body: "Nice",
+	})
+	if err != ErrUnknownVilla {
+		t.Fatalf("err = %v, want ErrUnknownVilla", err)
+	}
+	if len(repo.saved) != 0 {
+		t.Errorf("saved count = %d, want 0", len(repo.saved))
+	}
+}
+
+func TestSubmitPublic_RejectsBadPayload(t *testing.T) {
+	repo := &fakeRepo{}
+	svc := newSvc(repo, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
+
+	for _, tc := range []struct {
+		name string
+		cmd  SubmitPublicCommand
+	}{
+		{name: "rating too high", cmd: SubmitPublicCommand{VillaSlug: "casadana", AuthorName: "Ana", Rating: 6, Body: "Nice"}},
+		{name: "rating zero", cmd: SubmitPublicCommand{VillaSlug: "casadana", AuthorName: "Ana", Rating: 0, Body: "Nice"}},
+		{name: "blank name", cmd: SubmitPublicCommand{VillaSlug: "casadana", AuthorName: "   ", Rating: 5, Body: "Nice"}},
+		{name: "blank body", cmd: SubmitPublicCommand{VillaSlug: "casadana", AuthorName: "Ana", Rating: 5, Body: "   "}},
+		{name: "category out of range", cmd: SubmitPublicCommand{VillaSlug: "casadana", AuthorName: "Ana", Rating: 5, Body: "Nice", Categories: CategoryRatings{Value: ptr(9.0)}}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := svc.SubmitPublic(context.Background(), tc.cmd); err != ErrInvalidPayload {
+				t.Fatalf("err = %v, want ErrInvalidPayload", err)
+			}
+		})
+	}
+	if len(repo.saved) != 0 {
+		t.Errorf("saved count = %d, want 0", len(repo.saved))
+	}
+}
+
+// The whole point of landing pending: the figures a guest reads must not budge
+// until an admin has approved the submission.
+func TestSubmitPublic_DoesNotMovePublishedFigures(t *testing.T) {
+	repo := &fakeRepo{saved: []Review{
+		{ID: "r1", VillaSlug: "casadana", Status: StatusApproved, Rating: 5},
+	}}
+	svc := newSvc(repo, fakeBookingReader{}, fixedClock{t: d("2026-08-01")})
+
+	submitted, err := svc.SubmitPublic(context.Background(), SubmitPublicCommand{
+		VillaSlug: "casadana", AuthorName: "Troll", Rating: 1, Body: "Awful",
+	})
+	if err != nil {
+		t.Fatalf("SubmitPublic: %v", err)
+	}
+
+	meta, err := svc.Meta(context.Background(), "casadana")
+	if err != nil {
+		t.Fatalf("Meta: %v", err)
+	}
+	if meta.DisplayAvg != 5 || meta.DisplayCount != 1 {
+		t.Errorf("meta = %+v, want avg 5 over 1 review (the pending one excluded)", meta)
+	}
+
+	published, err := svc.ListByVilla(context.Background(), "casadana")
+	if err != nil {
+		t.Fatalf("ListByVilla: %v", err)
+	}
+	for _, r := range published {
+		if r.ID == submitted.ID {
+			t.Error("the pending submission leaked into the public listing")
+		}
+	}
+
+	// Approving it is what lets it count.
+	if _, err := svc.UpdateStatus(context.Background(), submitted.ID, StatusApproved); err != nil {
+		t.Fatalf("UpdateStatus: %v", err)
+	}
+	after, err := svc.Meta(context.Background(), "casadana")
+	if err != nil {
+		t.Fatalf("Meta: %v", err)
+	}
+	if after.DisplayAvg != 3 || after.DisplayCount != 2 {
+		t.Errorf("meta after approval = %+v, want avg 3 over 2 reviews", after)
+	}
+}
+
+func TestSubmitPublic_RecordsEvent(t *testing.T) {
+	events := &fakeEvents{}
+	svc := newSvcWithEvents(&fakeRepo{}, fakeBookingReader{}, fixedClock{t: d("2026-08-01")}, events)
+
+	if _, err := svc.SubmitPublic(context.Background(), SubmitPublicCommand{
+		VillaSlug: "casadana", AuthorName: "Ana", Rating: 5, Body: "Nice",
+	}); err != nil {
+		t.Fatalf("SubmitPublic: %v", err)
+	}
+	if len(events.events) != 1 || events.events[0].villaSlug != "casadana" {
+		t.Fatalf("events = %+v, want one line for casadana", events.events)
 	}
 }
