@@ -4,6 +4,14 @@
 - **Date:** 2026-08-10
 - **Applies to host:** `147.93.89.239` (Ubuntu 24.04, 3.8 GB RAM, 48 GB disk)
 
+> **Partially superseded by [0005](0005-v1-data-is-imported-after-all.md) (2026-09-01).**
+> The *archive, do not migrate* decision below no longer holds: `villa_slug` was the only real
+> blocker, and v1 hosted exactly one villa, so the constant `'casadana'` supplies it. v1's
+> reservations are imported by [`scripts/v1-import.sql`](../../scripts/v1-import.sql) —
+> see [`docs/runbooks/v1-data-import.md`](../runbooks/v1-data-import.md).
+> **Everything else here — the decommission runbook, the DataProtection keys, the nuget cache,
+> the dump-retention rule — still stands and still governs Phase 5.**
+
 ## Context
 
 Casa Dana v1 has run in production since February 2025:
