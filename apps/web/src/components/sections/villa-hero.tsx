@@ -10,6 +10,36 @@ interface Stat {
 }
 
 /**
+ * A cell of the hero band is either editorial — the display italic the villa's
+ * own stats use — or the tourist licence. The licence keeps a monospaced,
+ * tabular face on purpose: the display italic makes digits, dots and hyphens
+ * ambiguous, which is the one thing a registration number can't afford. The
+ * difference in face is the signal that this cell is an official record rather
+ * than another selling point.
+ */
+type BandCellKind = "editorial" | "licence"
+
+interface BandCell extends Stat {
+  kind: BandCellKind
+}
+
+// The licence's top margin is larger than the editorial one so that the two
+// sit on a shared baseline despite the ten-point difference in body size.
+const BAND_VALUE_CLASS: Record<BandCellKind, string> = {
+  editorial: "font-display mt-1.5 text-xl italic md:text-[22px]",
+  licence: "mt-[13px] font-mono text-[12px] tracking-[0.02em] tabular-nums",
+}
+
+/**
+ * The band stays a single row on desktop: its vertical rules are keyed on
+ * `i !== 0`, so a second row would inherit a stray left rule on its first cell.
+ */
+const BAND_COLUMNS: Record<number, string> = {
+  5: "md:grid-cols-5",
+  6: "md:grid-cols-6",
+}
+
+/**
  * The last stat of the band: this villa's rating, read from its own approved
  * reviews so the hero, the booking panel and the reviews section below can only
  * ever quote the same figure.
@@ -39,6 +69,7 @@ interface VillaHeroProps {
   stats: Array<Stat>
   price: number
   priceLabel: string
+  licence?: string
 }
 
 export default function VillaHero({
@@ -51,6 +82,7 @@ export default function VillaHero({
   stats,
   price,
   priceLabel,
+  licence,
 }: VillaHeroProps) {
   // Same back-office base rate the booking panel below uses, so the two prices
   // on this page can't drift apart. `price` is only a fallback for a villa that
@@ -61,7 +93,18 @@ export default function VillaHero({
   // The villa's own stats are static facts (sleeps, bedrooms, surface…); the
   // rating is the one figure that has to be read from the approved reviews.
   const ratingStat = useRatingStat(villaSlug)
-  const allStats = [...stats, ratingStat]
+
+  // Rating and licence close the band together: they are the two cells that
+  // vouch for the villa rather than sell it. A villa with no registration
+  // number on file drops the cell instead of showing a blank one.
+  const licenceCells: Array<BandCell> = licence
+    ? [{ label: m.villa_hero_stat_licence_label(), value: licence, kind: "licence" }]
+    : []
+  const cells: Array<BandCell> = [
+    ...stats.map((stat) => ({ ...stat, kind: "editorial" as const })),
+    { ...ratingStat, kind: "editorial" as const },
+    ...licenceCells,
+  ]
 
   return (
     <section className="relative h-screen min-h-[600px] overflow-hidden text-white md:min-h-[720px]">
@@ -107,20 +150,24 @@ export default function VillaHero({
           </h1>
         </div>
 
-        <div className="grid grid-cols-2 border-y border-white/25 py-5 md:grid-cols-5 md:py-6">
-          {allStats.map((stat, i) => (
+        <div
+          className={`grid grid-cols-2 border-y border-white/25 py-5 md:py-6 ${
+            BAND_COLUMNS[cells.length] ?? BAND_COLUMNS[5]
+          }`}
+        >
+          {cells.map((cell, i) => (
             <div
-              key={stat.label}
+              key={cell.label}
               className={`px-4 md:px-7 ${i !== 0 ? "md:border-l md:border-white/20" : ""} ${
-                i < allStats.length - (allStats.length % 2 === 0 ? 2 : 1)
+                i < cells.length - (cells.length % 2 === 0 ? 2 : 1)
                   ? "border-b border-white/20 pb-3 md:border-b-0 md:pb-0"
                   : ""
               }`}
             >
               <div className="font-mono text-[10px] tracking-[0.22em] text-white/70 uppercase">
-                {stat.label}
+                {cell.label}
               </div>
-              <div className="font-display mt-1.5 text-xl italic md:text-[22px]">{stat.value}</div>
+              <div className={BAND_VALUE_CLASS[cell.kind]}>{cell.value}</div>
             </div>
           ))}
         </div>

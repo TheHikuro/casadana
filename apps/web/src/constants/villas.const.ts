@@ -115,6 +115,10 @@ export interface VillaData {
     stats: Array<VillaStat>
     price: number
     priceLabel: string
+    // Spanish tourist-rental registration number, as printed on the villa's
+    // own certificate. Optional: a villa without one simply drops the cell
+    // from the hero band rather than showing an empty or invented figure.
+    licence?: string
   }
   ribbon: Array<string>
   about: {
@@ -232,6 +236,7 @@ function buildCasadana(): VillaData {
       ],
       price: 85,
       priceLabel: m.villa_casadana_hero_price_label(),
+      licence: "VV.MU.6649-1",
     },
     ribbon: [
       m.villa_casadana_ribbon_1(),
