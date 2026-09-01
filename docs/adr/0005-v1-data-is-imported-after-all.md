@@ -30,8 +30,12 @@ dump-retention rule — is unaffected and still governs Phase 5.
 **Import v1's reservations into v2** using [`scripts/v1-import.sql`](../../scripts/v1-import.sql),
 documented in [`docs/runbooks/v1-data-import.md`](../runbooks/v1-data-import.md).
 
-Result, verified against a scratch database on 2026-09-01: **25 v1 rows → 18 bookings**
-(14 `approved`, 4 `pending`), no request dropped, every date byte-identical to the v1 local date.
+Result, verified against a scratch database and then **run on production 2026-09-01**:
+**25 v1 rows → 18 bookings** (14 `approved`, 4 `pending`), no request dropped, every date
+identical to the v1 local date, party sizes unchanged, and the admin API returning all of them.
+The imported ids are listed in `/root/backups/v2/v1-imported-ids-2026-09-01.txt`, and
+`/root/backups/casadana-pre-import-2026-09-01.dump` is the source snapshot taken immediately
+beforehand.
 
 ### What is imported, and what is deliberately not
 
