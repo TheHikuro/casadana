@@ -96,7 +96,7 @@ export default function Footer() {
           <span>
             {m.footer_built_with_care()} ·{" "}
             <a
-              href="https://github.com/TheHikuro/"
+              href="https://github.com/lcleris/"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-secondary-fixed transition-colors"
