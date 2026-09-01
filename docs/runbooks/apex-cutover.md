@@ -39,67 +39,78 @@ not a degraded experience. Keep it at zero if possible, and seconds if not.
 `includeSubDomains` is **not** set, which is why `demo`/`api`/`dokploy` were never affected. Do
 not add it — that would immediately bind every subdomain to the same rule.
 
-**3. The certificate cannot be issued before the DNS move by the obvious route.** The original
-plan said to issue first, and that is wrong. `certbot --webroot` uses HTTP-01: Let's Encrypt
-fetches `http://casa-dana.com/.well-known/acme-challenge/<token>`, which today reaches **Vercel**,
-not this host. Validation fails. DNS-01 would sidestep it, but the domain is on Hostinger
-(`ns1/ns2.dns-parking.com`) and there is no maintained certbot plugin for it.
+**3. The certificate cannot be issued before the DNS move over HTTP-01.** The original plan said
+to issue first with `--webroot`, and that is wrong: HTTP-01 means Let's Encrypt fetches
+`http://casa-dana.com/.well-known/acme-challenge/<token>`, which today reaches **Vercel**, not
+this host. Validation fails.
 
-## Option A — zero gap, via an ACME redirect on Vercel (preferred)
+DNS-01 is the way round it, and it does not need Vercel or an API plugin — the TXT record is
+added by hand at Hostinger. That is Option A.
 
-Let's Encrypt **follows HTTP redirects** during HTTP-01 validation, including to a different
-host. So Vercel can hand the challenge to this box while still serving the site, which gets the
-certificate issued *before* any DNS change.
+## Option A — zero gap, via a DNS-01 challenge (preferred)
 
-**A1.** In the Vercel project serving `casa-dana.com`, add to `vercel.json` and deploy:
+DNS-01 proves control of the domain through a TXT record instead of an HTTP fetch, so the
+certificate can be issued **while Vercel is still serving the site**. Nothing about v2 touches
+Vercel, and the DNS move afterwards has no gap at all.
 
-```json
-{
-  "redirects": [
-    {
-      "source": "/.well-known/acme-challenge/:token",
-      "destination": "http://147.93.89.239/.well-known/acme-challenge/:token",
-      "permanent": false
-    }
-  ]
-}
-```
+The domain is on Hostinger (`ns1/ns2.dns-parking.com`), which has no maintained certbot plugin,
+so the record goes in by hand. Two names means two TXT records.
 
-nginx's port-80 block on this host has no `server_name`, so it is the default server and already
-answers `/.well-known/acme-challenge/` for any hostname or bare IP.
-
-**A2.** Prove the redirect works before spending Let's Encrypt rate-limit budget:
+**A1.** Start the issuance. It will pause and print the records to add:
 
 ```bash
-echo ping > /var/www/letsencrypt/.well-known/acme-challenge/ping.txt
-curl -sL http://casa-dana.com/.well-known/acme-challenge/ping.txt          # -> ping
-curl -sL http://www.casa-dana.com/.well-known/acme-challenge/ping.txt      # -> ping
-rm /var/www/letsencrypt/.well-known/acme-challenge/ping.txt
+certbot certonly --manual --preferred-challenges dns \
+  -d www.casa-dana.com -d casa-dana.com
 ```
 
-Both must print `ping`. If either serves a Vercel 404, stop — issuance will fail.
+**A2.** At Hostinger, add each TXT record it names — `_acme-challenge.www.casa-dana.com` and
+`_acme-challenge.casa-dana.com`.
 
-**A3.** Issue, then continue at "Install the vhost".
+**A3. Confirm propagation before pressing Enter.** This is the one step that actually fails in
+practice: certbot does not check for you, and a validation attempted too early burns
+rate-limit budget. In a second terminal:
 
-## Option B — short outage, if the Vercel project is not editable
+```bash
+dig +short TXT _acme-challenge.www.casa-dana.com @1.1.1.1
+dig +short TXT _acme-challenge.casa-dana.com     @1.1.1.1
+```
 
-Skip A, do the DNS move first, and issue immediately after. Everything else must be staged and
-tested beforehand so the only thing left is `certbot` plus a reload. Expect 1–3 minutes during
-which the site is **unreachable** for anyone with HSTS cached. Do it at low traffic.
+Each must print the exact string certbot gave. Only then press Enter.
 
-## Issue the certificate
+**A4. Convert the lineage to webroot after the DNS move.** A `--manual` certificate **cannot
+auto-renew** — certbot says so at issuance, and the failure mode is a silent expiry ~60 days
+later. Once DNS points here, HTTP-01 works, so re-issue the same lineage over webroot:
+
+```bash
+certbot certonly --webroot -w /var/www/letsencrypt \
+  --cert-name www.casa-dana.com -d www.casa-dana.com -d casa-dana.com
+certbot renew --dry-run --no-random-sleep-on-renew    # must pass for all four lineages
+```
+
+Then delete the two `_acme-challenge` TXT records. **Do not skip A4.** It is the difference
+between a certificate that renews itself and one that expires over a weekend.
+
+## Option B — short outage, if DNS-01 is impractical
+
+Move DNS first, then issue with `--webroot`. Everything else must be staged and tested
+beforehand so only `certbot` plus a reload remain. Expect 1–3 minutes during which the site is
+**unreachable** for anyone with HSTS cached. Do it at low traffic.
+
+## Certificate rules that apply to both options
+
+**Both names go on one lineage.** The apex block needs a valid certificate to serve its redirect
+at all — HSTS means the browser reaches the apex over HTTPS before it ever sees the 308.
+
+**`-d` is mandatory.** `/etc/letsencrypt/cli.ini` still carries a global
+`domains = api.casa-dana.com`, so a bare `certonly` silently attaches v1's hostname to the new
+certificate. Never `--nginx` — that installer rewrites v1's live `casadana.conf`.
+
+Option B's issuance, run only after DNS has moved:
 
 ```bash
 certbot certonly --webroot -w /var/www/letsencrypt \
   -d www.casa-dana.com -d casa-dana.com
 ```
-
-Both names on one lineage: the apex block needs a valid certificate to serve the redirect at all,
-because HSTS means the browser reaches it over HTTPS.
-
-**`-d` is mandatory.** `/etc/letsencrypt/cli.ini` still carries a global
-`domains = api.casa-dana.com`, so a bare `certonly` silently attaches v1's hostname. Never
-`--nginx` — that installer rewrites v1's live `casadana.conf`.
 
 ## Install the vhost
 
@@ -215,9 +226,13 @@ receives nothing.
 
 ## After the grace period (1–2 weeks)
 
-Remove the ACME redirect from `vercel.json` if Option A was used, delete the Vercel project, then
-proceed to Phase 5 ([ADR 0001](../adr/0001-v2-rewrite-and-v1-decommission.md)).
+Delete the Vercel project, then proceed to Phase 5
+([ADR 0001](../adr/0001-v2-rewrite-and-v1-decommission.md)).
 
-**Renewal depends on it.** Once the Vercel redirect is gone, renewal for this lineage works
-because DNS now points here — but if the apex is ever moved away again while the lineage still
-exists, renewal fails silently and surfaces as an outage ~60 days later.
+**v2 uses nothing from Vercel — but keep the project until the grace period ends anyway.** It is
+the rollback path. Deleting it early means a bad cutover has nowhere to fall back to, since the
+v1 frontend exists only there.
+
+**Renewal follows DNS.** Once the apex points here the lineage renews over webroot (A4). If the
+apex is ever moved away again while the lineage still exists, renewal fails silently and surfaces
+as an outage ~60 days later.
