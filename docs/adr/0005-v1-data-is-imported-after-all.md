@@ -37,6 +37,15 @@ The imported ids are listed in `/root/backups/v2/v1-imported-ids-2026-09-01.txt`
 `/root/backups/casadana-pre-import-2026-09-01.dump` is the source snapshot taken immediately
 beforehand.
 
+It was run twice. The first run landed in `casadana_v2` — the database the stack had used as the
+demo — which turned out to hold demo bookings, demo audit history and a second admin alongside
+three weeks of real pricing configuration. Production was to contain v1's data and nothing else,
+so the stack was repointed at a fresh `casadana_prod` and the import re-run there. `casadana_v2`
+was abandoned rather than dropped, so it is still in the same volume and the pricing settings can
+be recovered from it directly; a readable copy is at
+`/root/backups/v2/demo-config-for-reentry-2026-09-01.txt`. **The pricing configuration has to be
+re-entered through the admin UI before the site quotes correctly.**
+
 ### What is imported, and what is deliberately not
 
 - **`id` is carried over unchanged.** v1's primary keys are already UUIDs, so every imported row

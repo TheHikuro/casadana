@@ -9,7 +9,7 @@ One host, one compose file, two independent stacks.
 | Compose project (`STACK_NAME`) | `casadana` | `casadana-demo` |
 | Containers | `casadana-{web,api,postgres}` | `casadana-demo-{web,api,postgres}` |
 | Loopback ports (web / api) | 3001 / 8080 | 3011 / 8090 |
-| Database | `casadana_v2` | `casadana_demo` |
+| Database | `casadana_prod` | `casadana_demo` |
 | Volume | `casadana_postgres_data` | `casadana-demo_postgres_data` |
 | Checkout | `/root/src/casadana` | `/root/src/casadana-demo` |
 | Env file | `/root/casadana-prod.env` | `/root/casadana-demo.env` |
@@ -26,9 +26,21 @@ Once the apex points at this host, `main` is production, so merging needs somewh
 land first. `develop` is that place.
 
 **The stack that is now production is the same one that served the demo since 2026-08-10** — it
-kept its volume, its `STACK_NAME`, its ports and its admin user. The *demo* is the newly built,
-disposable one. That direction is deliberate: production runs the configuration with three weeks
-of uptime behind it, not the one created this afternoon.
+kept its volume, its `STACK_NAME` and its ports. The *demo* is the newly built, disposable one.
+That direction is deliberate: production runs the configuration with three weeks of uptime behind
+it, not the one created this afternoon.
+
+**Its database, however, is new.** The stack was promoted but pointed at a fresh `casadana_prod`,
+because the old `casadana_v2` was the demo's: alongside real pricing work it held demo bookings,
+demo audit history and a second admin, and production was to contain v1's data and nothing else.
+`casadana_v2` still exists inside the same volume — it was abandoned, not dropped — so the
+pricing configuration remains recoverable without restoring a dump. A readable copy is at
+`/root/backups/v2/demo-config-for-reentry-2026-09-01.txt`, and it still has to be re-entered
+through the admin UI.
+
+Because `casadana_prod` started empty and the API has no bootstrap route for the first admin
+(`POST /api/admin/users` requires an existing session), that row was inserted directly with a
+bcrypt hash. Credentials: `/root/casadana-prod-admin.txt`, mode 600.
 
 ## Rules
 

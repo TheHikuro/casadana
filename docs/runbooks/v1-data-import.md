@@ -1,7 +1,7 @@
 # Runbook — import v1 reservations into v2
 
 Moves booking history out of the v1 .NET database (host Postgres, db `casadana`) into v2
-(`casadana-postgres` container, db `casadana_v2`). Rationale and the full list of what is and
+(`casadana-postgres` container, db `casadana_prod`). Rationale and the full list of what is and
 is not imported: [ADR 0005](../adr/0005-v1-data-is-imported-after-all.md).
 
 **Run this before Phase 5.** `dropdb casadana` is irreversible and the import cannot be redone
@@ -40,16 +40,16 @@ CSV quoting — do not "fix" it.
 **3. Stage it inside the v2 container.**
 
 ```bash
-docker exec -i casadana-postgres psql -q -U casadana_app -d casadana_v2 -c '
+docker exec -i casadana-postgres psql -q -U casadana_app -d casadana_prod -c '
 CREATE TABLE v1_res (
   "Id" uuid, "NumberOfPersons" int, "Start" timestamptz, "End" timestamptz,
   "Price" numeric, "Phone" text, "Email" text, "FirstName" text,
   "LastName" text, "Description" text, "Status" text);'
 
-docker exec -i casadana-postgres psql -q -U casadana_app -d casadana_v2 \
+docker exec -i casadana-postgres psql -q -U casadana_app -d casadana_prod \
   -c '\copy v1_res from stdin csv' < /root/v1_reservations.csv
 
-docker exec casadana-postgres psql -U casadana_app -d casadana_v2 -tAc 'select count(*) from v1_res'
+docker exec casadana-postgres psql -U casadana_app -d casadana_prod -tAc 'select count(*) from v1_res'
 # -> 25
 ```
 
@@ -57,14 +57,14 @@ docker exec casadana-postgres psql -U casadana_app -d casadana_v2 -tAc 'select c
 status is *designed* to abort it.
 
 ```bash
-docker exec -i casadana-postgres psql -q -v ON_ERROR_STOP=1 -U casadana_app -d casadana_v2 \
+docker exec -i casadana-postgres psql -q -v ON_ERROR_STOP=1 -U casadana_app -d casadana_prod \
   < /root/src/casadana/scripts/v1-import.sql
 ```
 
 **5. Verify before dropping the staging table.**
 
 ```bash
-docker exec -i casadana-postgres psql -U casadana_app -d casadana_v2 -P pager=off <<'SQL'
+docker exec -i casadana-postgres psql -U casadana_app -d casadana_prod -P pager=off <<'SQL'
 -- every imported date equals the v1 Brussels-local date
 SELECT count(*) AS date_mismatches FROM bookings b JOIN v1_res r ON r."Id"=b.id
 WHERE b.check_in  <> (r."Start" AT TIME ZONE 'Europe/Brussels')::date
@@ -87,7 +87,7 @@ SQL
 **6. Clean up.**
 
 ```bash
-docker exec casadana-postgres psql -U casadana_app -d casadana_v2 -c 'DROP TABLE v1_res'
+docker exec casadana-postgres psql -U casadana_app -d casadana_prod -c 'DROP TABLE v1_res'
 shred -u /root/v1_reservations.csv     # contains guest names, emails and phone numbers
 ```
 
@@ -99,7 +99,7 @@ Then check the admin dashboard: the bookings list should show 18 Casa DaNa entri
 The import only ever inserts, and only rows whose ids came from v1, so it is precisely reversible:
 
 ```bash
-docker exec casadana-postgres psql -U casadana_app -d casadana_v2 \
+docker exec casadana-postgres psql -U casadana_app -d casadana_prod \
   -c 'DELETE FROM bookings WHERE id IN (SELECT "Id" FROM v1_res)'
 ```
 
