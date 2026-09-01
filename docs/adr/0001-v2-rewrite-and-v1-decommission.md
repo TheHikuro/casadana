@@ -4,6 +4,32 @@
 - **Date:** 2026-08-10
 - **Applies to host:** `147.93.89.239` (Ubuntu 24.04, 3.8 GB RAM, 48 GB disk)
 
+> ## Decommissioned 2026-09-01 20:0x UTC — this ADR is now a historical record.
+>
+> v1 is gone: service disabled and unit removed, nginx vhost and certificate deleted, all 19
+> .NET packages purged, `/usr/lib/dotnet`, `/root/.nuget`, `/root/.dotnet`, `/root/.aspnet` and
+> `/var/www/casa-dana-api` removed, database and role dropped. Disk 16G → 14G; the host
+> Postgres now holds nothing but its own `postgres` database.
+>
+> Final backups, with a **restore verified against the live database by md5 of the booking
+> rows before anything was destroyed**, are in `/root/backups/v1-final-2026-09-01/`:
+> the custom-format dump, a plain-SQL dump, CSV archives of `Reservations` and `Calendars`,
+> and under `host-state/` the six DataProtection keys, the systemd unit, the nginx vhost,
+> `appsettings*.json` and the pre-edit `cli.ini`. **Keep for at least a year** — `Price`, the
+> duplicate rows and the original `Status` strings exist only there.
+>
+> ### The one thing that nearly went wrong
+>
+> **v1's `casadana.conf` also contained the port-80 `default_server`** — the block that served
+> `/.well-known/acme-challenge/` for *every* hostname on the box. Deleting that file took port 80
+> away from all of them: `certbot renew --dry-run` went from 4/4 passing to **3/3 failing**, with
+> no other symptom. It would have surfaced as demo, dokploy *and* the production site all losing
+> HTTPS about 60 days later. Port 80 now lives in its own
+> `/etc/nginx/sites-available/00-http-redirect.conf`, so no single site's lifecycle can remove it
+> again. **Run `certbot renew --dry-run` after any nginx change, not just certificate work.**
+>
+> The stale `domains = api.casa-dana.com` global in `cli.ini` was commented out at the same time.
+
 > **Partially superseded by [0005](0005-v1-data-is-imported-after-all.md) (2026-09-01).**
 > The *archive, do not migrate* decision below no longer holds: `villa_slug` was the only real
 > blocker, and v1 hosted exactly one villa, so the constant `'casadana'` supplies it. v1's

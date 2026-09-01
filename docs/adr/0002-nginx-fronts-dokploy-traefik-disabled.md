@@ -2,6 +2,14 @@
 
 - **Status:** Accepted (has an explicit exit condition — see below)
 - **Date:** 2026-08-10
+
+> **Exit condition reached 2026-09-01.** v1 is decommissioned, so the certbot/nginx constraint
+> that kept Traefik parked is gone. nginx was NOT retired at the same time — it is serving three
+> live vhosts and all certificate renewal, and swapping it out on the same day as the
+> decommission would have meant two large changes with one rollback path. Handing 80/443 to
+> Traefik is now a coherent option rather than a hazard; treat it as its own change, with its own
+> ADR. Note that `00-http-redirect.conf` (the port-80 ACME default server) would have to move
+> with it.
 - **Applies to host:** `147.93.89.239`
 
 ## Context
