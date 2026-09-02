@@ -107,27 +107,27 @@ export function RuleRow({ rule, onSave, onDelete }: RuleRowProps) {
   return (
     <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[1.4fr_1fr_1fr_0.8fr_auto]">
       <Input
-        aria-label="Rule label"
+        aria-label="Nom de la règle"
         value={label}
         onChange={(e) => setLabel(e.target.value)}
         onBlur={commitLabel}
       />
       <Input
         type="date"
-        aria-label="Start date"
+        aria-label="Date de début"
         value={startDate}
         onChange={(e) => commitStartDate(e.target.value)}
       />
       <Input
         type="date"
-        aria-label="End date"
+        aria-label="Date de fin"
         value={endDate}
         onChange={(e) => commitEndDate(e.target.value)}
       />
       <Input
         type="number"
         min={0}
-        aria-label="Nightly price in euros"
+        aria-label="Prix par nuit en euros"
         value={price}
         onChange={(e) => setPrice(e.target.value)}
         onBlur={commitPrice}
@@ -135,7 +135,7 @@ export function RuleRow({ rule, onSave, onDelete }: RuleRowProps) {
       <button
         type="button"
         onClick={handleDelete}
-        aria-label="Delete rule"
+        aria-label="Supprimer la règle"
         className="text-on-surface-variant hover:bg-error-container hover:text-on-error-container justify-self-start rounded-md p-1.5"
       >
         <Trash2 className="size-3.5" />

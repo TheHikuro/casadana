@@ -83,9 +83,9 @@ function ReviewsPage() {
     <div>
       <div className="mb-7 flex flex-wrap items-baseline justify-between gap-4">
         <div>
-          <h2 className="text-on-surface text-2xl font-bold">Reviews</h2>
+          <h2 className="text-on-surface text-2xl font-bold">Avis</h2>
           <p className="text-on-surface-variant mt-1 text-[13.5px]">
-            Guest testimonials and the rating figures shown for {PROPERTY_LABELS[property]}.
+            Témoignages des voyageurs et notes affichées pour {PROPERTY_LABELS[property]}.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -110,16 +110,16 @@ function ReviewsPage() {
       </div>
 
       <StatRow>
-        <StatTile label="Average rating" value={average} />
-        <StatTile label="Total reviews" value={total} />
-        <StatTile label="Published" value={published} />
-        <StatTile label="Featured" value={featured} />
+        <StatTile label="Note moyenne" value={average} />
+        <StatTile label="Total des avis" value={total} />
+        <StatTile label="Publiés" value={published} />
+        <StatTile label="Mis en avant" value={featured} />
       </StatRow>
 
       <div className="flex flex-col gap-5">
         <RatingBreakdownCard property={property} />
 
-        <AdminCard title="Individual reviews" flush>
+        <AdminCard title="Avis individuels" flush>
           <ReviewTable reviews={visible} property={property} />
           <Pager page={currentPage} maxPage={maxPage} onPageChange={goToPage} />
         </AdminCard>

@@ -40,9 +40,9 @@ function PricingPage() {
     <div>
       <div className="mb-7 flex flex-wrap items-baseline justify-between gap-4">
         <div>
-          <h2 className="text-on-surface text-2xl font-bold">Pricing</h2>
+          <h2 className="text-on-surface text-2xl font-bold">Tarifs</h2>
           <p className="text-on-surface-variant mt-1 text-[13.5px]">
-            Base rate, fees and seasonal overrides for {PROPERTY_LABELS[property]}.
+            Tarif de base, frais et règles saisonnières pour {PROPERTY_LABELS[property]}.
           </p>
         </div>
         <div className="bg-surface-container flex gap-1 rounded-lg p-1">

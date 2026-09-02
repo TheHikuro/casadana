@@ -4,11 +4,11 @@ import { AdminCard } from "@/components/admin/ui/admin-card"
 import { EmptyState } from "@/components/admin/ui/empty-state"
 
 const BREAKDOWN_FIELDS = [
-  { key: "cleanliness", label: "Cleanliness" },
-  { key: "comfort", label: "Comfort" },
-  { key: "location", label: "Location" },
-  { key: "host", label: "Host" },
-  { key: "value", label: "Value" },
+  { key: "cleanliness", label: "Propreté" },
+  { key: "comfort", label: "Confort" },
+  { key: "location", label: "Emplacement" },
+  { key: "host", label: "Hôte" },
+  { key: "value", label: "Rapport qualité-prix" },
 ] as const
 
 interface RatingBreakdownCardProps {
@@ -20,19 +20,21 @@ export default function RatingBreakdownCard({ property }: RatingBreakdownCardPro
 
   return (
     <AdminCard
-      title="Rating breakdown"
-      sub="Computed from the approved reviews — approving or hiding a review is what moves these figures."
+      title="Détail des notes"
+      sub="Calculé à partir des avis publiés — publier ou masquer un avis fait bouger ces chiffres."
       flush={!meta}
     >
       {!meta ? (
-        <EmptyState message={isPending ? "Loading…" : "Rating figures unavailable."} />
+        <EmptyState message={isPending ? "Chargement…" : "Notes indisponibles."} />
       ) : (
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-10">
           <div className="sm:w-44 sm:shrink-0">
             {/* display_avg reads 0 with nothing approved, so the count is what tells
                 an empty villa apart from a genuine average. */}
             {meta.display_count === 0 ? (
-              <p className="text-on-surface-variant text-[13.5px]">No reviews approved yet.</p>
+              <p className="text-on-surface-variant text-[13.5px]">
+                Aucun avis publié pour le moment.
+              </p>
             ) : (
               <>
                 <p className="text-on-surface font-mono text-3xl font-bold">
@@ -40,8 +42,7 @@ export default function RatingBreakdownCard({ property }: RatingBreakdownCardPro
                   <span className="text-on-surface-variant ml-1 text-base font-normal">/5</span>
                 </p>
                 <p className="text-on-surface-variant mt-1.5 text-[12.5px]">
-                  Based on {meta.display_count} approved{" "}
-                  {meta.display_count === 1 ? "review" : "reviews"}
+                  Sur {meta.display_count} avis publié{meta.display_count === 1 ? "" : "s"}
                 </p>
               </>
             )}
@@ -63,7 +64,7 @@ function CategoryBar({ label, score }: { label: string; score: number | null }) 
     <div className="grid grid-cols-[100px_1fr_auto] items-center gap-3 text-[12.5px]">
       <span className="text-on-surface-variant font-semibold">{label}</span>
       {score === null ? (
-        <span className="text-on-surface-variant/70 col-span-2 italic">Not rated yet</span>
+        <span className="text-on-surface-variant/70 col-span-2 italic">Pas encore noté</span>
       ) : (
         <>
           <div className="bg-outline-variant h-1.5 overflow-hidden rounded-full" aria-hidden>

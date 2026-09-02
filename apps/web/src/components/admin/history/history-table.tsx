@@ -9,10 +9,18 @@ const TYPE_ICONS: Record<HistoryEventType, LucideIcon> = {
   system: Circle,
 }
 
-// The API enum can grow ahead of this map; an unknown type still renders.
+const TYPE_LABELS: Record<HistoryEventType, string> = {
+  reservation: "Réservation",
+  pricing: "Tarifs",
+  review: "Avis",
+  owner: "Propriétaire",
+  system: "Système",
+}
+
+// The API enum can grow ahead of these maps; an unknown type still renders.
 const FALLBACK_ICON = Circle
 
-const DATE_TIME_FORMAT = new Intl.DateTimeFormat(undefined, {
+const DATE_TIME_FORMAT = new Intl.DateTimeFormat("fr-FR", {
   dateStyle: "medium",
   timeStyle: "short",
 })
@@ -28,9 +36,9 @@ export default function HistoryTable({ events }: { events: Array<HistoryEvent> }
       <table className="w-full min-w-[720px] border-collapse text-[13px]">
         <thead>
           <tr className="border-outline-variant bg-surface-container-low text-on-surface-variant border-b text-left text-[10.5px] font-semibold tracking-[0.08em] uppercase">
-            <th className="px-5 py-2.5">When</th>
+            <th className="px-5 py-2.5">Quand</th>
             <th className="px-5 py-2.5">Type</th>
-            <th className="px-5 py-2.5">Event</th>
+            <th className="px-5 py-2.5">Événement</th>
           </tr>
         </thead>
         <tbody>
@@ -45,7 +53,7 @@ export default function HistoryTable({ events }: { events: Array<HistoryEvent> }
                 <td className="px-5 py-3">
                   <span className="bg-surface-container-high text-on-surface-variant inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold capitalize">
                     <Icon className="size-3.5 shrink-0" />
-                    {event.type}
+                    {TYPE_LABELS[event.type] ?? event.type}
                   </span>
                 </td>
                 <td className="text-on-surface px-5 py-3">

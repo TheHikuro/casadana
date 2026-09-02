@@ -38,15 +38,18 @@ export default function CreateAdminUserDialog() {
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListAdminUsersQueryKey() })
-        toast("Admin added")
+        toast("Administrateur ajouté")
         setOpen(false)
         reset()
       },
       onError: (err) => {
         if (err instanceof ApiError && err.code === "EMAIL_TAKEN") {
-          setError("email", { type: "taken", message: "An admin with this email already exists." })
+          setError("email", {
+            type: "taken",
+            message: "Un administrateur avec cet e-mail existe déjà.",
+          })
         } else {
-          toast("Could not add admin")
+          toast("Impossible d'ajouter l'administrateur")
         }
       },
     },
@@ -58,31 +61,34 @@ export default function CreateAdminUserDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button type="button" />}>Add admin</DialogTrigger>
+      <DialogTrigger render={<Button type="button" />}>Ajouter un administrateur</DialogTrigger>
       <DialogContent>
-        <DialogTitle>Add admin</DialogTitle>
+        <DialogTitle>Ajouter un administrateur</DialogTitle>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
           <Field>
-            <FieldLabel htmlFor="newAdminEmail">Email</FieldLabel>
+            <FieldLabel htmlFor="newAdminEmail">E-mail</FieldLabel>
             <Input id="newAdminEmail" type="email" {...register("email", { required: true })} />
             <FieldError errors={[errors.email]} />
           </Field>
           <Field>
-            <FieldLabel htmlFor="newAdminPassword">Password</FieldLabel>
+            <FieldLabel htmlFor="newAdminPassword">Mot de passe</FieldLabel>
             <Input
               id="newAdminPassword"
               type="password"
               {...register("password", {
                 required: true,
-                minLength: { value: 8, message: "Password must be at least 8 characters." },
+                minLength: {
+                  value: 8,
+                  message: "Le mot de passe doit contenir au moins 8 caractères.",
+                },
               })}
             />
             <FieldError errors={[errors.password]} />
           </Field>
           <div className="mt-2 flex justify-end gap-2.5">
-            <DialogClose render={<Button type="button" variant="outline" />}>Cancel</DialogClose>
+            <DialogClose render={<Button type="button" variant="outline" />}>Annuler</DialogClose>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Adding…" : "Add admin"}
+              {isPending ? "Ajout…" : "Ajouter un administrateur"}
             </Button>
           </div>
         </form>

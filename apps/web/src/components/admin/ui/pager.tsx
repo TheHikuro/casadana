@@ -18,10 +18,10 @@ export function Pager({ page, maxPage, onPageChange }: PagerProps) {
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
       >
-        ‹ Prev
+        ‹ Précédent
       </Button>
       <span className="text-on-surface-variant text-[12.5px]">
-        Page {page} of {maxPage}
+        Page {page} sur {maxPage}
       </span>
       <Button
         type="button"
@@ -30,7 +30,7 @@ export function Pager({ page, maxPage, onPageChange }: PagerProps) {
         disabled={page >= maxPage}
         onClick={() => onPageChange(page + 1)}
       >
-        Next ›
+        Suivant ›
       </Button>
     </div>
   )

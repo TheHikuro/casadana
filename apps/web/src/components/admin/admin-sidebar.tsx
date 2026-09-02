@@ -4,11 +4,11 @@ import { Link, useNavigate } from "@tanstack/react-router"
 import { CalendarDays, History, LogOut, Star, Tag, UserCog } from "lucide-react"
 
 const NAV_ITEMS = [
-  { to: "/admin/reservations", label: "Reservations", icon: CalendarDays },
-  { to: "/admin/pricing", label: "Pricing", icon: Tag },
-  { to: "/admin/reviews", label: "Reviews", icon: Star },
-  { to: "/admin/owner", label: "Owner & access", icon: UserCog },
-  { to: "/admin/history", label: "History", icon: History },
+  { to: "/admin/reservations", label: "Réservations", icon: CalendarDays },
+  { to: "/admin/pricing", label: "Tarifs", icon: Tag },
+  { to: "/admin/reviews", label: "Avis", icon: Star },
+  { to: "/admin/owner", label: "Propriétaire et accès", icon: UserCog },
+  { to: "/admin/history", label: "Historique", icon: History },
 ] as const
 
 export default function AdminSidebar() {
@@ -31,7 +31,7 @@ export default function AdminSidebar() {
       <div className="px-2">
         <p className="text-sm font-bold">Casa Admin</p>
         <p className="text-on-primary/60 mt-1 font-mono text-[9.5px] tracking-[0.2em] uppercase">
-          Internal · not public
+          Interne · non public
         </p>
       </div>
 
@@ -56,7 +56,7 @@ export default function AdminSidebar() {
           rel="noopener noreferrer"
           className="text-on-primary/65 hover:text-on-primary rounded-md px-2 py-1.5 text-[12.5px]"
         >
-          ↗ View public site
+          ↗ Voir le site public
         </a>
         <button
           type="button"
@@ -64,7 +64,7 @@ export default function AdminSidebar() {
           className="text-on-primary/65 hover:text-on-primary flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[12.5px]"
         >
           <LogOut className="size-3.5" />
-          Log out
+          Se déconnecter
         </button>
       </div>
     </aside>

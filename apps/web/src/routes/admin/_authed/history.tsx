@@ -62,9 +62,9 @@ function HistoryPage() {
     <div>
       <div className="mb-7 flex flex-wrap items-baseline justify-between gap-4">
         <div>
-          <h2 className="text-on-surface text-2xl font-bold">History</h2>
+          <h2 className="text-on-surface text-2xl font-bold">Historique</h2>
           <p className="text-on-surface-variant mt-1 text-[13.5px]">
-            A log of every change made in this dashboard.
+            Journal de toutes les modifications faites dans ce tableau de bord.
           </p>
         </div>
         <div className="bg-surface-container flex gap-1 rounded-lg p-1">
@@ -86,20 +86,20 @@ function HistoryPage() {
       </div>
 
       <StatRow>
-        <StatTile label="Total events" value={data?.total ?? 0} />
+        <StatTile label="Total des événements" value={data?.total ?? 0} />
       </StatRow>
 
       <AdminCard
-        title="Activity log"
-        sub="Most recent first — every reservation, price, review and owner change."
+        title="Journal d'activité"
+        sub="Du plus récent au plus ancien — chaque changement de réservation, tarif, avis ou propriétaire."
         flush
       >
         {isError ? (
-          <EmptyState message="Could not load the activity log." />
+          <EmptyState message="Impossible de charger le journal d'activité." />
         ) : isPending ? (
-          <EmptyState message="Loading activity…" />
+          <EmptyState message="Chargement de l'activité…" />
         ) : events.length === 0 ? (
-          <EmptyState message="No activity yet." />
+          <EmptyState message="Aucune activité pour le moment." />
         ) : (
           <HistoryTable events={events} />
         )}

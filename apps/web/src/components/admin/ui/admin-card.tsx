@@ -6,7 +6,7 @@ interface AdminCardProps {
   title: string
   /** Muted one-liner under the title explaining what the card controls. */
   sub?: string
-  /** Right-aligned control in the card header, e.g. an "Add rule" button. */
+  /** Right-aligned control in the card header, e.g. an "Ajouter une règle" button. */
   action?: ReactNode
   /** Set when the body supplies its own padding (tables, row lists). */
   flush?: boolean

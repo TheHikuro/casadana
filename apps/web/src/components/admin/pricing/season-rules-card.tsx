@@ -39,9 +39,9 @@ export default function SeasonRulesCard({ property }: SeasonRulesCardProps) {
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: rulesQueryKey })
-        toast("Rule added")
+        toast("Règle ajoutée")
       },
-      onError: () => toast("Could not add rule"),
+      onError: () => toast("Impossible d'ajouter la règle"),
     },
   })
 
@@ -49,9 +49,9 @@ export default function SeasonRulesCard({ property }: SeasonRulesCardProps) {
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: rulesQueryKey })
-        toast("Rule updated")
+        toast("Règle mise à jour")
       },
-      onError: () => toast("Could not update rule"),
+      onError: () => toast("Impossible de mettre à jour la règle"),
     },
   })
 
@@ -59,9 +59,9 @@ export default function SeasonRulesCard({ property }: SeasonRulesCardProps) {
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: rulesQueryKey })
-        toast("Rule removed")
+        toast("Règle supprimée")
       },
-      onError: () => toast("Could not remove rule"),
+      onError: () => toast("Impossible de supprimer la règle"),
     },
   })
 
@@ -70,7 +70,7 @@ export default function SeasonRulesCard({ property }: SeasonRulesCardProps) {
     createRule({
       slug: property,
       data: {
-        label: "New rule",
+        label: "Nouvelle règle",
         start_date: today,
         end_date: today,
         // Same default as the base-rate card, so a villa nobody has configured
@@ -88,20 +88,20 @@ export default function SeasonRulesCard({ property }: SeasonRulesCardProps) {
 
   return (
     <AdminCard
-      title="Seasonal overrides"
-      sub="Highest match wins for dates inside the range."
+      title="Règles saisonnières"
+      sub="Sur une date couverte par plusieurs règles, la plus chère l'emporte."
       flush
       action={
         <Button type="button" size="sm" variant="outline" onClick={handleAdd}>
           <Plus />
-          Add rule
+          Ajouter une règle
         </Button>
       }
     >
       {isPending ? (
-        <EmptyState message="Loading…" />
+        <EmptyState message="Chargement…" />
       ) : rules.length === 0 ? (
-        <EmptyState message="No seasonal rules yet." />
+        <EmptyState message="Aucune règle saisonnière pour le moment." />
       ) : (
         <div className="flex flex-col gap-3 p-5">
           {rules.map((rule) => (

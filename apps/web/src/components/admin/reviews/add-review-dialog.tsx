@@ -27,11 +27,11 @@ import { cn } from "@/lib/utils"
 const RATINGS = [1, 2, 3, 4, 5] as const
 
 const CATEGORY_FIELDS = [
-  { key: "cleanliness", label: "Cleanliness" },
-  { key: "comfort", label: "Comfort" },
-  { key: "location", label: "Location" },
-  { key: "host", label: "Host" },
-  { key: "value", label: "Value" },
+  { key: "cleanliness", label: "Propreté" },
+  { key: "comfort", label: "Confort" },
+  { key: "location", label: "Emplacement" },
+  { key: "host", label: "Hôte" },
+  { key: "value", label: "Rapport qualité-prix" },
 ] as const
 
 type CategoryKey = (typeof CATEGORY_FIELDS)[number]["key"]
@@ -87,11 +87,11 @@ export default function AddReviewDialog({ property }: AddReviewDialogProps) {
         // An approved review shifts the computed figures, so the breakdown card
         // has to refetch alongside the lists.
         queryClient.invalidateQueries({ queryKey: getGetVillaReviewMetaQueryKey(property) })
-        toast("Review added")
+        toast("Avis ajouté")
         setOpen(false)
         reset(DEFAULT_VALUES)
       },
-      onError: () => toast("Could not add review"),
+      onError: () => toast("Impossible d'ajouter l'avis"),
     },
   })
 
@@ -99,7 +99,7 @@ export default function AddReviewDialog({ property }: AddReviewDialogProps) {
     const authorName = values.authorName.trim()
     const body = values.body.trim()
     if (!authorName || !body) {
-      toast("Fill in name and quote")
+      toast("Renseignez le nom et le commentaire")
       return
     }
     createReview({
@@ -109,7 +109,7 @@ export default function AddReviewDialog({ property }: AddReviewDialogProps) {
         rating: values.rating,
         body,
         meta: values.meta.trim(),
-        source: values.source.trim() || "Direct booking",
+        source: values.source.trim() || "Réservation directe",
         status: "approved",
         featured: false,
         categories: toCategoryRatings(values.categories),
@@ -121,31 +121,31 @@ export default function AddReviewDialog({ property }: AddReviewDialogProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button type="button" />}>
         <Plus />
-        Add review
+        Ajouter un avis
       </DialogTrigger>
       <DialogContent>
-        <DialogTitle>Add review</DialogTitle>
+        <DialogTitle>Ajouter un avis</DialogTitle>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
           <Field>
-            <FieldLabel htmlFor="reviewAuthorName">Guest name</FieldLabel>
+            <FieldLabel htmlFor="reviewAuthorName">Nom du voyageur</FieldLabel>
             <Input id="reviewAuthorName" {...register("authorName")} />
           </Field>
           <Field>
-            <FieldLabel htmlFor="reviewMeta">Meta line</FieldLabel>
+            <FieldLabel htmlFor="reviewMeta">Ligne de contexte</FieldLabel>
             <Input
               id="reviewMeta"
-              placeholder="Paris, France · Stayed June 2026"
+              placeholder="Paris, France · Séjour en juin 2026"
               {...register("meta")}
             />
           </Field>
           <Field>
-            <FieldLabel>Rating</FieldLabel>
+            <FieldLabel>Note</FieldLabel>
             <div className="flex items-center gap-0.5">
               {RATINGS.map((n) => (
                 <button
                   key={n}
                   type="button"
-                  aria-label={n === 1 ? "Rate 1 star" : `Rate ${n} stars`}
+                  aria-label={n === 1 ? "Noter 1 étoile" : `Noter ${n} étoiles`}
                   aria-pressed={n === rating}
                   onClick={() => setValue("rating", n)}
                   className={cn(
@@ -159,7 +159,7 @@ export default function AddReviewDialog({ property }: AddReviewDialogProps) {
             </div>
           </Field>
           <Field>
-            <FieldLabel>Category ratings (optional)</FieldLabel>
+            <FieldLabel>Notes par catégorie (facultatif)</FieldLabel>
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
               {CATEGORY_FIELDS.map(({ key, label }) => (
                 <div key={key} className="flex flex-col gap-1">
@@ -183,7 +183,7 @@ export default function AddReviewDialog({ property }: AddReviewDialogProps) {
             </div>
           </Field>
           <Field>
-            <FieldLabel htmlFor="reviewBody">Quote</FieldLabel>
+            <FieldLabel htmlFor="reviewBody">Commentaire</FieldLabel>
             <Textarea id="reviewBody" rows={4} {...register("body")} />
           </Field>
           <Field>
@@ -191,9 +191,9 @@ export default function AddReviewDialog({ property }: AddReviewDialogProps) {
             <Input id="reviewSource" placeholder="via Airbnb · Couple" {...register("source")} />
           </Field>
           <div className="mt-2 flex justify-end gap-2.5">
-            <DialogClose render={<Button type="button" variant="outline" />}>Cancel</DialogClose>
+            <DialogClose render={<Button type="button" variant="outline" />}>Annuler</DialogClose>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Saving…" : "Save review"}
+              {isPending ? "Enregistrement…" : "Enregistrer l'avis"}
             </Button>
           </div>
         </form>

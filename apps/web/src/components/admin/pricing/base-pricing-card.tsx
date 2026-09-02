@@ -66,9 +66,9 @@ export default function BasePricingCard({ property }: BasePricingCardProps) {
         // The slug is baked into the URL-shaped query key, so it has to be
         // passed here — a no-arg call would build a key matching nothing.
         queryClient.invalidateQueries({ queryKey: getGetVillaPricingSettingsQueryKey(property) })
-        toast("Pricing saved")
+        toast("Tarifs enregistrés")
       },
-      onError: () => toast("Could not save pricing"),
+      onError: () => toast("Impossible d'enregistrer les tarifs"),
     },
   })
 
@@ -91,16 +91,16 @@ export default function BasePricingCard({ property }: BasePricingCardProps) {
 
   return (
     <AdminCard
-      title="Base rate & fees"
-      sub="Applied whenever no seasonal rule matches."
+      title="Tarif de base et frais"
+      sub="Appliqué dès qu'aucune règle saisonnière ne correspond."
       flush={isPending}
     >
       {isPending ? (
-        <EmptyState message="Loading…" />
+        <EmptyState message="Chargement…" />
       ) : (
         <>
           <FieldGrid>
-            <AdminField label="Base nightly price (€)" htmlFor="basePrice">
+            <AdminField label="Prix de base par nuit (€)" htmlFor="basePrice">
               <Input
                 id="basePrice"
                 type="number"
@@ -109,7 +109,7 @@ export default function BasePricingCard({ property }: BasePricingCardProps) {
                 onChange={(e) => setForm((prev) => ({ ...prev, basePrice: e.target.value }))}
               />
             </AdminField>
-            <AdminField label="Minimum nights" htmlFor="minNights">
+            <AdminField label="Nuits minimum" htmlFor="minNights">
               <Input
                 id="minNights"
                 type="number"
@@ -118,7 +118,7 @@ export default function BasePricingCard({ property }: BasePricingCardProps) {
                 onChange={(e) => setForm((prev) => ({ ...prev, minNights: e.target.value }))}
               />
             </AdminField>
-            <AdminField label="Cleaning fee (€)" htmlFor="cleaningFee">
+            <AdminField label="Frais de ménage (€)" htmlFor="cleaningFee">
               <Input
                 id="cleaningFee"
                 type="number"
@@ -127,7 +127,7 @@ export default function BasePricingCard({ property }: BasePricingCardProps) {
                 onChange={(e) => setForm((prev) => ({ ...prev, cleaningFee: e.target.value }))}
               />
             </AdminField>
-            <AdminField label="Concierge fee (€)" htmlFor="conciergeFee">
+            <AdminField label="Frais de conciergerie (€)" htmlFor="conciergeFee">
               <Input
                 id="conciergeFee"
                 type="number"
@@ -139,7 +139,7 @@ export default function BasePricingCard({ property }: BasePricingCardProps) {
           </FieldGrid>
           <FieldActions>
             <Button type="button" disabled={isSaving} onClick={handleSave}>
-              {isSaving ? "Saving…" : "Save base pricing"}
+              {isSaving ? "Enregistrement…" : "Enregistrer le tarif de base"}
             </Button>
           </FieldActions>
         </>

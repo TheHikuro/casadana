@@ -59,7 +59,7 @@ export default function AddReservationDialog({ property }: AddReservationDialogP
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: bookingsQueryKey })
-        toast("Reservation added")
+        toast("Réservation ajoutée")
         setOpen(false)
         reset()
       },
@@ -67,10 +67,10 @@ export default function AddReservationDialog({ property }: AddReservationDialogP
         if (err instanceof ApiError && err.code === "DATES_CONFLICT") {
           setError("checkOut", {
             type: "conflict",
-            message: "Those dates overlap an existing reservation.",
+            message: "Ces dates chevauchent une réservation existante.",
           })
         } else {
-          toast("Could not add reservation")
+          toast("Impossible d'ajouter la réservation")
         }
       },
     },
@@ -94,36 +94,36 @@ export default function AddReservationDialog({ property }: AddReservationDialogP
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button type="button" />}>Add reservation</DialogTrigger>
+      <DialogTrigger render={<Button type="button" />}>Ajouter une réservation</DialogTrigger>
       <DialogContent>
-        <DialogTitle>Add reservation</DialogTitle>
+        <DialogTitle>Ajouter une réservation</DialogTitle>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
           <Field>
-            <FieldLabel htmlFor="guestName">Guest name</FieldLabel>
+            <FieldLabel htmlFor="guestName">Nom du voyageur</FieldLabel>
             <Input id="guestName" {...register("guestName", { required: true })} />
           </Field>
           <Field>
-            <FieldLabel htmlFor="guestEmail">Email</FieldLabel>
+            <FieldLabel htmlFor="guestEmail">E-mail</FieldLabel>
             <Input id="guestEmail" type="email" {...register("guestEmail", { required: true })} />
           </Field>
           <Field>
-            <FieldLabel htmlFor="guestPhone">Phone</FieldLabel>
+            <FieldLabel htmlFor="guestPhone">Téléphone</FieldLabel>
             <Input id="guestPhone" {...register("guestPhone", { required: true })} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field>
-              <FieldLabel htmlFor="checkIn">Check-in</FieldLabel>
+              <FieldLabel htmlFor="checkIn">Arrivée</FieldLabel>
               <Input id="checkIn" type="date" {...register("checkIn", { required: true })} />
             </Field>
             <Field>
-              <FieldLabel htmlFor="checkOut">Check-out</FieldLabel>
+              <FieldLabel htmlFor="checkOut">Départ</FieldLabel>
               <Input id="checkOut" type="date" {...register("checkOut", { required: true })} />
               <FieldError errors={[errors.checkOut]} />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field>
-              <FieldLabel htmlFor="adults">Guests</FieldLabel>
+              <FieldLabel htmlFor="adults">Voyageurs</FieldLabel>
               <Input
                 id="adults"
                 type="number"
@@ -146,9 +146,9 @@ export default function AddReservationDialog({ property }: AddReservationDialogP
             </Field>
           </div>
           <div className="mt-2 flex justify-end gap-2.5">
-            <DialogClose render={<Button type="button" variant="outline" />}>Cancel</DialogClose>
+            <DialogClose render={<Button type="button" variant="outline" />}>Annuler</DialogClose>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Saving…" : "Save reservation"}
+              {isPending ? "Enregistrement…" : "Enregistrer la réservation"}
             </Button>
           </div>
         </form>

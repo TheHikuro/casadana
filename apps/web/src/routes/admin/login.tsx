@@ -43,8 +43,8 @@ function AdminLoginPage() {
       onError: (err) => {
         const message =
           err instanceof ApiError && err.code === "INVALID_CREDENTIALS"
-            ? "Incorrect email or password."
-            : "Something went wrong. Try again."
+            ? "E-mail ou mot de passe incorrect."
+            : "Une erreur est survenue. Réessayez."
         setError("password", { type: "invalid", message })
       },
     },
@@ -63,10 +63,10 @@ function AdminLoginPage() {
         <p className="text-on-surface-variant mb-1.5 font-mono text-[11px] tracking-[0.22em] uppercase">
           Casa DaNa &amp; CasAy
         </p>
-        <h1 className="text-on-surface mb-6 text-xl font-bold">Admin access</h1>
+        <h1 className="text-on-surface mb-6 text-xl font-bold">Accès administrateur</h1>
 
         <Field className="mb-3">
-          <FieldLabel htmlFor="email">Email</FieldLabel>
+          <FieldLabel htmlFor="email">E-mail</FieldLabel>
           <Input
             id="email"
             type="email"
@@ -75,7 +75,7 @@ function AdminLoginPage() {
           />
         </Field>
         <Field className="mb-1">
-          <FieldLabel htmlFor="password">Password</FieldLabel>
+          <FieldLabel htmlFor="password">Mot de passe</FieldLabel>
           <Input
             id="password"
             type="password"
@@ -86,7 +86,7 @@ function AdminLoginPage() {
         <FieldError errors={[errors.password]} className="mb-3 min-h-4" />
 
         <Button type="submit" disabled={isPending} className="w-full justify-center">
-          {isPending ? "Signing in…" : "Enter dashboard"}
+          {isPending ? "Connexion…" : "Accéder au tableau de bord"}
         </Button>
       </form>
     </div>

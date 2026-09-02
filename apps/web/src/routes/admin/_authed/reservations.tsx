@@ -3,6 +3,7 @@ import { keepPreviousData } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 
 import AddReservationDialog from "@/components/admin/add-reservation-dialog"
+import { BOOKING_STATUS_LABELS } from "@/components/admin/booking-status"
 import ReservationTable from "@/components/admin/reservation-table"
 import { StatTile } from "@/components/admin/ui/stat-tile"
 import { Button } from "@/components/ui/button"
@@ -67,9 +68,9 @@ function ReservationsPage() {
     <div>
       <div className="mb-7 flex flex-wrap items-baseline justify-between gap-4">
         <div>
-          <h2 className="text-on-surface text-2xl font-bold">Reservations</h2>
+          <h2 className="text-on-surface text-2xl font-bold">Réservations</h2>
           <p className="text-on-surface-variant mt-1 text-[13.5px]">
-            Requests and confirmed stays for {PROPERTY_LABELS[property]}.
+            Demandes et séjours confirmés pour {PROPERTY_LABELS[property]}.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -96,13 +97,13 @@ function ReservationsPage() {
       <div className="mb-5 grid grid-cols-2 gap-4 md:grid-cols-6">
         <StatTile label="Total" value={totalsAll?.total ?? 0} />
         {STATUSES.map((s) => (
-          <StatTile key={s} label={s} value={statusTotals[s] ?? 0} />
+          <StatTile key={s} label={BOOKING_STATUS_LABELS[s]} value={statusTotals[s] ?? 0} />
         ))}
       </div>
 
       <div className="border-outline-variant bg-surface rounded-lg border">
         <div className="border-outline-variant border-b px-5 py-4">
-          <h3 className="text-on-surface text-[14.5px] font-semibold">All reservations</h3>
+          <h3 className="text-on-surface text-[14.5px] font-semibold">Toutes les réservations</h3>
         </div>
         <ReservationTable bookings={data?.bookings ?? []} property={property} />
         {data && data.total > PAGE_SIZE && (
@@ -114,10 +115,10 @@ function ReservationsPage() {
               disabled={page <= 1}
               onClick={() => goToPage(page - 1)}
             >
-              ‹ Prev
+              ‹ Précédent
             </Button>
             <span className="text-on-surface-variant text-[12.5px]">
-              Page {page} of {maxPage}
+              Page {page} sur {maxPage}
             </span>
             <Button
               type="button"
@@ -126,7 +127,7 @@ function ReservationsPage() {
               disabled={page >= maxPage}
               onClick={() => goToPage(page + 1)}
             >
-              Next ›
+              Suivant ›
             </Button>
           </div>
         )}
